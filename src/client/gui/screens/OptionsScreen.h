@@ -21,6 +21,7 @@ public:
 	void setupPositions();
 	void buttonClicked(Button* button);
 	void render(int xm, int ym, float a);
+	float panoramaDim() { return 0.65f; }
 	void removed();
 	void selectCategory(int index);
 

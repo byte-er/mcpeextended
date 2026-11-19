@@ -1,3 +1,7 @@
+#include "../../util/Mth.h"
+#include "../../platform/time.h"
+#include <cstdio>
+#include <cmath>
 #include "Screen.h"
 #include "components/Button.h"
 #include "components/TextBox.h"
@@ -129,11 +133,91 @@ void Screen::renderBackground( int vo )
 	if (minecraft->isLevelGenerated()) {
 		fillGradient(0, 0, width, height, 0xc0101010, 0xd0101010);
 	} else {
-		renderDirtBackground(vo);
+		renderPanorama(panoramaDim());
 	}
 }
 
+// Rotating cube panorama like the 0.9.0 / Java title screen.
+void Screen::renderPanorama(float dim)
+{
+	Textures* tx = minecraft->textures;
+	TextureId faces[6];
+	for (int i = 0; i < 6; ++i) {
+		char name[64];
+		sprintf(name, "gui/background/panorama_%d.png", i);
+		faces[i] = tx->loadSmoothClampedTexture(name);
+		if (!Textures::isTextureIdValid(faces[i])) { renderDirtTiles(0); return; }
+	}
+
+	const GLboolean depth = glIsEnabled(GL_DEPTH_TEST);
+	const GLboolean cull  = glIsEnabled(GL_CULL_FACE);
+	glDisable2(GL_DEPTH_TEST);
+	glDisable2(GL_CULL_FACE);
+	glDisable2(GL_FOG);
+	glDisable2(GL_ALPHA_TEST);
+	glDisable2(GL_BLEND);
+	glEnable2(GL_TEXTURE_2D);
+
+	glMatrixMode(GL_PROJECTION);
+	glPushMatrix2();
+	glLoadIdentity2();
+	gluPerspective(120.0f, (float)minecraft->width / (float)Mth::Max(1, minecraft->height), 0.05f, 10.0f);
+	glMatrixMode(GL_MODELVIEW);
+	glPushMatrix2();
+	glLoadIdentity2();
+
+	// slow spin + gentle bob, wrapped so the angle stays small (precision)
+	const double t = std::fmod(getTimeSD() * 20.0, 400.0 * 2.0 * 3.14159265358979 * 9.0);
+	glRotatef2(180.0f, 1, 0, 0);
+	glRotatef2((float)(std::sin(t / 400.0) * 25.0 + 20.0), 1, 0, 0);
+	glRotatef2((float)(-std::fmod(t * 0.1, 360.0)), 0, 1, 0);
+
+	Tesselator& tess = Tesselator::instance;
+	glColor4f2(1, 1, 1, 1);
+	for (int k = 0; k < 6; ++k) {
+		glPushMatrix2();
+		if (k == 1) glRotatef2(90, 0, 1, 0);
+		if (k == 2) glRotatef2(180, 0, 1, 0);
+		if (k == 3) glRotatef2(-90, 0, 1, 0);
+		if (k == 4) glRotatef2(90, 1, 0, 0);
+		if (k == 5) glRotatef2(-90, 1, 0, 0);
+		tx->bind(faces[k]);
+		tess.begin();
+		tess.color(0xffffff);
+		tess.vertexUV(-1, -1, 1, 0, 0);
+		tess.vertexUV( 1, -1, 1, 1, 0);
+		tess.vertexUV( 1,  1, 1, 1, 1);
+		tess.vertexUV(-1,  1, 1, 0, 1);
+		tess.draw();
+		glPopMatrix2();
+	}
+
+	glMatrixMode(GL_PROJECTION);
+	glPopMatrix2();
+	glMatrixMode(GL_MODELVIEW);
+	glPopMatrix2();
+	if (depth) glEnable2(GL_DEPTH_TEST);
+	if (cull) glEnable2(GL_CULL_FACE);
+
+	// soft vignette towards the bottom + optional dimming for sub menus
+	glEnable2(GL_BLEND);
+	glBlendFunc2(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+	const int a0 = (int)(dim * 255.0f);
+	const int a1 = Mth::Min(255, a0 + 0x40);
+	fillGradient(0, 0, width, height, (a0 << 24) | 0x101010, (a1 << 24) | 0x101010);
+}
+
 void Screen::renderDirtBackground( int vo )
+{
+	// outside a world, menus use the 0.9.0 panorama instead of dirt
+	if (!minecraft->isLevelGenerated()) {
+		renderPanorama(panoramaDim());
+		return;
+	}
+	renderDirtTiles(vo);
+}
+
+void Screen::renderDirtTiles( int vo )
 {
 	//glDisable2(GL_LIGHTING);
 	glDisable2(GL_FOG);

@@ -25,7 +25,7 @@
 
 // Some kind of default settings, might be overridden in ::init
 StartMenuScreen::StartMenuScreen()
-:	bHost(    2, 0, 0, 160, 24, "Start Game"),
+:	bHost(    2, 0, 0, 160, 24, "Play"),
 	bJoin(    3, 0, 0, 160, 24, "Join Game"),
 	bOptions( 4, 0, 0,  78, 22, "Options"),
 	bBuy(     5, 0, 0, 78, 22, "Buy"),

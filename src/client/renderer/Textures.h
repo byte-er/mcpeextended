@@ -60,6 +60,8 @@ public:
 	static bool MIPMAP;
 	static int textureChanges;
 	static const TextureId InvalidId;
+	/** Loads a texture with linear filtering and clamped edges (panorama faces). */
+	TextureId loadSmoothClampedTexture(const std::string& resourceName);
 
 private:
 	TextureMap idMap;

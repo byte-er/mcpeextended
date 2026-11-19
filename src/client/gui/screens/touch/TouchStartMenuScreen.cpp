@@ -86,7 +86,7 @@ namespace Touch {
 
 // Some kind of default settings, might be overridden in ::init
 StartMenuScreen::StartMenuScreen()
-:	bHost(    2, "Start Game"),
+:	bHost(    2, "Play"),
 	bJoin(    3, "Join Game"),
 	bOptions( 4, "Options"),
 	bBuy(     5)

@@ -208,6 +208,19 @@ void Textures::uploadRgba(const TextureData& img, int mode)
 	delete[] tmp;
 }
 
+TextureId Textures::loadSmoothClampedTexture(const std::string& resourceName)
+{
+	TextureMap::iterator it = idMap.find(resourceName);
+	if (it != idMap.end()) return it->second;
+	const bool oldClamp = clamp, oldBlur = blur;
+	clamp = true;
+	blur = true;
+	TextureId id = loadTexture(resourceName);
+	clamp = oldClamp;
+	blur = oldBlur;
+	return id;
+}
+
 void Textures::reloadAll()
 {
 	// Re-upload every uncompressed 8 bit texture (e.g. after toggling anaglyph)

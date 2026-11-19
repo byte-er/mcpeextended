@@ -172,16 +172,23 @@ void RolledSelectionListH::render( int xm, int ym, float a )
 
 	//LOGI("x: %f\n", xo);
 
-	minecraft->textures->loadAndBindTexture("gui/background.png");
-	glColor4f2(1.0f, 1, 1, 1);
-	float s = 32;
-	t.begin();
-	t.color(0x202020);
-	t.vertexUV(x0, by1, 0, (x0 + (int) xo) / s, by1 / s);
-	t.vertexUV(x1, by1, 0, (x1 + (int) xo) / s, by1 / s);
-	t.vertexUV(x1, by0, 0, (x1 + (int) xo) / s, by0 / s);
-	t.vertexUV(x0, by0, 0, (x0 + (int) xo) / s, by0 / s);
-	t.draw();
+	if (!minecraft->isLevelGenerated()) {
+		// 0.9.0 look: translucent dark strip over the menu panorama
+		glEnable2(GL_BLEND);
+		glBlendFunc2(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+		fill((int)x0, (int)by0, (int)x1, (int)by1, 0x90000000);
+	} else {
+		minecraft->textures->loadAndBindTexture("gui/background.png");
+		glColor4f2(1.0f, 1, 1, 1);
+		float s = 32;
+		t.begin();
+		t.color(0x202020);
+		t.vertexUV(x0, by1, 0, (x0 + (int) xo) / s, by1 / s);
+		t.vertexUV(x1, by1, 0, (x1 + (int) xo) / s, by1 / s);
+		t.vertexUV(x1, by0, 0, (x1 + (int) xo) / s, by0 / s);
+		t.vertexUV(x0, by0, 0, (x0 + (int) xo) / s, by0 / s);
+		t.draw();
+	}
 
 	const int HalfHeight = 48;
 

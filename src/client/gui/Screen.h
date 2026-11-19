@@ -38,6 +38,11 @@ public:
     virtual void renderBackground();
     virtual void renderBackground(int vo);
     virtual void renderDirtBackground(int vo);
+	void renderDirtTiles(int vo);
+	/** 0.9.0 style rotating panorama (menus outside a world). dim: 0..1 dark overlay */
+	void renderPanorama(float dim);
+	/** How much the panorama is darkened behind this screen. */
+	virtual float panoramaDim() { return 0.45f; }
 	// query
 	virtual bool renderGameBehind();
 	virtual bool hasClippingArea(IntRectangle& out);

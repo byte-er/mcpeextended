@@ -1,4 +1,6 @@
 #include "SimpleChooseLevelScreen.h"
+#include "../../../util/Mth.h"
+#include "../Font.h"
 #include "ProgressScreen.h"
 #include "ScreenChooser.h"
 #include "../components/Button.h"
@@ -86,27 +88,29 @@ void SimpleChooseLevelScreen::setupPositions()
 
     tLevelName.width = tSeed.width = 200;
     tLevelName.x = centerX - tLevelName.width / 2;
-    tLevelName.y = buttonHeight + 20;
+    tLevelName.y = buttonHeight + Font::DefaultLineHeight + 8;
 
     tSeed.x = tLevelName.x;
-    tSeed.y = tLevelName.y + 30;
+    tSeed.y = tLevelName.y + tLevelName.height + Font::DefaultLineHeight + 6;
 
+    // Mode + create stacked when there is room, otherwise side by side, so
+    // nothing overlaps the mode description (used to on landscape phones).
     bGamemode->width = 140;
-    bGamemode->x = centerX - bGamemode->width / 2;
-    // compute vertical centre for gamemode in remaining space
-    {
-        int bottomPad = 20;
-        int availTop = buttonHeight + 20 + 30 + 10; // just below seed
-        int availBottom = height - bottomPad - bCreate->height - 10; // leave some gap before create
-        int availHeight = availBottom - availTop;
-        if (availHeight < 0) availHeight = 0;
-        bGamemode->y = availTop + (availHeight - bGamemode->height) / 2;
-    }
-
     bCreate->width = 100;
-    bCreate->x = centerX - bCreate->width / 2;
-    int bottomPadding = 20;
-    bCreate->y = height - bottomPadding - bCreate->height;
+    const int rowY = tSeed.y + tSeed.height + 8;
+    const int descH = Font::DefaultLineHeight + 4;
+    const int stackedNeed = rowY + bGamemode->height + descH + bCreate->height + padding;
+    if (stackedNeed <= height) {
+        bGamemode->x = centerX - bGamemode->width / 2;
+        bGamemode->y = rowY;
+        bCreate->x = centerX - bCreate->width / 2;
+        bCreate->y = Mth::Max(rowY + bGamemode->height + descH, height - bCreate->height - padding);
+    } else {
+        bGamemode->x = centerX - (bGamemode->width + bCreate->width + padding) / 2;
+        bGamemode->y = rowY;
+        bCreate->x = bGamemode->x + bGamemode->width + padding;
+        bCreate->y = rowY;
+    }
 }
 
 void SimpleChooseLevelScreen::tick()

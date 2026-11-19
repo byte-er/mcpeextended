@@ -26,6 +26,7 @@ public:
 	
 	void tick();
 	void render(int xm, int ym, float a);
+	float panoramaDim() { return 0.0f; }
 
 	void buttonClicked(Button* button);
 	virtual void mouseClicked(int x, int y, int buttonNum);
