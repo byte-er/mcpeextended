@@ -232,7 +232,9 @@ void RandomLevelSource::postProcess(ChunkSource* parent, int xt, int zt) {
     random.setSeed(level->getSeed());
     int xScale = random.nextInt() / 2 * 2 + 1;
     int zScale = random.nextInt() / 2 * 2 + 1;
-    random.setSeed(((xt * xScale) + (zt * zScale)) ^ level->getSeed());
+    // 32 bit wrap-around made explicit (signed overflow is UB); same values as before
+    const int chunkHash = (int)((unsigned int)xt * (unsigned int)xScale + (unsigned int)zt * (unsigned int)zScale);
+    random.setSeed(chunkHash ^ level->getSeed());
 
 	// //@todo: hide those chunks if they are aren't visible
 //    if (random.nextInt(4) == 0) {

@@ -319,7 +319,7 @@ void Level::tickTiles() {
 
 		TIMER_POP_PUSH("tickTiles");
         for (int i = 0; i < 20; i++) { //@todo: CHUNK_TILE_TICK_COUNT
-            _randValue = _randValue * 3 + _addend;
+            _randValue = (int)((unsigned int)_randValue * 3u + (unsigned int)_addend); // defined wrap-around
             int val = (_randValue >> 2);
             int x = (val & 15);
             int z = ((val >> 8) & 15);

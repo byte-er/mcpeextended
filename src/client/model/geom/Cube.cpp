@@ -39,16 +39,16 @@ Cube::Cube(ModelPart* modelPart, int xTexOffs, int yTexOffs, float x0, float y0,
 	vertices[6] = VertexPT(x1, y1, z1, 8, 8);
 	vertices[7] = VertexPT(x0, y1, z1, 8, 0);
 
-	VertexPT* ptr = vertices - 1;
-	VertexPT* u0 = ++ptr;
-	VertexPT* u1 = ++ptr;
-	VertexPT* u2 = ++ptr;
-	VertexPT* u3 = ++ptr;
+	// (was "vertices - 1" + pre-increment: pointer arithmetic outside the array)
+	VertexPT* u0 = &vertices[0];
+	VertexPT* u1 = &vertices[1];
+	VertexPT* u2 = &vertices[2];
+	VertexPT* u3 = &vertices[3];
 
-	VertexPT* l0 = ++ptr;
-	VertexPT* l1 = ++ptr;
-	VertexPT* l2 = ++ptr;
-	VertexPT* l3 = ++ptr;
+	VertexPT* l0 = &vertices[4];
+	VertexPT* l1 = &vertices[5];
+	VertexPT* l2 = &vertices[6];
+	VertexPT* l3 = &vertices[7];
 
 	polygons[0] = PolygonQuad(l1, u1, u2, l2, xTexOffs + d + w, yTexOffs + d, xTexOffs + d + w + d, yTexOffs + d + h); // Right
 	polygons[1] = PolygonQuad(u0, l0, l3, u3, xTexOffs + 0, yTexOffs + d, xTexOffs + d, yTexOffs + d + h); // Left

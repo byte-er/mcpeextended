@@ -1,3 +1,4 @@
+#include <cmath>
 
 #include "Packet.h"
 #include "../world/level/chunk/LevelChunk.h"
@@ -176,7 +177,11 @@ Packet* MinecraftPackets::createPacket(int id)
 namespace PacketUtil
 {
 	signed char Rot_degreesToChar(float rot)  {
-		return (signed char)(rot / 360.0f * 256.0f);
+		// float -> signed char is undefined outside [-128, 127]: x86 wraps but
+		// ARM saturates, so Android sent wrong rotations for angles > 180.
+		// Go through int and wrap explicitly (Java: (byte)(int)(rot * 256 / 360)).
+		const int i = (int)std::floor(rot / 360.0f * 256.0f);
+		return (signed char)(unsigned char)(i & 0xff);
 	}
 	float Rot_charToDegrees(signed char rot) {
 		return ((float)rot) / 256.0f * 360.0f;
