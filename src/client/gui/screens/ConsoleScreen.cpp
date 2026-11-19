@@ -23,6 +23,14 @@ ConsoleScreen::ConsoleScreen()
 
 void ConsoleScreen::init()
 {
+    if (minecraft->useTouchscreen())
+        minecraft->platform()->showKeyboard();
+}
+
+void ConsoleScreen::removed()
+{
+    if (minecraft->useTouchscreen())
+        minecraft->platform()->hideKeyboard();
 }
 
 void ConsoleScreen::tick()
@@ -293,7 +301,8 @@ void ConsoleScreen::render(int /*xm*/, int /*ym*/, float /*a*/)
     fillGradient(0, 0, width, height, 0x00000000, 0x40000000);
 
     const int boxH  = 12;
-    const int boxY  = height - boxH - 2;
+    // on touch screens the soft keyboard covers the bottom half: type at the top
+    const int boxY  = minecraft->useTouchscreen() ? 2 : height - boxH - 2;
     const int boxX0 = 2;
     const int boxX1 = width - 2;
 

@@ -66,7 +66,8 @@ LevelRenderer::LevelRenderer( Minecraft* mc)
 	skyList(0), starList(0), darkList(0),
 	tileRenderer(NULL),
 	destroyProgress(0),
-	lod(NULL)
+	lod(NULL),
+	cloudVbo(0)
 {
 #ifdef OPENGL_ES
 	// allChanged() never uses a render distance above 400 blocks
@@ -1031,6 +1032,10 @@ void LevelRenderer::renderSky(float alpha) {
 }
 
 void LevelRenderer::renderClouds( float alpha ) {
+	if (mc->options.fancyGraphics) {
+		renderClouds3D(alpha);
+		return;
+	}
 	//if (!mc->level->dimension->isNaturalDimension()) return;
 	glEnable2(GL_TEXTURE_2D);
 	glDisable(GL_CULL_FACE);
@@ -1442,4 +1447,85 @@ void LevelRenderer::renderLod(Mob* camera, float a, float innerHalf)
 	const double camY = camera->yOld + (camera->y - camera->yOld) * (double)a;
 	const double camZ = camera->zOld + (camera->z - camera->zOld) * (double)a;
 	lod->render(camX, camY, camZ, innerHalf, lodColumns);
+}
+
+// ---------------------------------------------------------------------------
+// Volumetric clouds (Pocket Edition 0.9 / Java "fancy" clouds).
+// Every opaque pixel of clouds.png is a 12 x 4 x 12 block cloud cell; only
+// faces between filled and empty cells are emitted. Drawn in two passes
+// (depth only, then colour with LEQUAL) so overlapping faces of the
+// translucent clouds don't stack up.
+// ---------------------------------------------------------------------------
+void LevelRenderer::renderClouds3D( float alpha )
+{
+	const TextureData* img = textures->getTemporaryTextureData(textures->loadTexture("environment/clouds.png"));
+	if (!img || !img->data || img->format != TEXF_UNCOMPRESSED_8888 || !img->transparent) return;
+	const int iw = img->w, ih = img->h;
+	const unsigned char* px = img->data;
+
+	const float CELL = 12.0f, THICK = 4.0f;
+	const int R = 20; // cells around the camera (240 blocks)
+
+	Mob* cam = mc->cameraTargetPlayer;
+	const double camX = cam->xOld + (cam->x - cam->xOld) * (double)alpha;
+	const double camY = cam->yOld + (cam->y - cam->yOld) * (double)alpha;
+	const double camZ = cam->zOld + (cam->z - cam->zOld) * (double)alpha;
+	// drift along +x, wrapped to the texture period (precision)
+	const double period = iw * (double)CELL;
+	const double drift = std::fmod(((double)ticks + (double)alpha) * 0.03, period);
+	const double fx = camX - drift; // camera position in cloud-field space
+	const int ci0 = (int)std::floor(fx / CELL), cj0 = (int)std::floor(camZ / CELL);
+	const float cloudY = 120.0f;
+
+	#define FILLED(i, j) (px[(((((j) % ih) + ih) % ih) * iw + ((((i) % iw) + iw) % iw)) * 4 + 3] > 127)
+
+	const Vec3 cc = level->getCloudColor(alpha);
+	const int r = (int)(cc.x * 255), g = (int)(cc.y * 255), b = (int)(cc.z * 255);
+	Tesselator& t = Tesselator::instance;
+	t.begin();
+	int quads = 0;
+	const float y0 = (float)(cloudY - camY), y1 = y0 + THICK;
+	for (int j = cj0 - R; j <= cj0 + R; ++j)
+	for (int i = ci0 - R; i <= ci0 + R; ++i) {
+		if (!FILLED(i, j)) continue;
+		const float x0 = (float)(i * CELL - fx), x1 = x0 + CELL;
+		const float z0 = (float)(j * CELL - camZ), z1 = z0 + CELL;
+		// top / bottom
+		if (camY < cloudY + THICK) { t.color((int)(r * 0.7f), (int)(g * 0.7f), (int)(b * 0.7f), 204);
+			t.vertex(x0, y0, z1); t.vertex(x1, y0, z1); t.vertex(x1, y0, z0); t.vertex(x0, y0, z0); ++quads; }
+		if (camY > cloudY) { t.color(r, g, b, 204);
+			t.vertex(x0, y1, z0); t.vertex(x1, y1, z0); t.vertex(x1, y1, z1); t.vertex(x0, y1, z1); ++quads; }
+		// sides facing empty neighbours
+		t.color((int)(r * 0.9f), (int)(g * 0.9f), (int)(b * 0.9f), 204);
+		if (!FILLED(i - 1, j)) { t.vertex(x0, y0, z0); t.vertex(x0, y1, z0); t.vertex(x0, y1, z1); t.vertex(x0, y0, z1); ++quads; }
+		if (!FILLED(i + 1, j)) { t.vertex(x1, y0, z1); t.vertex(x1, y1, z1); t.vertex(x1, y1, z0); t.vertex(x1, y0, z0); ++quads; }
+		t.color((int)(r * 0.8f), (int)(g * 0.8f), (int)(b * 0.8f), 204);
+		if (!FILLED(i, j - 1)) { t.vertex(x1, y0, z0); t.vertex(x1, y1, z0); t.vertex(x0, y1, z0); t.vertex(x0, y0, z0); ++quads; }
+		if (!FILLED(i, j + 1)) { t.vertex(x0, y0, z1); t.vertex(x0, y1, z1); t.vertex(x1, y1, z1); t.vertex(x1, y0, z1); ++quads; }
+	}
+	#undef FILLED
+	if (quads == 0) { t.end(true, 0); return; }
+	if (!cloudVbo) glGenBuffers(1, &cloudVbo);
+	RenderChunk rc = t.end(true, cloudVbo);
+
+	glDisable2(GL_TEXTURE_2D);
+	glDisable2(GL_CULL_FACE);
+	glEnable2(GL_BLEND);
+	glBlendFunc2(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+	glDepthMask(true);
+	glClear(GL_DEPTH_BUFFER_BIT);
+	// pass 1: depth only
+	glColorMask(false, false, false, false);
+	drawArrayVTC(cloudVbo, rc.vertexCount, 24);
+	// pass 2: colour, only the front-most cloud surface
+	glColorMask(true, true, true, true);
+	glDepthFunc(GL_LEQUAL);
+	drawArrayVTC(cloudVbo, rc.vertexCount, 24);
+	glDepthFunc(GL_LEQUAL);
+	// the clouds use their own projection: don't let their depth hide terrain
+	glClear(GL_DEPTH_BUFFER_BIT);
+	glDepthMask(false);
+	glDisable2(GL_BLEND);
+	glEnable2(GL_CULL_FACE);
+	glEnable2(GL_TEXTURE_2D);
 }

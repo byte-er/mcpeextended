@@ -61,6 +61,8 @@ private:
 	RectangleArea* aUp;
 	RectangleArea* aDown;
 	RectangleArea* aPause;
+	RectangleArea* aChat;
+	RectangleArea _hudButtonsArea; // pause + chat, excluded from turning
 	//RectangleArea* aUpJump;
 	RectangleArea* aJump;
 	RectangleArea* aUpLeft;

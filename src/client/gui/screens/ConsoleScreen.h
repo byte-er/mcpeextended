@@ -12,6 +12,7 @@ public:
     virtual ~ConsoleScreen() {}
 
     void init();
+    void removed();
     void render(int xm, int ym, float a);
     void tick();
 

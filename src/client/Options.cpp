@@ -36,7 +36,7 @@ void Options::initDefaultValues() {
 	limitFramerate = false;
 	vsync = true;
 	fancyGraphics = true;//false;
-	ambientOcclusion = false;
+	ambientOcclusion = true; // 0.9.0 shipped with smooth lighting on
 	lodTerrain = true;
 	if(minecraft->supportNonTouchScreen())
 		useTouchScreen = false;
@@ -98,7 +98,7 @@ void Options::initDefaultValues() {
     viewDistance = 2;
     thirdPersonView = false;
 	useMouseForDigging = false;
-	fancyGraphics = false;
+	fancyGraphics = true; // 0.9.0 look: fancy leaves, sky and 3D clouds
 
 	//renderDebug = true;
 	#if !defined(RPI)

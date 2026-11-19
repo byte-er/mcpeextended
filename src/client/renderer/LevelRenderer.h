@@ -46,6 +46,9 @@ public:
 
 	void renderSky(float alpha);
 	void renderClouds(float alpha);
+	/** 0.9.0 / Java fancy clouds: 12x4x12 block volumes from clouds.png */
+	void renderClouds3D(float alpha);
+	GLuint cloudVbo;
 	/** Java style animated world border force field */
 	void renderWorldBorder(Mob* camera, float a, float viewDistance);
 	/** Low detail terrain beyond the chunk render distance */

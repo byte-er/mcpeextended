@@ -21,14 +21,19 @@
              justify-content: center; gap: 12px; color: #ddd; font: 16px sans-serif; background: #1a1410; }
   #bar { width: min(320px, 70vw); height: 6px; background: #333; }
   #bar > div { height: 100%; width: 0; background: #6c3; transition: width .2s; }
-  #fs { position: fixed; right: 8px; top: 8px; z-index: 2; padding: 6px 10px; font: 13px sans-serif;
+  #fs { position: fixed; left: 50%; transform: translateX(-50%); top: 8px; z-index: 2; padding: 6px 10px; font: 13px sans-serif;
         color: #fff; background: rgba(0,0,0,.45); border: 1px solid rgba(255,255,255,.3); border-radius: 4px; }
+  #kbd { position: fixed; left: 0; top: 0; width: 1px; height: 1px; opacity: 0; border: 0; padding: 0; font-size: 16px; }
+  #kbdhint { position: fixed; left: 50%; top: 30%; transform: translateX(-50%); z-index: 3; font: 16px sans-serif; padding: 10px 18px;
+        color: #fff; background: rgba(0,0,0,.7); border: 1px solid rgba(255,255,255,.5); border-radius: 6px; }
 </style>
 </head>
 <body>
 <canvas id="canvas" tabindex="0" oncontextmenu="event.preventDefault()"></canvas>
 <div id="loading"><div id="status">Loading…</div><div id="bar"><div></div></div></div>
 <button id="fs" hidden>Fullscreen</button>
+<input id="kbd" type="text" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" enterkeyhint="send" aria-hidden="true" tabindex="-1">
+<button id="kbdhint" hidden>&#9000; Tap to type</button>
 <script>
   // ---- saves: /persist lives in IndexedDB ----
   var syncing = false;
@@ -76,6 +81,45 @@
     };
     document.addEventListener('fullscreenchange', function () { fsBtn.hidden = !!document.fullscreenElement; });
   }
+
+  // ---- soft keyboard for touch browsers ----
+  // The game asks for the keyboard (chat, world name...) via mcpeKeyboard(true).
+  // A hidden input collects what is typed; differences are fed to the game.
+  // It keeps a 2-char sentinel so backspace on an "empty" field still fires.
+  (function () {
+    var kbd = document.getElementById('kbd'), hint = document.getElementById('kbdhint');
+    var SENT = '##', prev = SENT, wanted = false;
+    function reset() { kbd.value = SENT; prev = SENT; try { kbd.setSelectionRange(2, 2); } catch (e) {} }
+    function key(k) { if (Module._web_kbd_key) Module._web_kbd_key(k); }
+    function chr(c) { if (Module._web_kbd_char) Module._web_kbd_char(c); }
+    function focusKbd() { reset(); kbd.focus({ preventScroll: true }); hint.hidden = document.activeElement === kbd; }
+    kbd.addEventListener('input', function (e) {
+      var v = kbd.value, p = 0;
+      while (p < prev.length && p < v.length && prev[p] === v[p]) p++;
+      for (var i = prev.length; i > p; --i) key(8);
+      for (var j = p; j < v.length; ++j) { var c = v.charCodeAt(j); if (c === 10 || c === 13) key(13); else chr(c); }
+      prev = v;
+      if (!e.isComposing) reset();
+    });
+    // keep these key events away from GLFW's window listeners (registered later)
+    ['keydown', 'keypress', 'keyup'].forEach(function (type) {
+      window.addEventListener(type, function (e) {
+        if (e.target !== kbd) return;
+        e.stopImmediatePropagation();
+        if (type === 'keydown' && !e.isComposing) {
+          if (e.key === 'Enter') { e.preventDefault(); key(13); }
+          else if (e.key === 'Escape') { e.preventDefault(); key(27); }
+        }
+      }, true);
+    });
+    kbd.addEventListener('blur', function () { if (wanted) hint.hidden = false; });
+    hint.addEventListener('click', function (e) { e.preventDefault(); focusKbd(); });
+    window.mcpeKeyboard = function (show) {
+      wanted = show;
+      if (show) { focusKbd(); setTimeout(function () { if (wanted) hint.hidden = document.activeElement === kbd; }, 150); }
+      else { hint.hidden = true; kbd.blur(); }
+    };
+  })();
 
   // ---- offline support ----
   if ('serviceWorker' in navigator && location.protocol !== 'file:')

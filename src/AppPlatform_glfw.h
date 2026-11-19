@@ -11,6 +11,9 @@
 #include <fstream>
 #include <sstream>
 #include <GLFW/glfw3.h>
+#ifdef __EMSCRIPTEN__
+#include <emscripten.h>
+#endif
 #ifdef _WIN32
 #include <windows.h>
 #include <shellapi.h>
@@ -26,6 +29,20 @@ public:
     AppPlatform_glfw()
     {
     }
+
+#ifdef __EMSCRIPTEN__
+	// Touch browsers have no physical keyboard: web/shell.html focuses a
+	// hidden <input> (or shows a "tap to type" bar on iOS) and feeds the
+	// typed text back through web_kbd_char / web_kbd_key.
+	virtual void showKeyboard() {
+		AppPlatform::showKeyboard();
+		EM_ASM({ if (window.mcpeKeyboard) window.mcpeKeyboard(true); });
+	}
+	virtual void hideKeyboard() {
+		AppPlatform::hideKeyboard();
+		EM_ASM({ if (window.mcpeKeyboard) window.mcpeKeyboard(false); });
+	}
+#endif
 
 	BinaryBlob readAssetFile(const std::string& filename) {
 		FILE* fp = fopen(("data/" + filename).c_str(), "r");

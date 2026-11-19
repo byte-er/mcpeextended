@@ -1,3 +1,32 @@
+## MCPE Extended 0.9.2
+
+### Downloads
+| Platform | File |
+|---|---|
+| Android (most phones) | `mcpeextended-0.9.2-arm64-v8a.apk` (or `-universal.apk` if unsure, `-armeabi-v7a.apk` for old 32-bit phones) |
+| Any computer, no setup | `mcpeextended.html`: one self-contained file (about 15 MB). Download it and open it in Chrome, Edge, Firefox or Safari; it works offline and saves worlds in the browser. |
+| PC (Windows / macOS / Linux), **iOS**, other devices | `mcpeextended-web.zip`: the browser build. Host the files on any web server (HTTPS to install it as an app). On PC it uses mouse + keyboard (click to capture the mouse, Esc pauses); on phones and tablets it uses touch controls. On iPhone/iPad open it in Safari → Share → **Add to Home Screen** to install it as a fullscreen app. |
+
+If installing the APK over an older build fails, uninstall the old one first; builds can be signed with different keys. Old worlds in `/sdcard/games/com.mojang` are copied over automatically when Android lets the app read them.
+
+### Fixes
+- **See-through holes in the world**: distant terrain no longer skips areas whose chunks are still being rebuilt.
+- **"Back to game" soft lock** in the browser build on PC.
+- **Distant Terrain has quality levels**: full textured blocks right past your render distance, then 2×2 and 4×4 detail further out, instead of one very low level everywhere.
+
+### New: closer to the real 0.9.0
+- **Create a World screen** from 0.9.0, with world types **Old** (256×256 with a border), **Large** and **Flat**, and Survival / Creative.
+- **3D clouds**: thick 12×4×12-block volumetric clouds like 0.9.0. Turn off Fancy Graphics for the old flat clouds.
+- **Touch HUD**: pause and chat buttons in the top right, using the 0.9.0 icons. Chat opens the keyboard with the text box at the top of the screen, and works for `/commands`.
+- Fancy graphics and smooth lighting are on by default, as in 0.9.0.
+- Browser build on phones and tablets: tapping a text field or the chat button opens the on-screen keyboard. On iPhone/iPad, tap the "Tap to type" bar.
+
+### Notes
+- The browser build is single-player; LAN multiplayer isn't available in browsers.
+- iOS is supported through the browser/PWA build. A native iOS app would need an Apple developer account to sign.
+
+---
+
 ## MCPE Extended 0.9.1
 
 ### Downloads

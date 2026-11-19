@@ -164,6 +164,17 @@ static EM_BOOL web_resize(int, const EmscriptenUiEvent*, void*) { webResize(); r
 // "not locked" change events when a lock request fails or is pending, and
 // pausing on those made "Back to game" bounce straight back to the menu.
 static bool g_webPointerLocked = false;
+// Soft keyboard bridge for touch browsers (see web/shell.html)
+extern "C" EMSCRIPTEN_KEEPALIVE void web_kbd_char(int c) {
+	if (c >= 32 && c < 127) Keyboard::feedText((char)c);
+}
+extern "C" EMSCRIPTEN_KEEPALIVE void web_kbd_key(int k) {
+	int key = k == 8 ? Keyboard::KEY_BACKSPACE : k == 13 ? Keyboard::KEY_RETURN : k == 27 ? Keyboard::KEY_ESCAPE : -1;
+	if (key < 0) return;
+	Keyboard::feed((unsigned char)key, 1);
+	Keyboard::feed((unsigned char)key, 0);
+}
+
 static EM_BOOL web_pointerlock(int, const EmscriptenPointerlockChangeEvent* e, void*) {
 	MAIN_CLASS* mc = (MAIN_CLASS*)g_app;
 	const bool wasLocked = g_webPointerLocked;
