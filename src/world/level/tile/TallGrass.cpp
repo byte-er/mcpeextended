@@ -1,3 +1,4 @@
+#include "../BiomeTint.h"
 #include "TallGrass.h"
 #include "../FoliageColor.h"
 #include "../../entity/player/Player.h"
@@ -32,7 +33,7 @@ int TallGrass::getColor( LevelSource* level, int x, int y, int z ) {
 	int d = level->getData(x, y, z);
 	if (d == DEAD_SHRUB) return 0xffffff;
 
-	return 0x339933;//level->getBiome(x, z)->getGrassColor();
+	return BiomeTint::grass(x, z);
 }
 
 int TallGrass::getResource( int data, Random* random ) {

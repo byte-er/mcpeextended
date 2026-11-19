@@ -16,6 +16,7 @@ If installing the APK over an older build fails, uninstall the old one first; bu
 
 ### New: closer to the real 0.9.0
 - **Create a World screen** from 0.9.0, with world types **Old** (256×256 with a border), **Large** and **Flat**, and Survival / Creative.
+- **Biome colours**: grass, tall grass, ferns and leaves are tinted per biome with the Java colormaps, blended smoothly across biome borders. Lush green forests, yellow-olive savannas and deserts, blue-green snowy plains, murky swamps. Grass block sides use the tinted overlay, so the sides match the top.
 - **3D clouds**: thick 12×4×12-block volumetric clouds like 0.9.0. Turn off Fancy Graphics for the old flat clouds.
 - **Touch HUD**: pause and chat buttons in the top right, using the 0.9.0 icons. Chat opens the keyboard with the text box at the top of the screen, and works for `/commands`.
 - Fancy graphics and smooth lighting are on by default, as in 0.9.0.

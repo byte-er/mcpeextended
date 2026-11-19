@@ -1,3 +1,4 @@
+#include "../../world/level/BiomeTint.h"
 #include <algorithm>
 #include "LodRenderer.h"
 #include <cmath>
@@ -149,6 +150,21 @@ void LevelRenderer::setLevel( Level* level )
 
 	if (!lod) lod = new LodRenderer(textures);
 	lod->setLevel(level);
+
+	// biome colours for grass / leaves (colormaps loaded once)
+	static bool colormapsLoaded = false;
+	if (!colormapsLoaded) {
+		colormapsLoaded = true;
+		TextureData g = mc->platform()->loadTexture("misc/grasscolor.png", true);
+		TextureData f = mc->platform()->loadTexture("misc/foliagecolor.png", true);
+		if (g.data && f.data && g.w == 256 && g.h == 256 && f.w == 256 && f.h == 256)
+			BiomeTint::setColormaps(g.data, f.data);
+		else
+			LOGW("Biome colormaps missing; using default grass colour\n");
+		delete[] g.data;
+		delete[] f.data;
+	}
+	BiomeTint::setLevel(level);
 
 	if (level != NULL) {
 		level->addListener(this);

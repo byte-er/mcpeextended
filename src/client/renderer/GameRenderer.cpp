@@ -317,6 +317,8 @@ void GameRenderer::renderLevel(float a) {
 			glClear(GL_DEPTH_BUFFER_BIT);
 		}
 
+		// LEQUAL like Java: the grass side overlay (layer 1) is coplanar with layer 0
+		glDepthFunc(GL_LEQUAL);
 		mc->textures->loadAndBindTexture("terrain.png");
         glDisable2(GL_ALPHA_TEST);
         glDisable2(GL_BLEND);

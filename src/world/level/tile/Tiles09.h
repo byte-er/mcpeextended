@@ -155,7 +155,7 @@ public:
 	bool isSolidRender() { return false; }
 	int getRenderLayer() { return Tile::RENDERLAYER_ALPHATEST; }
 
-	int getColor(LevelSource* level, int x, int y, int z) { return FoliageColor::getDefaultColor(); }
+	int getColor(LevelSource* level, int x, int y, int z) { return BiomeTint::foliage(x, z); }
 	int getItemColor(int data) { return FoliageColor::getDefaultColor(); }
 
 	int getResource(int data, Random* random) { return Tile::sapling->id; }

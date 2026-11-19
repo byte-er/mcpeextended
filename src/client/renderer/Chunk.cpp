@@ -149,6 +149,11 @@ void Chunk::rebuild()
 						} else if (renderLayer == l) {
 							rendered |= tileRenderer.tesselateInWorld(tile, x, y, z);
 						}
+						// biome-tinted grass side overlay: cut-out, so it goes in the alpha-test layer
+						if (tile == (Tile*)Tile::grass) {
+							if (l == 0) { renderNextLayer = true; doRenderLayer[1] = true; }
+							else if (l == 1) rendered |= tileRenderer.tesselateGrassOverlay(tile, x, y, z);
+						}
 					}
 				}
 			}

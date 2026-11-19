@@ -68,6 +68,12 @@ private:
 	bool noCulling;
 
 	bool applyAmbienceOcclusion;
+	/** set while drawing the biome-tinted grass side overlay (layer 1) */
+	bool grassOverlayPass;
+public:
+	/** Grass block side overlay (texture 38), tinted with the biome grass colour. */
+	bool tesselateGrassOverlay(Tile* tt, int x, int y, int z);
+private:
 	float ll000, llx00, ll0y0, ll00z, llX00, ll0Y0, ll00Z;
 	float llxyz, llxy0, llxyZ, ll0yz, ll0yZ, llXyz, llXy0;
 	float llXyZ, llxYz, llxY0, llxYZ, ll0Yz, llXYz, llXY0;

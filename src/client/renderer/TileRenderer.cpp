@@ -23,7 +23,8 @@ TileRenderer::TileRenderer( LevelSource* level /* = NULL */ )
 	xFlipTexture(false),
 	noCulling(false),
 	blsmooth(1),
-	applyAmbienceOcclusion(false)
+	applyAmbienceOcclusion(false),
+	grassOverlayPass(false)
 {
 }
 
@@ -60,8 +61,8 @@ bool TileRenderer::tesselateBlockInWorld( Tile* tt, int x, int y, int z, float r
 	float g11 = c11 * g;
 	float b11 = c11 * b;
 
-	if (tt == (Tile*)Tile::grass) {
-		r = g = b = 1.0f;
+	if (tt == (Tile*)Tile::grass && !grassOverlayPass) {
+		r = g = b = 1.0f; // sides: untinted dirt; the tinted overlay is drawn in layer 1
 	}
 
 	float r10 = c10 * r;
@@ -78,14 +79,14 @@ bool TileRenderer::tesselateBlockInWorld( Tile* tt, int x, int y, int z, float r
 
 	float centerBrightness = tt->getBrightness(level, x, y, z);
 
-	if (noCulling || tt->shouldRenderFace(level, x, y - 1, z, Facing::DOWN)) {
+	if (!grassOverlayPass && (noCulling || tt->shouldRenderFace(level, x, y - 1, z, Facing::DOWN))) {
 		float br = tt->getBrightness(level, x, y - 1, z);
 		t.color(r10 * br, g10 * br, b10 * br);
 		renderFaceDown(tt, xf, yf, zf, tt->getTexture(level, x, y, z, 0));
 		changed = true;
 	}
 
-	if (noCulling || tt->shouldRenderFace(level, x, y + 1, z, Facing::UP)) {
+	if (!grassOverlayPass && (noCulling || tt->shouldRenderFace(level, x, y + 1, z, Facing::UP))) {
 		float br = tt->getBrightness(level, x, y + 1, z);
 		if (tt->yy1 != 1 && !tt->material->isLiquid()) br = centerBrightness;
 		t.color(r11 * br, g11 * br, b11 * br);
@@ -126,6 +127,18 @@ bool TileRenderer::tesselateBlockInWorld( Tile* tt, int x, int y, int z, float r
 	}
 
 	return changed;
+}
+
+bool TileRenderer::tesselateGrassOverlay( Tile* tt, int x, int y, int z )
+{
+	// snowy grass uses the snow side texture, no green overlay
+	if (tt->getTexture(level, x, y, z, 2) != 3) return false;
+	grassOverlayPass = true;
+	fixedTexture = 38;
+	bool r = tesselateBlockInWorld(tt, x, y, z);
+	fixedTexture = -1;
+	grassOverlayPass = false;
+	return r;
 }
 
 void TileRenderer::tesselateInWorld( Tile* tile, int x, int y, int z, int fixedTexture )
@@ -760,9 +773,9 @@ bool TileRenderer::tesselateBlockInWorldWithAmbienceOcclusion( Tile* tt, int pX,
 	llTrans0yZ = Tile::translucent[level->getTile(pX, pY - 1, pZ + 1)];
 	llTrans0yz = Tile::translucent[level->getTile(pX, pY - 1, pZ - 1)];
 
-	if (tt->tex == 3) tint0 = tint2 = tint3 = tint4 = tint5 = false;
+	if (tt->tex == 3 && !grassOverlayPass) tint0 = tint2 = tint3 = tint4 = tint5 = false;
 
-	if ((noCulling) || (tt->shouldRenderFace(level, pX, pY - 1, pZ, 0))) {
+	if (!grassOverlayPass && ((noCulling) || (tt->shouldRenderFace(level, pX, pY - 1, pZ, 0)))) {
 		if (blsmooth > 0) {
 			pY--;
 
@@ -817,7 +830,7 @@ bool TileRenderer::tesselateBlockInWorldWithAmbienceOcclusion( Tile* tt, int pX,
 		renderFaceDown(tt, (float) pX, (float) pY, (float) pZ, tt->getTexture(level, pX, pY, pZ, 0));
 		i = true;
 	}
-	if ((noCulling) || (tt->shouldRenderFace(level, pX, pY + 1, pZ, 1))) {
+	if (!grassOverlayPass && ((noCulling) || (tt->shouldRenderFace(level, pX, pY + 1, pZ, 1)))) {
 		if (blsmooth > 0) {
 			pY++;
 

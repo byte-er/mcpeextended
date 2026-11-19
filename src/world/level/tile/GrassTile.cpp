@@ -1,3 +1,4 @@
+#include "../BiomeTint.h"
 #include "GrassTile.h"
 #include "../material/Material.h"
 #include "../../entity/item/ItemEntity.h"
@@ -28,7 +29,7 @@ int GrassTile::getColor( LevelSource* level, int x, int y, int z ) {
 	//float temp = level.getBiomeSource().temperatures[0];
 	//float rain = level.getBiomeSource().downfalls[0];
 
-	return 0x339933;//GrassColor.get(temp, rain);
+	return BiomeTint::grass(x, z);
 }
 
 void GrassTile::tick( Level* level, int x, int y, int z, Random* random ) {

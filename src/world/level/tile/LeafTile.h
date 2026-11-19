@@ -9,6 +9,7 @@
 #include "../../item/Item.h"
 #include "../../item/ItemInstance.h"
 #include "../FoliageColor.h"
+#include "../BiomeTint.h"
 
 class Entity;
 
@@ -55,7 +56,7 @@ public:
             return FoliageColor::getBirchColor();
         }
 
-        return FoliageColor::getDefaultColor();
+        return BiomeTint::foliage(x, z);
     }
 
     void onRemove(Level* level, int x, int y, int z) {
