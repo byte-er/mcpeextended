@@ -482,6 +482,8 @@ void Player::reset() {
 
 void Player::_init() {
 	oBob = bob = 0;
+	xBob = xBobO = xRot;
+	yBob = yBobO = yRot;
 	swinging = 0;
 	swingTime = 0;
 	score = 0;

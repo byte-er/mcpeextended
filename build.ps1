@@ -86,134 +86,7 @@ if (-not (Test-Path $keystore)) {
     Write-Host "  keystore created"
 } else { Write-Host "  keystore OK" }
 
-Write-Stub "com\mojang\android\StringValue.java" "package com.mojang.android;`npublic interface StringValue { String getStringValue(); }`n"
-
-Write-Stub "com\mojang\android\licensing\LicenseCodes.java" "package com.mojang.android.licensing;`npublic class LicenseCodes { public static final int LICENSE_OK = 0; }`n"
-
-Write-Stub "com\mojang\android\EditTextAscii.java" @"
-package com.mojang.android;
-import android.content.Context;
-import android.text.Editable;
-import android.text.TextWatcher;
-import android.util.AttributeSet;
-import android.widget.EditText;
-public class EditTextAscii extends EditText implements TextWatcher {
-    public EditTextAscii(Context c) { super(c); addTextChangedListener(this); }
-    public EditTextAscii(Context c, AttributeSet a) { super(c,a); addTextChangedListener(this); }
-    public EditTextAscii(Context c, AttributeSet a, int d) { super(c,a,d); addTextChangedListener(this); }
-    @Override public void onTextChanged(CharSequence s,int st,int b,int co){}
-    public void beforeTextChanged(CharSequence s,int st,int co,int aft){}
-    public void afterTextChanged(Editable e){
-        String s=e.toString(),san=sanitize(s);
-        if(!s.equals(san))e.replace(0,e.length(),san);
-    }
-    static public String sanitize(String s){
-        StringBuilder sb=new StringBuilder();
-        for(int i=0;i<s.length();i++){char c=s.charAt(i);if(c<128)sb.append(c);}
-        return sb.toString();
-    }
-}
-"@
-
-Write-Stub "com\mojang\android\preferences\SliderPreference.java" @"
-package com.mojang.android.preferences;
-import android.content.Context;
-import android.content.res.Resources;
-import android.preference.DialogPreference;
-import android.util.AttributeSet;
-import android.view.Gravity;
-import android.view.View;
-import android.widget.LinearLayout;
-import android.widget.SeekBar;
-import android.widget.TextView;
-public class SliderPreference extends DialogPreference implements SeekBar.OnSeekBarChangeListener {
-    private static final String NS="http://schemas.android.com/apk/res/android";
-    private Context _ctx; private TextView _tv; private SeekBar _sb;
-    private String _suf; private int _def,_max,_val,_min;
-    public SliderPreference(Context ctx,AttributeSet a){
-        super(ctx,a); _ctx=ctx;
-        _suf=gStr(a,NS,"text",""); _def=gInt(a,NS,"defaultValue",0);
-        _max=gInt(a,NS,"max",100); _min=gInt(a,null,"min",0);
-        setDefaultValue(_def);
-    }
-    @Override protected View onCreateDialogView(){
-        LinearLayout l=new LinearLayout(_ctx); l.setOrientation(LinearLayout.VERTICAL); l.setPadding(6,6,6,6);
-        _tv=new TextView(_ctx); _tv.setGravity(Gravity.CENTER_HORIZONTAL); _tv.setTextSize(32);
-        l.addView(_tv,new LinearLayout.LayoutParams(-1,-2));
-        _sb=new SeekBar(_ctx); _sb.setOnSeekBarChangeListener(this);
-        l.addView(_sb,new LinearLayout.LayoutParams(-1,-2));
-        if(shouldPersist())_val=getPersistedInt(_def);
-        _sb.setMax(_max); _sb.setProgress(_val); return l;
-    }
-    @Override protected void onSetInitialValue(boolean r,Object d){
-        super.onSetInitialValue(r,d);
-        _val=r?(shouldPersist()?getPersistedInt(_def):0):(Integer)d;
-    }
-    public void onProgressChanged(SeekBar s,int v,boolean f){
-        _val=v+_min; _tv.setText(_val+_suf);
-        if(shouldPersist())persistInt(_val); callChangeListener(Integer.valueOf(_val));
-    }
-    public void onStartTrackingTouch(SeekBar s){}
-    public void onStopTrackingTouch(SeekBar s){}
-    private int gInt(AttributeSet a,String ns,String n,int d){int id=a.getAttributeResourceValue(ns,n,0);return id!=0?getContext().getResources().getInteger(id):a.getAttributeIntValue(ns,n,d);}
-    private String gStr(AttributeSet a,String ns,String n,String d){int id=a.getAttributeResourceValue(ns,n,0);if(id!=0)return getContext().getResources().getString(id);String v=a.getAttributeValue(ns,n);return v!=null?v:d;}
-}
-"@
-
-Write-Stub "com\mojang\minecraftpe\MainMenuOptionsActivity.java" @"
-package com.mojang.minecraftpe;
-import android.app.Activity;
-public class MainMenuOptionsActivity extends Activity {
-    public static final String Internal_Game_DifficultyPeaceful="internal_game_difficulty_peaceful";
-    public static final String Game_DifficultyLevel="game_difficulty";
-    public static final String Controls_Sensitivity="controls_sensitivity";
-}
-"@
-
-Write-Stub "com\mojang\minecraftpe\Minecraft_Market.java" @"
-package com.mojang.minecraftpe;
-import android.app.Activity; import android.content.Intent; import android.os.Bundle;
-public class Minecraft_Market extends Activity {
-    @Override protected void onCreate(Bundle s){super.onCreate(s);startActivity(new Intent(this,MainActivity.class));finish();}
-}
-"@
-
-Write-Stub "com\mojang\minecraftpe\Minecraft_Market_Demo.java" @"
-package com.mojang.minecraftpe;
-import android.content.Intent; import android.net.Uri;
-public class Minecraft_Market_Demo extends MainActivity {
-    @Override public void buyGame(){startActivity(new Intent(Intent.ACTION_VIEW,Uri.parse("market://details?id=com.mojang.minecraftpe")));}
-    @Override protected boolean isDemo(){return true;}
-}
-"@
-
-Write-Stub "com\mojang\minecraftpe\GameModeButton.java" @"
-package com.mojang.minecraftpe;
-import com.mojang.android.StringValue;
-import android.content.Context; import android.util.AttributeSet;
-import android.view.View; import android.view.View.OnClickListener;
-import android.widget.TextView; import android.widget.ToggleButton;
-public class GameModeButton extends ToggleButton implements OnClickListener,StringValue {
-    static final int Creative=0,Survival=1;
-    private int _type=0; private boolean _attached=false;
-    public GameModeButton(Context c,AttributeSet a){super(c,a);setOnClickListener(this);}
-    public void onClick(View v){_update();}
-    @Override protected void onFinishInflate(){super.onFinishInflate();_update();}
-    @Override protected void onAttachedToWindow(){if(!_attached){_update();_attached=true;}}
-    private void _update(){_set(isChecked()?Survival:Creative);}
-    private void _set(int i){
-        _type=i<Creative?Creative:(i>Survival?Survival:i);
-        int id=_type==Survival?R.string.gamemode_survival_summary:R.string.gamemode_creative_summary;
-        String desc=getContext().getString(id);
-        View v=getRootView().findViewById(R.id.labelGameModeDesc);
-        if(desc!=null&&v instanceof TextView)((TextView)v).setText(desc);
-    }
-    public String getStringValue(){return new String[]{"creative","survival"}[_type];}
-    static public String getStringForType(int i){int c=i<Creative?Creative:(i>Survival?Survival:i);return new String[]{"creative","survival"}[c];}
-}
-"@
-
-Write-Host "  stubs OK"
+# Java helper classes formerly generated here now live in project/android_java/src
 
 # ── 1. NDK build ─────────────────────────────────────────────
 if (-not $NoCpp -and -not $NoBuild) {
@@ -251,7 +124,6 @@ if (-not $NoJava -and -not $NoBuild) {
 
     $srcs = @(
         Get-ChildItem $javaSrc  -Recurse -Filter "*.java" | Select-Object -Exp FullName
-        Get-ChildItem $stubsDir -Recurse -Filter "*.java" | Select-Object -Exp FullName
         $rJava
     )
 

@@ -165,6 +165,8 @@ public:
     char userType;
     int score;
     float oBob, bob;
+    // Java-style first person arm sway (renderArmPitch / renderArmYaw)
+    float xBob, yBob, xBobO, yBobO;
 
     std::string name;
     int dimension;

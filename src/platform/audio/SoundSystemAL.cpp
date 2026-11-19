@@ -46,6 +46,7 @@ SoundSystemAL::SoundSystemAL()
 
 SoundSystemAL::~SoundSystemAL()
 {
+    if (!available) return;
     alDeleteSources(MaxNumSources, _sources);
 
     for (int i = 0; i < (int)_buffers.size(); ++i)
@@ -61,9 +62,17 @@ SoundSystemAL::~SoundSystemAL()
 void SoundSystemAL::init()
 {
 	device = alcOpenDevice(NULL);
-	if(device) {
-		context = alcCreateContext(device, NULL);
-		alcMakeContextCurrent(context);
+	if (device) context = alcCreateContext(device, NULL);
+	if (!device || !context || !alcMakeContextCurrent(context)) {
+		// No usable audio output (headless box, broken driver...). Run silently
+		// instead of spamming errors / touching an invalid context every frame.
+		LOGI("SoundSystemAL: no audio device available, sound disabled\n");
+		if (context) { alcDestroyContext(context); context = 0; }
+		if (device) { alcCloseDevice(device); device = 0; }
+		available = false;
+		return;
+	}
+	{
         
         alDistanceModel(AL_LINEAR_DISTANCE_CLAMPED);
         
@@ -89,6 +98,7 @@ void SoundSystemAL::init()
 }
 
 void SoundSystemAL::enable(bool status) {
+    if (!available) return;
     LOGI("Enabling? audio: %d (context %p)\n", status, context);
     if (status) {
         alcMakeContextCurrent(context);
@@ -124,6 +134,7 @@ void SoundSystemAL::setListenerPos( float x, float y, float z )
 
 void SoundSystemAL::setListenerAngle( float deg )
 {
+    if (!available) return;
     if (_rotation != deg) {
         _rotation = deg;
 
@@ -138,6 +149,7 @@ void SoundSystemAL::setListenerAngle( float deg )
 
 void SoundSystemAL::playAt( const SoundDesc& sound, float x, float y, float z, float volume, float pitch )
 {
+    if (!available) return;
     if (pitch < 0.01f) pitch = 1;
 
     //LOGI("playing sound '%s' with volume/pitch: %f, %f @ %f, %f, %f\n", sound.name.c_str(), volume, pitch, x, y, z);

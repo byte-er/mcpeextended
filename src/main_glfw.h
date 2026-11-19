@@ -14,6 +14,9 @@
 #include "platform/input/Multitouch.h"
 #include "util/Mth.h"
 #include "AppPlatform_glfw.h"
+#include "world/level/LevelSettings.h"
+#include "client/gui/screens/ProgressScreen.h"
+#include <cstdlib>
 
 static App* g_app = 0;
 
@@ -154,6 +157,19 @@ int main(void) {
 	((MAIN_CLASS*)g_app)->externalCacheStoragePath = ".";
 	g_app->init(appContext);
 	g_app->setSize(appContext.platform->getScreenWidth(), appContext.platform->getScreenHeight());
+
+	// Developer convenience: MCPE_AUTOWORLD=<name> [MCPE_SEED=<n>] [MCPE_CREATIVE=1]
+	// loads (or creates) a world straight away, skipping the menus.
+	if (const char* autoWorld = getenv("MCPE_AUTOWORLD")) {
+		MAIN_CLASS* mc = (MAIN_CLASS*)g_app;
+		const char* seedStr = getenv("MCPE_SEED");
+		const char* creative = getenv("MCPE_CREATIVE");
+		LevelSettings settings(seedStr ? atol(seedStr) : 12345L,
+			(creative && creative[0] == '1') ? GameType::Creative : GameType::Survival);
+		mc->selectLevel(autoWorld, autoWorld, settings);
+		mc->hostMultiplayer();
+		mc->setScreen(new ProgressScreen());
+	}
 
 	// Main event loop
 	using clock = std::chrono::steady_clock;

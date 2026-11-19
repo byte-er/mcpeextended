@@ -147,6 +147,8 @@ void Entity::move(float xa, float ya, float za) {
     }
 
 	TIMER_PUSH("move");
+	const float xStart = x;
+	const float zStart = z;
 
     float xo = x;
     float zo = z;
@@ -293,8 +295,9 @@ void Entity::move(float xa, float ya, float za) {
     if (yaOrg != ya) yd = 0;
     if (zaOrg != za) zd = 0;
 
-    float xm = x - xo;
-    float zm = z - zo;
+    // Distance actually moved during this call (Java: posX - d0), not since last tick
+    float xm = x - xStart;
+    float zm = z - zStart;
 
     if (makeStepSound && !sneaking) {
         walkDist += Mth::sqrt(xm * xm + zm * zm) * 0.6f;

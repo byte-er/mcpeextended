@@ -238,10 +238,16 @@ void ItemInHandRenderer::render( float a )
 	Player* player = mc->player;
 	// if (selectedTile==NULL) return;
 
+	// Java-style arm sway: the hand lags slightly behind camera rotation
 	glPushMatrix2();
-	glRotatef2(player->xRotO + (player->xRot - player->xRotO) * a, 1, 0, 0);
-	glRotatef2(player->yRotO + (player->yRot - player->yRotO) * a, 0, 1, 0);
-	glPopMatrix2();
+	if (mc->options.bobView) {
+		const float armPitch = player->xBobO + (player->xBob - player->xBobO) * a;
+		const float armYaw   = player->yBobO + (player->yBob - player->yBobO) * a;
+		const float pitch    = player->xRotO + (player->xRot - player->xRotO) * a;
+		const float yaw      = player->yRotO + (player->yRot - player->yRotO) * a;
+		glRotatef2((pitch - armPitch) * 0.1f, 1, 0, 0);
+		glRotatef2((yaw - armYaw) * 0.1f, 0, 1, 0);
+	}
 
 	float br = mc->level->getBrightness(Mth::floor(player->x), Mth::floor(player->y), Mth::floor(player->z));
 
@@ -369,6 +375,7 @@ void ItemInHandRenderer::render( float a )
 		playerRenderer->renderHand();
 		glPopMatrix2();
 	}
+	glPopMatrix2(); // arm sway
 	//glDisable2(GL_RESCALE_NORMAL);
 	//Lighting.turnOff();
 	//w.stop();

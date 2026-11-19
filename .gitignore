@@ -200,3 +200,9 @@ games/
 vcpkg_installed/
 .cache/
 conan/
+
+# Local build outputs
+build-*/
+out/
+project/android/obj/
+project/android/libs/

@@ -65,7 +65,8 @@ LevelRenderer::LevelRenderer( Minecraft* mc)
 	destroyProgress(0)
 {
 #ifdef OPENGL_ES
-	int maxChunksWidth = 2 * LEVEL_WIDTH / CHUNK_SIZE + 1;
+	// allChanged() never uses a render distance above 400 blocks
+	int maxChunksWidth = 400 / CHUNK_SIZE + 2;
 	numListsOrBuffers = maxChunksWidth * maxChunksWidth * (128/CHUNK_SIZE) * 3;
 	chunkBuffers = new GLuint[numListsOrBuffers];
 	glGenBuffers2(numListsOrBuffers, chunkBuffers);

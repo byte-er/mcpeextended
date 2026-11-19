@@ -3,7 +3,10 @@
 
 
 const int LEVEL_HEIGHT = 128;
-const int CHUNK_CACHE_WIDTH = 16; // in chunks
+// 32x32 chunks = 512x512 blocks (4x the area of the original 0.6.1 worlds).
+// RegionFile (chunks.dat) already stores 32x32 chunks, so worlds created with
+// the old 16x16 size keep loading: the new outer ring is generated on demand.
+const int CHUNK_CACHE_WIDTH = 32; // in chunks
 const int CHUNK_WIDTH = 16; // in blocks
 const int CHUNK_DEPTH = 16;
 const int LEVEL_WIDTH = CHUNK_CACHE_WIDTH * CHUNK_WIDTH;

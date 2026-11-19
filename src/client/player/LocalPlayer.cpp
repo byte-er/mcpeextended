@@ -169,6 +169,12 @@ void LocalPlayer::tick() {
 
 /*public*/
 void LocalPlayer::aiStep() {
+	// Java-style arm sway smoothing (EntityPlayerSP.renderArmPitch/Yaw)
+	xBobO = xBob;
+	yBobO = yBob;
+	xBob += (xRot - xBob) * 0.5f;
+	yBob += (yRot - yBob) * 0.5f;
+
 	jumpTriggerTime--;
 	ascendTriggerTime--;
 	descendTriggerTime--;

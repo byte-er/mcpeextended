@@ -1,5 +1,16 @@
 #include "RegionFile.h"
 #include "../../../platform/log.h"
+#include <zlib.h>
+#include <vector>
+#include <cassert>
+#include <cstring>
+
+// Chunk record layout inside chunks.dat:
+//   legacy (0.6.1):  int32 length (incl. header) | raw chunk bytes
+//   compressed:      int32 (length | COMPRESSED_FLAG) | int32 rawSize | zlib bytes
+// Old uncompressed saves keep loading; everything written from now on is
+// zlib compressed (~10x smaller, which matters with 512x512 worlds).
+static const unsigned int COMPRESSED_FLAG = 0x80000000u;
 
 const int SECTOR_BYTES = 4096;
 const int SECTOR_INTS = SECTOR_BYTES / 4;
@@ -96,6 +107,9 @@ void RegionFile::close()
 
 bool RegionFile::readChunk(int x, int z, RakNet::BitStream** destChunkData)
 {
+	if (!file || x < 0 || z < 0 || x >= SECTOR_COLS || z >= SECTOR_COLS)
+		return false;
+
 	int offset = offsets[x + z * SECTOR_COLS];
 
 	if (offset == 0)
@@ -104,29 +118,71 @@ bool RegionFile::readChunk(int x, int z, RakNet::BitStream** destChunkData)
 		return false;
 	}
 
-	int sectorNum = offset >> 8;
+	const int sectorNum = offset >> 8;
+	const int maxBytes  = (offset & 0xff) * SECTOR_BYTES;
 
-	fseek(file, sectorNum * SECTOR_BYTES, SEEK_SET);
-	int length = 0;
-	fread(&length, sizeof(int), 1, file);
+	if (fseek(file, sectorNum * SECTOR_BYTES, SEEK_SET) != 0)
+		return false;
 
-	assert(length < ((offset & 0xff) * SECTOR_BYTES));
-	length -= sizeof(int);
-	if (length <= 0) {
-		//*destChunkData = NULL;
-		//return false;
+	unsigned int header = 0;
+	if (fread(&header, sizeof(int), 1, file) != 1)
+		return false;
+
+	const bool compressed = (header & COMPRESSED_FLAG) != 0;
+	int length = (int)(header & ~COMPRESSED_FLAG) - (int)sizeof(int);
+	if (length <= 0 || length > maxBytes) {
+		LOGI("ERROR: corrupt chunk record at %d, %d (len %d)\n", x, z, length);
+		return false;
 	}
 
-	unsigned char* data = new unsigned char[length];
-	logAssert(fread(data, 1, length, file), length);
-	*destChunkData = new RakNet::BitStream(data, length, false);
-	//delete [] data;
+	if (!compressed) {
+		unsigned char* data = new unsigned char[length];
+		if ((int)fread(data, 1, length, file) != length) {
+			delete [] data;
+			return false;
+		}
+		*destChunkData = new RakNet::BitStream(data, length, false);
+		return true;
+	}
 
+	int rawSize = 0;
+	if (fread(&rawSize, sizeof(int), 1, file) != 1 || rawSize <= 0 || rawSize > 4 * 1024 * 1024)
+		return false;
+	length -= sizeof(int);
+
+	std::vector<unsigned char> packed(length);
+	if ((int)fread(&packed[0], 1, length, file) != length)
+		return false;
+
+	unsigned char* data = new unsigned char[rawSize];
+	uLongf destLen = (uLongf)rawSize;
+	if (uncompress(data, &destLen, &packed[0], (uLong)length) != Z_OK || (int)destLen != rawSize) {
+		LOGI("ERROR: failed to decompress chunk %d, %d\n", x, z);
+		delete [] data;
+		return false;
+	}
+	*destChunkData = new RakNet::BitStream(data, rawSize, false);
 	return true;
 }
 
-bool RegionFile::writeChunk(int x, int z, RakNet::BitStream& chunkData)
+bool RegionFile::writeChunk(int x, int z, RakNet::BitStream& rawData)
 {
+	if (!file || x < 0 || z < 0 || x >= SECTOR_COLS || z >= SECTOR_COLS)
+		return false;
+
+	// Compress the chunk; the record is [flagged length][raw size][zlib data]
+	const uLong rawSize = rawData.GetNumberOfBytesUsed();
+	uLongf packedSize = compressBound(rawSize);
+	std::vector<unsigned char> packed(packedSize);
+	if (compress2(&packed[0], &packedSize, rawData.GetData(), rawSize, Z_BEST_SPEED) != Z_OK) {
+		LOGI("ERROR: failed to compress chunk %d, %d\n", x, z);
+		return false;
+	}
+	RakNet::BitStream chunkData;
+	const int rawSizeInt = (int)rawSize; // raw bytes: BitStream::Write(int) may byte-swap
+	chunkData.Write((const char*)&rawSizeInt, (unsigned int)sizeof(int));
+	chunkData.Write((const char*)&packed[0], (unsigned int)packedSize);
+
 	int size = chunkData.GetNumberOfBytesUsed() + sizeof(int);
 
 	int offset = offsets[x + z * SECTOR_COLS];
@@ -134,7 +190,7 @@ bool RegionFile::writeChunk(int x, int z, RakNet::BitStream& chunkData)
 	int sectorCount = offset & 0xff;
 	int sectorsNeeded = (size / SECTOR_BYTES) + 1;
 
-	if (sectorsNeeded > 256)
+	if (sectorsNeeded > 255) // sector count is stored in 8 bits
 	{
 		LOGI("ERROR: Chunk is too big to be saved to file\n");
 		return false;
@@ -199,6 +255,7 @@ bool RegionFile::writeChunk(int x, int z, RakNet::BitStream& chunkData)
 		fseek(file, (x + z * SECTOR_COLS) * sizeof(int), SEEK_SET);
 		fwrite(&offsets[x + z * SECTOR_COLS], sizeof(int), 1, file);
 	}
+	fflush(file);
 
 
 	return true;
@@ -208,7 +265,7 @@ bool RegionFile::write(int sector, RakNet::BitStream& chunkData)
 {
 	fseek(file, sector * SECTOR_BYTES, SEEK_SET);
 	//LOGI("writing %d B to sector %d\n", chunkData.GetNumberOfBytesUsed(), sector);
-	int size = chunkData.GetNumberOfBytesUsed() + sizeof(int);
+	unsigned int size = (unsigned int)(chunkData.GetNumberOfBytesUsed() + sizeof(int)) | COMPRESSED_FLAG;
 	logAssert(fwrite(&size, sizeof(int), 1, file), 1);
 	logAssert(fwrite(chunkData.GetData(), 1, chunkData.GetNumberOfBytesUsed(), file), chunkData.GetNumberOfBytesUsed());
 
