@@ -1,0 +1,186 @@
+name: Build
+
+on:
+  push:
+    branches: [main, "claude/**"]
+    tags: ["v*"]
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      release:
+        description: "Publish a GitHub release"
+        type: boolean
+        default: true
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    env:
+      NDK_VERSION: "27.3.13750724" # r27d
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - name: Install Android NDK r27d
+        run: |
+          SDKM="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
+          yes | "$SDKM" --install "ndk;${NDK_VERSION}" > /dev/null || true
+          if [ -d "$ANDROID_HOME/ndk/${NDK_VERSION}" ]; then
+            echo "ANDROID_NDK_HOME=$ANDROID_HOME/ndk/${NDK_VERSION}" >> "$GITHUB_ENV"
+          else
+            echo "ANDROID_NDK_HOME=${ANDROID_NDK_LATEST_HOME}" >> "$GITHUB_ENV"
+          fi
+      - name: Signing key
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+        run: |
+          mkdir -p out
+          if [ -n "$KEYSTORE_BASE64" ]; then
+            echo "$KEYSTORE_BASE64" | base64 -d > out/release.keystore
+            echo "KEYSTORE=$PWD/out/release.keystore" >> "$GITHUB_ENV"
+          else
+            echo "::warning::No KEYSTORE_BASE64 secret: APKs are signed with a throwaway debug key"
+          fi
+      - name: Build APKs
+        env:
+          KS_PASS: ${{ secrets.KEYSTORE_PASSWORD || 'android' }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS || 'androiddebugkey' }}
+        run: ./build.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: android
+          path: out/apk/*.apk
+
+  linux:
+    runs-on: ubuntu-22.04 # older glibc = runs on more distros
+    steps:
+      - uses: actions/checkout@v4
+      - name: Dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq ninja-build libx11-dev libxrandr-dev libxinerama-dev libxcursor-dev \
+            libxi-dev libgl-dev libwayland-dev libxkbcommon-dev wayland-protocols libasound2-dev libpulse-dev
+      - name: Build
+        run: |
+          cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
+          cmake --build build
+      - name: Package
+        run: |
+          mkdir -p pkg/mcpeextended-linux
+          cp build/MinecraftPE build/*.so* pkg/mcpeextended-linux/
+          cp -r build/data pkg/mcpeextended-linux/
+          tar -C pkg -czf mcpeextended-linux-x86_64.tar.gz mcpeextended-linux
+      - uses: actions/upload-artifact@v4
+        with:
+          name: linux
+          path: mcpeextended-linux-x86_64.tar.gz
+
+  windows:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Dependencies
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq ninja-build mingw-w64 zip
+      - name: Build (MinGW cross compile)
+        run: |
+          cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_TOOLCHAIN_FILE=cmake/mingw-w64-x86_64.cmake
+          cmake --build build
+      - name: Package
+        run: |
+          mkdir -p pkg/mcpeextended-windows
+          cp build/MinecraftPE.exe build/*.dll pkg/mcpeextended-windows/
+          cp -r build/data pkg/mcpeextended-windows/
+          (cd pkg && zip -qr ../mcpeextended-windows-x64.zip mcpeextended-windows)
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows
+          path: mcpeextended-windows-x64.zip
+
+  web:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Emscripten
+        run: |
+          git clone --depth 1 https://github.com/emscripten-core/emsdk "$RUNNER_TEMP/emsdk"
+          "$RUNNER_TEMP/emsdk/emsdk" install 3.1.74
+          "$RUNNER_TEMP/emsdk/emsdk" activate 3.1.74
+          sudo apt-get install -y -qq ninja-build zip
+      - name: Build
+        run: |
+          source "$RUNNER_TEMP/emsdk/emsdk_env.sh"
+          emcmake cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
+          cmake --build build
+      - name: Package
+        run: |
+          mkdir -p site
+          cp build/index.html build/index.js build/index.wasm build/index.data site/
+          cp web/manifest.webmanifest web/sw.js web/icon-192.png web/icon-512.png site/
+          sed -i "s/mcpe-ext-v1/mcpe-ext-${GITHUB_SHA::8}/" site/sw.js
+          (cd site && zip -qr ../mcpeextended-web.zip .)
+      - uses: actions/upload-artifact@v4
+        with:
+          name: web
+          path: mcpeextended-web.zip
+      - uses: actions/upload-pages-artifact@v3
+        if: vars.ENABLE_PAGES == 'true' && github.event_name != 'pull_request'
+        with:
+          path: site
+
+  # Optional: play in the browser at https://<user>.github.io/<repo>/
+  # Enable with Settings -> Pages -> Source: GitHub Actions, then set the
+  # repository variable ENABLE_PAGES=true.
+  pages:
+    needs: web
+    if: vars.ENABLE_PAGES == 'true' && github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - id: deploy
+        uses: actions/deploy-pages@v4
+
+  release:
+    needs: [android, linux, windows, web]
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+      - name: Release info
+        id: rel
+        env:
+          HEAD_MSG: ${{ github.event.head_commit.message }}
+          WANT_RELEASE: ${{ inputs.release }}
+        run: |
+          VERSION=$(sed -n 's/.*android:versionName="\([^"]*\)".*/\1/p' project/android_java/AndroidManifest.xml)
+          if [[ "$GITHUB_REF" == refs/tags/* ]]; then TAG="${GITHUB_REF#refs/tags/}"; else TAG="v${VERSION}-build.${GITHUB_RUN_NUMBER}"; fi
+          PUBLISH=false
+          if [[ "$GITHUB_REF" == refs/tags/* ]]; then PUBLISH=true; fi
+          if [[ "$GITHUB_EVENT_NAME" == "workflow_dispatch" && "$WANT_RELEASE" == "true" ]]; then PUBLISH=true; fi
+          if [[ "$GITHUB_EVENT_NAME" == "push" ]] && grep -qF "[release]" <<< "$HEAD_MSG"; then PUBLISH=true; fi
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "publish=$PUBLISH" >> "$GITHUB_OUTPUT"
+          ls -la dist
+      - name: Publish release
+        if: steps.rel.outputs.publish == 'true'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.rel.outputs.tag }}
+          target_commitish: ${{ github.sha }}
+          name: MCPE Extended ${{ steps.rel.outputs.version }} (build ${{ github.run_number }})
+          body_path: RELEASE_NOTES.md
+          files: dist/*
+          make_latest: true
