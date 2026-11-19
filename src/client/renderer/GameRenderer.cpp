@@ -354,6 +354,9 @@ void GameRenderer::renderLevel(float a) {
         glDisable2(GL_BLEND);
         glEnable2(GL_ALPHA_TEST);
 
+		TIMER_POP_PUSH("worldborder");
+		levelRenderer->renderWorldBorder(cameraEntity, a, renderDistance);
+
 		if (/*!Minecraft::FLYBY_MODE &&*/ zoom == 1 && cameraEntity->isPlayer()) {
 			if (mc->hitResult.isHit() && !cameraEntity->isUnderLiquid(Material::water)) {
 				TIMER_POP_PUSH("select");

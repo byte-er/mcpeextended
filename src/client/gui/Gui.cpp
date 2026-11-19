@@ -77,6 +77,17 @@ void Gui::render(float a, bool mouseFree, int xMouse, int yMouse) {
 	const int screenWidth = (int)(minecraft->width * InvGuiScale);
 	const int screenHeight = (int)(minecraft->height * InvGuiScale);
 	blitOffset = -90;
+
+	// Java: red vignette when the player gets close to the world border
+	{
+		LocalPlayer* p = minecraft->player;
+		const float warn = minecraft->level->getWorldBorder().getWarningStrength((double)p->x, (double)p->z);
+		if (warn > 0) {
+			glEnable2(GL_BLEND);
+			renderBorderWarning(warn, screenWidth, screenHeight);
+		}
+	}
+
 	renderProgressIndicator(isTouchInterface, screenWidth, screenHeight, a);
 
 	glColor4f2(1, 1, 1, 1);
@@ -282,6 +293,28 @@ void Gui::renderVignette(float br, int w, int h) {
 	glDepthMask(false);
 	glBlendFunc2(GL_ZERO, GL_ONE_MINUS_SRC_COLOR);
 	glColor4f2(tbr, tbr, tbr, 1);
+	minecraft->textures->loadAndBindTexture("misc/vignette.png");
+
+	Tesselator& t = Tesselator::instance;
+	t.begin();
+	t.vertexUV(0, (float)h, -90, 0, 1);
+	t.vertexUV((float)w, (float)h, -90, 1, 1);
+	t.vertexUV((float)w, 0, -90, 1, 0);
+	t.vertexUV(0, 0, -90, 0, 0);
+	t.draw();
+	glDepthMask(true);
+	glEnable(GL_DEPTH_TEST);
+	glColor4f2(1, 1, 1, 1);
+	glBlendFunc2(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+}
+
+void Gui::renderBorderWarning(float strength, int w, int h) {
+	if (strength > 1) strength = 1;
+	glDisable(GL_DEPTH_TEST);
+	glDepthMask(false);
+	// multiply the screen by (1, 1-s, 1-s): tints everything red like Java
+	glBlendFunc2(GL_ZERO, GL_ONE_MINUS_SRC_COLOR);
+	glColor4f2(0, strength, strength, 1);
 	minecraft->textures->loadAndBindTexture("misc/vignette.png");
 
 	Tesselator& t = Tesselator::instance;

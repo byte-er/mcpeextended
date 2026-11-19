@@ -54,6 +54,9 @@ void GameMode::startDestroyBlock( int x, int y, int z, int face ) {
 /*virtual*/
 bool GameMode::destroyBlock(int x, int y, int z, int face) {
     Level* level = minecraft->level;
+    // Java: blocks outside the world border can't be broken
+    if (!level->getWorldBorder().isWithinBounds(x, z))
+        return false;
     Tile* oldTile = Tile::tiles[level->getTile(x, y, z)];
 	if (!oldTile)
 		return false;
@@ -89,6 +92,9 @@ bool GameMode::useItemOn(Player* player, Level* level, ItemInstance* item, int x
 	float clickY = hit.y - y;
 	float clickZ = hit.z - z;
 	item = player->inventory->getSelected();
+	// Java: no interaction with blocks outside the world border
+	if (!level->getWorldBorder().isWithinBounds(x, z))
+		return false;
 	if(level->isClientSide) {
 		UseItemPacket packet(x, y, z, face, item, player->entityId, clickX, clickY, clickZ);
 		minecraft->raknetInstance->send(packet);

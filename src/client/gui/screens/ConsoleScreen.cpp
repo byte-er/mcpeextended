@@ -4,6 +4,7 @@
 #include "../../player/LocalPlayer.h"
 #include "../../../platform/input/Keyboard.h"
 #include "../../../world/level/Level.h"
+#include "../../../world/level/WorldBorder.h"
 #include "../../../network/RakNetInstance.h"
 #include "../../../network/ServerSideNetworkHandler.h"
 #include "../../../network/packet/ChatPacket.h"
@@ -184,6 +185,73 @@ std::string ConsoleScreen::processCommand(const std::string& raw)
         }
 
         return "Unknown sub-command. Usage: /time <add|set|query> ...";
+    }
+
+    // -----------------------------------------------------------------------
+    // /worldborder ...   (Java Edition syntax)
+    // -----------------------------------------------------------------------
+    if (args[0] == "worldborder") {
+        if (level->isClientSide) return "Only the host can change the world border.";
+        WorldBorder& border = level->getWorldBorder();
+        const std::string usage = "Usage: /worldborder <set|add|center|get|damage|warning|reset> ...";
+        if (args.size() < 2) return usage;
+        const std::string& sub = args[1];
+        std::ostringstream out;
+        out.setf(std::ios::fixed); out.precision(1);
+
+        if (sub == "get") {
+            out << "The world border is currently " << border.getSize() << " blocks wide";
+            return out.str();
+        }
+        if (sub == "set" || sub == "add") {
+            if (args.size() < 3) return "Usage: /worldborder " + sub + " <size> [seconds]";
+            double v = std::atof(args[2].c_str());
+            double target = (sub == "add") ? border.getSize() + v : v;
+            if (target < 1.0) target = 1.0;
+            if (target > WorldBorder::MAX_SIZE) target = WorldBorder::MAX_SIZE;
+            long long secs = args.size() >= 4 ? std::atol(args[3].c_str()) : 0;
+            if (secs > 0) {
+                border.lerpSizeBetween(border.getSize(), target, secs * 1000LL);
+                out << (target < border.getSize() ? "Shrinking" : "Growing")
+                    << " the world border to " << target << " blocks wide over " << secs << " seconds";
+            } else {
+                border.setSize(target);
+                out << "Set the world border to " << target << " blocks wide";
+            }
+            return out.str();
+        }
+        if (sub == "center") {
+            if (args.size() < 4) return "Usage: /worldborder center <x> <z>";
+            LocalPlayer* p = minecraft->player;
+            double cx = (args[2] == "~") ? (double)p->x : std::atof(args[2].c_str());
+            double cz = (args[3] == "~") ? (double)p->z : std::atof(args[3].c_str());
+            border.setCenter(cx, cz);
+            out << "Set the center of the world border to " << cx << ", " << cz;
+            return out.str();
+        }
+        if (sub == "damage") {
+            if (args.size() < 4) return "Usage: /worldborder damage <amount|buffer> <value>";
+            double v = std::atof(args[3].c_str());
+            if (v < 0) v = 0;
+            if (args[2] == "amount") { border.setDamagePerBlock(v); out << "Set the world border damage to " << v << " per block each second"; }
+            else if (args[2] == "buffer") { border.setDamageSafeZone(v); out << "Set the world border damage buffer to " << v << " blocks"; }
+            else return "Usage: /worldborder damage <amount|buffer> <value>";
+            return out.str();
+        }
+        if (sub == "warning") {
+            if (args.size() < 4) return "Usage: /worldborder warning <distance|time> <value>";
+            int v = std::atoi(args[3].c_str());
+            if (v < 0) v = 0;
+            if (args[2] == "distance") { border.setWarningBlocks(v); out << "Set the world border warning distance to " << v << " blocks"; }
+            else if (args[2] == "time") { border.setWarningTime(v); out << "Set the world border warning time to " << v << " seconds"; }
+            else return "Usage: /worldborder warning <distance|time> <value>";
+            return out.str();
+        }
+        if (sub == "reset") {
+            border.resetToLevel(LEVEL_WIDTH, LEVEL_DEPTH);
+            return "Reset the world border to the edge of the world";
+        }
+        return usage;
     }
 
     return std::string("Unknown command: /") + args[0];

@@ -196,6 +196,7 @@ void Level::tick() {
 
 	TIMER_PUSH("chunkSource");
 	_chunkSource->tick();
+	levelData.worldBorder.tick();
 
 	updateSkyDarken();
 	if(_nightMode) {
@@ -1141,6 +1142,14 @@ std::vector<AABB>& Level::getCubes(const Entity* source, const AABB& box_) { //@
 				//int breakPoint = 0;
 			}
         }
+
+	// Java: entities that are inside the world border collide with it
+	if (source != NULL) {
+		const WorldBorder& border = levelData.worldBorder;
+		const Entity* e = source;
+		if (border.isWithinBounds((double)e->x, (double)e->z))
+			border.addCollisionBoxes(box_, boxes);
+	}
 	/*
     float r = 0.25;
     List<Entity> ee = getEntities(source, box.grow(r, r, r));

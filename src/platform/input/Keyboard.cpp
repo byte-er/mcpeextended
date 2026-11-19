@@ -12,6 +12,8 @@ std::vector<KeyboardAction>
 	Keyboard::_inputs;
 std::vector<char>
 	Keyboard::_inputText;
+std::vector<int>
+	Keyboard::_textOrder;
 
 int	
 	Keyboard::_index = -1;

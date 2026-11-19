@@ -44,6 +44,8 @@ public:
 
 	void renderSky(float alpha);
 	void renderClouds(float alpha);
+	/** Java style animated world border force field */
+	void renderWorldBorder(Mob* camera, float a, float viewDistance);
 	void renderEntities(Vec3 cam, Culler* culler, float a);
     void renderSameAsLast(int layer, float alpha);
 	void renderHit(Player* player, const HitResult& h, int mode, /*ItemInstance*/void* inventoryItem, float a);

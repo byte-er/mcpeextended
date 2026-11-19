@@ -1,3 +1,5 @@
+#include <algorithm>
+#include <cmath>
 #include "LevelRenderer.h"
 
 #include "DirtyChunkSorter.h"
@@ -1293,4 +1295,112 @@ void LevelRenderer::levelEvent(Player* player, int type, int x, int y, int z, in
         }
         break;
 	}
+}
+
+// ---------------------------------------------------------------------------
+// World border (port of Java's RenderGlobal.renderWorldBorder)
+// Vertices are emitted relative to the camera in double precision before being
+// narrowed to float, so the wall stays rock steady even far from the origin.
+// ---------------------------------------------------------------------------
+void LevelRenderer::renderWorldBorder(Mob* camera, float a, float viewDistance)
+{
+	if (!level || !camera) return;
+	const WorldBorder& border = level->getWorldBorder();
+
+	const double camX = camera->xOld + (camera->x - camera->xOld) * (double)a;
+	const double camY = camera->yOld + (camera->y - camera->yOld) * (double)a;
+	const double camZ = camera->zOld + (camera->z - camera->zOld) * (double)a;
+	const double d0 = std::min((double)viewDistance, 128.0);
+
+	const double minX = border.getMinX(), maxX = border.getMaxX();
+	const double minZ = border.getMinZ(), maxZ = border.getMaxZ();
+
+	if (camX < maxX - d0 && camX > minX + d0 && camZ < maxZ - d0 && camZ > minZ + d0)
+		return; // too far away from every side
+
+	double alpha = 1.0 - border.getDistanceToBorder(camX, camZ) / d0;
+	if (alpha <= 0) return;
+	alpha = alpha * alpha * alpha * alpha;
+	if (alpha > 1) alpha = 1;
+
+	int color = 0x20a0ff;
+	switch (border.getState()) {
+		case WorldBorder::GROWING:   color = 0x40ff80; break;
+		case WorldBorder::SHRINKING: color = 0xff3030; break;
+		default: break;
+	}
+
+	mc->textures->loadAndBindTexture("misc/forcefield.png");
+	glEnable2(GL_BLEND);
+	glBlendFunc2(GL_SRC_ALPHA, GL_ONE);
+	glDepthMask(GL_FALSE);
+	glDisable2(GL_CULL_FACE);
+	glDisable2(GL_FOG);
+	glEnable2(GL_ALPHA_TEST);
+	glAlphaFunc(GL_GREATER, 0.1f);
+	glPolygonOffset(-3.0f, -3.0f);
+	glEnable2(GL_POLYGON_OFFSET_FILL);
+
+	// scrolling animation, wrapped so the texture coordinates stay small
+	const float anim = (float)(getTimeMs() % 3000) / 3000.0f;
+	const double yTop = (double)Level::DEPTH + 64.0;
+	const double yBot = 0.0;
+	const float vTop = anim;
+	const float vBot = anim + (float)((yTop - yBot) * 0.5);
+
+	const float r = ((color >> 16) & 0xff) / 255.0f;
+	const float g = ((color >> 8) & 0xff) / 255.0f;
+	const float b = (color & 0xff) / 255.0f;
+
+	Tesselator& t = Tesselator::instance;
+	t.begin();
+	t.color(r, g, b, (float)alpha);
+
+	const float yt = (float)(yTop - camY), yb = (float)(yBot - camY);
+	const double zFrom = std::max(std::floor(camZ - d0), minZ);
+	const double zTo   = std::min(std::ceil(camZ + d0), maxZ);
+	const double xFrom = std::max(std::floor(camX - d0), minX);
+	const double xTo   = std::min(std::ceil(camX + d0), maxX);
+
+	// +X / -X walls (vary along Z)
+	for (int side = 0; side < 2; ++side) {
+		const bool doSide = side == 0 ? (camX > maxX - d0) : (camX < minX + d0);
+		if (!doSide) continue;
+		const float px = (float)((side == 0 ? maxX : minX) - camX);
+		float u = 0;
+		for (double zz = zFrom; zz < zTo; zz += 1.0, u += 0.5f) {
+			const double len = std::min(1.0, zTo - zz);
+			const float du = (float)len * 0.5f;
+			const float z0 = (float)(zz - camZ), z1 = (float)(zz + len - camZ);
+			t.vertexUV(px, yt, z0, anim + u,      vTop);
+			t.vertexUV(px, yt, z1, anim + u + du, vTop);
+			t.vertexUV(px, yb, z1, anim + u + du, vBot);
+			t.vertexUV(px, yb, z0, anim + u,      vBot);
+		}
+	}
+	// +Z / -Z walls (vary along X)
+	for (int side = 0; side < 2; ++side) {
+		const bool doSide = side == 0 ? (camZ > maxZ - d0) : (camZ < minZ + d0);
+		if (!doSide) continue;
+		const float pz = (float)((side == 0 ? maxZ : minZ) - camZ);
+		float u = 0;
+		for (double xx = xFrom; xx < xTo; xx += 1.0, u += 0.5f) {
+			const double len = std::min(1.0, xTo - xx);
+			const float du = (float)len * 0.5f;
+			const float x0 = (float)(xx - camX), x1 = (float)(xx + len - camX);
+			t.vertexUV(x0, yt, pz, anim + u,      vTop);
+			t.vertexUV(x1, yt, pz, anim + u + du, vTop);
+			t.vertexUV(x1, yb, pz, anim + u + du, vBot);
+			t.vertexUV(x0, yb, pz, anim + u,      vBot);
+		}
+	}
+	t.draw();
+
+	glPolygonOffset(0.0f, 0.0f);
+	glDisable2(GL_POLYGON_OFFSET_FILL);
+	glEnable2(GL_CULL_FACE);
+	glDepthMask(GL_TRUE);
+	glBlendFunc2(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+	glDisable2(GL_BLEND);
+	glEnable2(GL_FOG);
 }

@@ -161,6 +161,12 @@ void Mob::baseTick()
 		hurt(NULL, 1);
 	}
 
+	// Java world border: entities beyond the safe zone outside the border get hurt
+	if (isAlive() && !level->isClientSide) {
+		const int borderDamage = level->getWorldBorder().getDamageFor((double)x, (double)z);
+		if (borderDamage > 0) hurt(NULL, borderDamage);
+	}
+
 	//if (fireImmune || level.isOnline) onFire = 0;
 
 	if (isAlive() && isUnderLiquid(Material::water) && !isWaterMob()) {

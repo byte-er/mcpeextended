@@ -83,6 +83,7 @@ public:
 	static int itemCountItoa(char* buf, int count);
 private:
 	void renderVignette(float br, int w, int h);
+	void renderBorderWarning(float strength, int w, int h);
 	void renderSlot(int slot, int x, int y, float a);
 	void tickItemDrop();
 	float cubeSmoothStep(float percentage, float min, float max);

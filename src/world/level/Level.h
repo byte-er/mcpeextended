@@ -248,6 +248,8 @@ public:
 	ChunkSource* getChunkSource();
 	LevelStorage* getLevelStorage();
     LevelData* getLevelData();
+	WorldBorder& getWorldBorder() { return levelData.worldBorder; }
+	const WorldBorder& getWorldBorder() const { return levelData.worldBorder; }
 
 	void saveLevelData();
 	//void savePlayerData();

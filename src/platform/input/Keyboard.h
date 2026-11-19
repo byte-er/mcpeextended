@@ -82,6 +82,7 @@ public:
 	static void reset() {
         _inputs.clear();
 		_inputText.clear();
+		_textOrder.clear();
         _index = -1;
 		_textIndex = -1;
     }
@@ -93,6 +94,23 @@ public:
 	}
 	static void feedText(char character) {
 		_inputText.push_back(character);
+		// remember how many key events preceded this character so screens
+		// can replay keys and text in the order they were actually typed
+		_textOrder.push_back((int)_inputs.size());
+	}
+
+	/** Number of key events queued before the next unread text character
+	    (or -1 if there is none). */
+	static int peekTextCharOrder() {
+		if (_textIndex + 1 >= (int)_inputText.size()) return -1;
+		return _textOrder[_textIndex + 1];
+	}
+	/** Index of the next unread key event (== number of key events consumed). */
+	static int peekKeyIndex() {
+		return _index + 1;
+	}
+	static bool hasNextKey() {
+		return _index + 1 < (int)_inputs.size();
 	}
 
 	static bool next() {
@@ -131,6 +149,7 @@ private:
 	static int _states[256];
 	static std::vector<KeyboardAction> _inputs;
 	static std::vector<char> _inputText;
+	static std::vector<int> _textOrder;
 	static bool _inited;
 };
 

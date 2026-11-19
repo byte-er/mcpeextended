@@ -88,7 +88,7 @@ public:
         tags.insert(std::make_pair(name, new FloatTag(name, value)));
     }
 
-    void putDouble(const std::string& name, float value) {
+    void putDouble(const std::string& name, double value) {
         tags.insert(std::make_pair(name, new DoubleTag(name, value)));
     }
 

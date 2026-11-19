@@ -1,4 +1,5 @@
 #include "LevelData.h"
+#include "../LevelConstants.h"
 
 LevelData::LevelData()
 :	xSpawn(128),
@@ -17,6 +18,7 @@ LevelData::LevelData()
 {
 	//LOGI("ctor 1: %p\n", this);
 	spawnMobs = (gameType == GameType::Survival);
+	worldBorder.resetToLevel(LEVEL_WIDTH, LEVEL_DEPTH);
 }
 
 LevelData::LevelData( const LevelSettings& settings, const std::string& levelName, int generatorVersion /*= -1*/ )
@@ -39,6 +41,7 @@ LevelData::LevelData( const LevelSettings& settings, const std::string& levelNam
 
 	this->generatorVersion = generatorVersion;
 	spawnMobs = (gameType == GameType::Survival);
+	worldBorder.resetToLevel(LEVEL_WIDTH, LEVEL_DEPTH);
 }
 
 LevelData::LevelData( CompoundTag* tag )
@@ -63,7 +66,8 @@ LevelData::LevelData( const LevelData& rhs )
 	generatorVersion(rhs.generatorVersion),
 	spawnMobs(rhs.spawnMobs),
 	loadedPlayerTag(NULL),
-	playerData(rhs.playerData)
+	playerData(rhs.playerData),
+	worldBorder(rhs.worldBorder)
 {
 	//LOGI("c-ctor: %p (%p)\n", this, &rhs);
 	setPlayerTag(rhs.loadedPlayerTag);
@@ -88,6 +92,7 @@ LevelData& LevelData::operator=( const LevelData& rhs )
 		playerDataVersion	= rhs.playerDataVersion;
 		generatorVersion	= rhs.generatorVersion;
 		storageVersion		= rhs.storageVersion;
+		worldBorder			= rhs.worldBorder;
 		setPlayerTag(rhs.loadedPlayerTag);
 	}
 
@@ -170,6 +175,7 @@ void LevelData::setTagData( CompoundTag* tag, CompoundTag* playerTag )
 	tag->putString("LevelName", levelName);
 	tag->putInt("StorageVersion", storageVersion);
 	tag->putInt("Platform", 2);
+	worldBorder.save(tag);
 
 	if (playerTag != NULL) {
 		tag->putCompound("Player", playerTag);
@@ -191,6 +197,8 @@ void LevelData::getTagData( const CompoundTag* tag )
 	storageVersion = tag->getInt("StorageVersion");
 
 	spawnMobs = (gameType == GameType::Survival);
+	worldBorder.resetToLevel(LEVEL_WIDTH, LEVEL_DEPTH);
+	worldBorder.load(tag); // keeps the default if the save predates world borders
 
 	if (tag->contains("Player", Tag::TAG_Compound)) {
 		setPlayerTag(tag->getCompound("Player"));

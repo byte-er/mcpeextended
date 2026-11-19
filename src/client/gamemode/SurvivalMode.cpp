@@ -17,6 +17,10 @@ SurvivalMode::SurvivalMode( Minecraft* minecraft )
 }
 
 void SurvivalMode::continueDestroyBlock( int x, int y, int z, int face ) {
+	if (!minecraft->level->getWorldBorder().isWithinBounds(x, z)) {
+		stopDestroyBlock();
+		return;
+	}
 	if (destroyDelay > 0) {
 		destroyDelay--;
 		return;
@@ -89,6 +93,8 @@ void SurvivalMode::initAbilities( Abilities& abilities ) {
 
 void SurvivalMode::startDestroyBlock( int x, int y, int z, int face ) {
 	if(minecraft->player->getCarriedItem() != NULL && minecraft->player->getCarriedItem()->id == Item::bow->id)
+		return;
+	if (!minecraft->level->getWorldBorder().isWithinBounds(x, z))
 		return;
 
 	int t = minecraft->level->getTile(x, y, z);

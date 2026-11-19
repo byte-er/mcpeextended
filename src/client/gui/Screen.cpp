@@ -69,10 +69,23 @@ void Screen::updateEvents()
 	while (Mouse::next())
 		mouseEvent();
 
-	while (Keyboard::next())
-		keyboardEvent();
-	while (Keyboard::nextTextChar())
-		keyboardTextEvent();
+	// Replay key presses and typed characters in their original order.
+	// (Handling all keys first used to run e.g. Enter before the last few
+	// characters typed in the same tick, truncating chat/commands.)
+	for (;;) {
+		const int textOrder = Keyboard::peekTextCharOrder();
+		const bool hasKey   = Keyboard::hasNextKey();
+		if (textOrder < 0 && !hasKey) break;
+		if (textOrder >= 0 && (!hasKey || textOrder <= Keyboard::peekKeyIndex())) {
+			Keyboard::nextTextChar();
+			keyboardTextEvent();
+		} else {
+			Keyboard::next();
+			keyboardEvent();
+		}
+		// a handler may have closed this screen
+		if (minecraft->screen != this) break;
+	}
 }
 
 void Screen::mouseEvent()

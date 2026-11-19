@@ -12,6 +12,7 @@
 #include "../../../raknet/BitStream.h"
 #include "../../../platform/time.h"
 #include "../../../nbt/CompoundTag.h"
+#include "../WorldBorder.h"
 
 class LevelData
 {
@@ -75,6 +76,8 @@ public:
 public:
 	PlayerData playerData;
 	int playerDataVersion;
+	// Java Edition style world border (persisted in level.dat)
+	WorldBorder worldBorder;
 	std::string levelName;
 private:
 	long seed;
