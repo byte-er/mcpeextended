@@ -291,8 +291,8 @@ void Minecraft::setLevel(Level* level, const std::string& message /* ="" */, Loc
 		}
 		this->level = level;
 		_hasSignaledGeneratingLevelFinished = false;
-#ifdef STANDALONE_SERVER
-		const bool threadedLevelCreation = false;
+#if defined(STANDALONE_SERVER) || defined(__EMSCRIPTEN__)
+		const bool threadedLevelCreation = false; // (web build has no threads)
 #else
 		const bool threadedLevelCreation = true;
 #endif
@@ -1116,9 +1116,17 @@ void Minecraft::releaseMouse()
 #endif
 }
 
+#ifdef __EMSCRIPTEN__
+bool webIsTouchDevice(); // platform/WebGLBind.cpp
+#endif
+
 bool Minecraft::useTouchscreen() {
 #ifdef RPI
 	return false;
+#endif
+#ifdef __EMSCRIPTEN__
+	// browser: touch controls on phones / tablets, mouse + keyboard otherwise
+	return webIsTouchDevice();
 #endif
 	return options.useTouchScreen || !_supportsNonTouchscreen;
 }
@@ -1252,7 +1260,7 @@ void Minecraft::_reloadInput() {
 #ifndef STANDALONE_SERVER
 	delete inputHolder;
 
-#ifdef PLATFORM_DESKTOP
+#if defined(PLATFORM_DESKTOP) && !defined(__EMSCRIPTEN__)
 	const bool useTouchHolder = false;
 #else
 	const bool useTouchHolder = useTouchscreen();

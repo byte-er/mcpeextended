@@ -97,7 +97,9 @@ TextureId Textures::assignTexture( const std::string& resourceName, const Textur
 		glTexParameteri2(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	}
 
-	if (clamp) {
+	// non power of two textures must clamp (WebGL1 / GLES2 treat REPEAT as incomplete)
+	const bool pot = img.w > 0 && img.h > 0 && (img.w & (img.w - 1)) == 0 && (img.h & (img.h - 1)) == 0;
+	if (clamp || !pot) {
 		glTexParameteri2(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 		glTexParameteri2(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 	} else {

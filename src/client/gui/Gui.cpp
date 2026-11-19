@@ -69,7 +69,7 @@ void Gui::render(float a, bool mouseFree, int xMouse, int yMouse) {
 	//minecraft->gameRenderer->setupGuiScreen();
 	Font* font = minecraft->font;
 
-#ifdef PLATFORM_DESKTOP
+#if defined(PLATFORM_DESKTOP) && !defined(__EMSCRIPTEN__)
 	const bool isTouchInterface = false;
 #else
 	const bool isTouchInterface = minecraft->useTouchscreen();

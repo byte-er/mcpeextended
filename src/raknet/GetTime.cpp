@@ -18,8 +18,8 @@
 
 
 #if defined(_WIN32)
-DWORD mProcMask;
-DWORD mSysMask;
+DWORD_PTR mProcMask; // DWORD_PTR: GetProcessAffinityMask writes pointer-sized masks
+DWORD_PTR mSysMask;
 HANDLE mThread;
 
 
@@ -137,11 +137,7 @@ RakNet::TimeUS GetTimeUS_Windows( void )
 		HANDLE mProc = GetCurrentProcess();
 
 		// Get the current Affinity
-#if _MSC_VER >= 1400 && defined (_M_X64)
-		GetProcessAffinityMask(mProc, (PDWORD_PTR)&mProcMask, (PDWORD_PTR)&mSysMask);
-#else
 		GetProcessAffinityMask(mProc, &mProcMask, &mSysMask);
-#endif
 		mThread = GetCurrentThread();
 
 #endif // _WIN32_WCE

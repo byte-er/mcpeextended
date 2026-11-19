@@ -47,9 +47,10 @@ void glInit()
 }
 
 void anGenBuffers(GLsizei n, GLuint* buffers) {
-	static GLuint k = 1;
-	for (int i = 0; i < n; ++i)
-		buffers[i] = ++k;
+	// Ask GL for real buffer names. The old version made names up, which
+	// desktop GL / GLES1 tolerate but WebGL rejects, and it could hand out
+	// names that glGenBuffers elsewhere (e.g. the LOD renderer) also returns.
+	glGenBuffers(n, buffers);
 }
 
 #ifdef USE_VBO

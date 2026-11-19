@@ -1,7 +1,7 @@
 #include "AppPlatform_glfw.h"
 
 #ifdef WIN32
-#include <Windows.h>
+#include <windows.h>
 #endif
 
 // Loader that tries GLFW first, then falls back to opengl32.dll for any

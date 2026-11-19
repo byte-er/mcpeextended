@@ -10,6 +10,7 @@ cmake_install.cmake
 Makefile
 *.cmake
 !cmake/CPM.cmake
+!cmake/mingw-w64-x86_64.cmake
 
 # Compiled object files
 *.o

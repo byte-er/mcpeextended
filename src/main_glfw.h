@@ -8,6 +8,10 @@
 
 #include <cstdio>
 #include <chrono>
+#ifdef __EMSCRIPTEN__
+#include <emscripten.h>
+#include <emscripten/html5.h>
+#endif
 #include <thread>
 #include "platform/input/Keyboard.h"
 #include "platform/input/Mouse.h"
@@ -113,6 +117,57 @@ void error_callback(int error, const char* desc) {
 	printf("Error: %s\n", desc);
 }
 
+#ifdef __EMSCRIPTEN__
+// ---------------------------------------------------------------------------
+// Web (HTML5 / PWA) glue: touch input, canvas resize / rotation, main loop
+// ---------------------------------------------------------------------------
+static GLFWwindow* g_window = 0;
+
+static double webDpr() { return emscripten_get_device_pixel_ratio(); }
+
+static EM_BOOL web_touch(int type, const EmscriptenTouchEvent* e, void*) {
+	const double dpr = webDpr();
+	for (int i = 0; i < e->numTouches; ++i) {
+		const EmscriptenTouchPoint& t = e->touches[i];
+		if (!t.isChanged) continue;
+		const int x = (int)(t.targetX * dpr), y = (int)(t.targetY * dpr);
+		const int id = (int)(t.identifier % 16);
+		if (type == EMSCRIPTEN_EVENT_TOUCHSTART) {
+			Mouse::feed(1, 1, x, y);
+			Multitouch::feed(1, 1, x, y, id);
+		} else if (type == EMSCRIPTEN_EVENT_TOUCHMOVE) {
+			Mouse::feed(0, 0, x, y);
+			Multitouch::feed(0, 0, x, y, id);
+		} else {
+			Mouse::feed(1, 0, x, y);
+			Multitouch::feed(1, 0, x, y, id);
+		}
+	}
+	return EM_TRUE; // no emulated mouse events / scrolling
+}
+
+static void webResize() {
+	double cssW = 0, cssH = 0;
+	emscripten_get_element_css_size("#canvas", &cssW, &cssH);
+	const double dpr = webDpr();
+	const int w = (int)(cssW * dpr), h = (int)(cssH * dpr);
+	if (w <= 0 || h <= 0) return;
+	emscripten_set_canvas_element_size("#canvas", w, h);
+	if (g_window) glfwSetWindowSize(g_window, w, h);
+	if (g_app) g_app->setSize(w, h);
+}
+
+static EM_BOOL web_resize(int, const EmscriptenUiEvent*, void*) { webResize(); return EM_FALSE; }
+static EM_BOOL web_orientation(int, const EmscriptenOrientationChangeEvent*, void*) { webResize(); return EM_FALSE; }
+
+static void web_main_loop() {
+	App* app = g_app;
+	app->update();
+	glfwPollEvents();
+	if (app->wantToQuit()) emscripten_cancel_main_loop();
+}
+#endif
+
 int main(void) {
 	AppContext appContext;
 
@@ -145,7 +200,19 @@ int main(void) {
 	glfwSetWindowSizeCallback(window, window_size_callback);
 
 	glfwMakeContextCurrent(window);
+#ifdef __EMSCRIPTEN__
+	g_window = window;
+	emscripten_set_touchstart_callback("#canvas", 0, 1, web_touch);
+	emscripten_set_touchmove_callback("#canvas", 0, 1, web_touch);
+	emscripten_set_touchend_callback("#canvas", 0, 1, web_touch);
+	emscripten_set_touchcancel_callback("#canvas", 0, 1, web_touch);
+	emscripten_set_resize_callback(EMSCRIPTEN_EVENT_TARGET_WINDOW, 0, 1, web_resize);
+	emscripten_set_orientationchange_callback(0, 1, web_orientation);
+#endif
 	gladLoadGLES1Loader((GLADloadproc)winGLLoader);
+#ifdef __EMSCRIPTEN__
+	{ extern void webBindGLFunctions(); webBindGLFunctions(); }
+#endif
 	glfwSwapInterval(0);
 	glPatchDesktopCompat();
 #endif
@@ -153,8 +220,14 @@ int main(void) {
 	App* app = new MAIN_CLASS();
 
 	g_app = app;
+#ifdef __EMSCRIPTEN__
+	// IndexedDB backed folder, mounted and synced by web/shell.html
+	((MAIN_CLASS*)g_app)->externalStoragePath = "/persist";
+	((MAIN_CLASS*)g_app)->externalCacheStoragePath = "/persist";
+#else
 	((MAIN_CLASS*)g_app)->externalStoragePath = ".";
 	((MAIN_CLASS*)g_app)->externalCacheStoragePath = ".";
+#endif
 	g_app->init(appContext);
 	g_app->setSize(appContext.platform->getScreenWidth(), appContext.platform->getScreenHeight());
 
@@ -175,6 +248,12 @@ int main(void) {
 		mc->hostMultiplayer();
 		mc->setScreen(new ProgressScreen());
 	}
+
+#ifdef __EMSCRIPTEN__
+	webResize();
+	emscripten_set_main_loop(web_main_loop, 0, 1); // never returns
+	return 0;
+#endif
 
 	// Main event loop
 	using clock = std::chrono::steady_clock;
