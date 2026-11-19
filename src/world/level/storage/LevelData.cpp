@@ -19,6 +19,7 @@ LevelData::LevelData()
 	//LOGI("ctor 1: %p\n", this);
 	spawnMobs = (gameType == GameType::Survival);
 	worldBorder.resetToLevel(LEVEL_WIDTH, LEVEL_DEPTH);
+	worldType = LevelSettings::WORLD_LARGE;
 }
 
 LevelData::LevelData( const LevelSettings& settings, const std::string& levelName, int generatorVersion /*= -1*/ )
@@ -42,6 +43,12 @@ LevelData::LevelData( const LevelSettings& settings, const std::string& levelNam
 	this->generatorVersion = generatorVersion;
 	spawnMobs = (gameType == GameType::Survival);
 	worldBorder.resetToLevel(LEVEL_WIDTH, LEVEL_DEPTH);
+	worldType = settings.getWorldType();
+	if (worldType == LevelSettings::WORLD_OLD) {
+		// "Old" worlds: the original 256x256 play area in the middle of the map
+		worldBorder.setCenter(LEVEL_WIDTH * 0.5, LEVEL_DEPTH * 0.5);
+		worldBorder.setSize(256.0);
+	}
 }
 
 LevelData::LevelData( CompoundTag* tag )
@@ -67,7 +74,8 @@ LevelData::LevelData( const LevelData& rhs )
 	spawnMobs(rhs.spawnMobs),
 	loadedPlayerTag(NULL),
 	playerData(rhs.playerData),
-	worldBorder(rhs.worldBorder)
+	worldBorder(rhs.worldBorder),
+	worldType(rhs.worldType)
 {
 	//LOGI("c-ctor: %p (%p)\n", this, &rhs);
 	setPlayerTag(rhs.loadedPlayerTag);
@@ -93,6 +101,7 @@ LevelData& LevelData::operator=( const LevelData& rhs )
 		generatorVersion	= rhs.generatorVersion;
 		storageVersion		= rhs.storageVersion;
 		worldBorder			= rhs.worldBorder;
+		worldType			= rhs.worldType;
 		setPlayerTag(rhs.loadedPlayerTag);
 	}
 
@@ -176,6 +185,7 @@ void LevelData::setTagData( CompoundTag* tag, CompoundTag* playerTag )
 	tag->putInt("StorageVersion", storageVersion);
 	tag->putInt("Platform", 2);
 	worldBorder.save(tag);
+	tag->putInt("WorldType", worldType);
 
 	if (playerTag != NULL) {
 		tag->putCompound("Player", playerTag);
@@ -199,6 +209,7 @@ void LevelData::getTagData( const CompoundTag* tag )
 	spawnMobs = (gameType == GameType::Survival);
 	worldBorder.resetToLevel(LEVEL_WIDTH, LEVEL_DEPTH);
 	worldBorder.load(tag); // keeps the default if the save predates world borders
+	worldType = tag->contains("WorldType") ? tag->getInt("WorldType") : LevelSettings::WORLD_LARGE;
 
 	if (tag->contains("Player", Tag::TAG_Compound)) {
 		setPlayerTag(tag->getCompound("Player"));

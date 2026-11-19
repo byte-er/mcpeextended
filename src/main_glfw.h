@@ -257,8 +257,10 @@ int main(void) {
 		MAIN_CLASS* mc = (MAIN_CLASS*)g_app;
 		const char* seedStr = getenv("MCPE_SEED");
 		const char* creative = getenv("MCPE_CREATIVE");
+		const char* worldType = getenv("MCPE_WORLDTYPE"); // 0 large, 1 old, 2 flat
 		LevelSettings settings(seedStr ? atol(seedStr) : 12345L,
-			(creative && creative[0] == '1') ? GameType::Creative : GameType::Survival);
+			(creative && creative[0] == '1') ? GameType::Creative : GameType::Survival,
+			worldType ? atoi(worldType) : LevelSettings::WORLD_LARGE);
 		mc->selectLevel(autoWorld, autoWorld, settings);
 		mc->hostMultiplayer();
 		mc->setScreen(new ProgressScreen());

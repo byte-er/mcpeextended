@@ -1,3 +1,4 @@
+#include <cstring>
 #include "RandomLevelSource.h"
 #include "feature/Features09.h"
 
@@ -219,6 +220,8 @@ void RandomLevelSource::buildSurfaces(int xOffs, int zOffs, unsigned char* block
 
 /*public*/
 void RandomLevelSource::postProcess(ChunkSource* parent, int xt, int zt) {
+	if (level->getLevelData()->worldType == LevelSettings::WORLD_FLAT)
+		return; // nothing to decorate on a superflat world
 
 	level->isGeneratingTerrain = true;
 
@@ -532,6 +535,21 @@ LevelChunk* RandomLevelSource::getChunk(int xOffs, int zOffs) {
     unsigned char* blocks = new unsigned char[LevelChunk::ChunkBlockCount];
     LevelChunk* levelChunk = new LevelChunk(level, blocks, xOffs, zOffs);
 	chunkMap.insert(std::make_pair(hashedPos, levelChunk));
+
+	// Superflat ("Flat" world type, PE style): bedrock, 2 dirt, grass
+	if (level->getLevelData()->worldType == LevelSettings::WORLD_FLAT) {
+		memset(blocks, 0, LevelChunk::ChunkBlockCount);
+		for (int x = 0; x < 16; ++x)
+		for (int z = 0; z < 16; ++z) {
+			const int p = (x * 16 + z) * 128; // index layout: (x*16+z)*128 + y
+			blocks[p + 0] = (unsigned char)Tile::unbreakable->id;
+			blocks[p + 1] = (unsigned char)Tile::dirt->id;
+			blocks[p + 2] = (unsigned char)Tile::dirt->id;
+			blocks[p + 3] = (unsigned char)((Tile*)Tile::grass)->id;
+		}
+		levelChunk->recalcHeightmap();
+		return levelChunk;
+	}
 
 	Biome** biomes = level->getBiomeSource()->getBiomeBlock(/*biomes, */xOffs * 16, zOffs * 16, 16, 16);
     float* temperatures = level->getBiomeSource()->temperatures;

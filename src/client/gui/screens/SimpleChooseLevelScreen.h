@@ -27,14 +27,20 @@ public:
 	virtual void mouseClicked(int x, int y, int buttonNum);
 
 private:
-	Touch::THeader* bHeader;
-	Button* bGamemode;
-	ImageButton* bBack;
+	void updateToggles();
+	Button* makeButton(int id, const std::string& label);
+
+	// 0.9.0 "Create a World" layout
+	Button* bBack;
 	Button* bCreate;
+	Button* bWorldType[3];   // Old, Large, Flat
+	Button* bMode[2];        // Survival, Creative
+	class NinePatchLayer* panel;
 	bool hasChosen;
 
 	std::string levelName;
 	int gamemode;
+	int worldType;
 
 	TextBox tLevelName;
 	TextBox tSeed;

@@ -466,17 +466,18 @@ void Level::validateSpawn() {
 }
 
 int Level::getTopTile(int x, int z) {
-    int y = 63;
-    while (!isEmptyTile(x, y + 1, z)) {
-        y++;
-    }
-    return getTile(x, y, z);
+    return getTile(x, getTopTileY(x, z), z);
 }
 
 int Level::getTopTileY(int x, int z) {
+    // start at sea level, climb through terrain, and also search downward
+    // (flat worlds / deep areas have nothing at y = 63)
     int y = 63;
-    while (!isEmptyTile(x, y + 1, z)) {
+    while (y < DEPTH - 1 && !isEmptyTile(x, y + 1, z)) {
         y++;
+    }
+    while (y > 0 && isEmptyTile(x, y, z)) {
+        y--;
     }
     return y;
 }

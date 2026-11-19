@@ -95,6 +95,9 @@ private:
 	//@note: This version is never written or loaded to disk. The only purpose
 	//       is to use it in the level generator on server and clients.
 	int generatorVersion;
+public:
+	/** LevelSettings::WorldType (flat worlds use a superflat generator) */
+	int worldType;
 };
 
 #endif /*NET_MINECRAFT_WORLD_LEVEL_STORAGE__LevelData_H__*/

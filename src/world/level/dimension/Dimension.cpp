@@ -44,7 +44,7 @@ bool Dimension::isValidSpawn(int x, int z) {
 		return false;
 
     //if (topTile != Tile::sand->id) return false;
-	if (!Tile::tiles[topTile]->isSolidRender()) return false;
+	if (!Tile::tiles[topTile] || !Tile::tiles[topTile]->isSolidRender()) return false;
 
     return true;
 }

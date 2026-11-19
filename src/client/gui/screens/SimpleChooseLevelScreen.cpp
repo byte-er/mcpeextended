@@ -5,112 +5,126 @@
 #include "ScreenChooser.h"
 #include "../components/Button.h"
 #include "../components/ImageButton.h"
+#include "../components/NinePatch.h"
+#include "../../renderer/Tesselator.h"
 #include "../../Minecraft.h"
 #include "../../../world/level/LevelSettings.h"
 #include "../../../platform/time.h"
 #include "../../../platform/input/Keyboard.h"
 
 SimpleChooseLevelScreen::SimpleChooseLevelScreen(const std::string& levelName)
-:   bHeader(0),
-    bGamemode(0),
-    bBack(0),
+:   bBack(0),
     bCreate(0),
-    levelName(levelName),
+    panel(0),
     hasChosen(false),
+    levelName(levelName),
     gamemode(GameType::Survival),
-    tLevelName(0, "World name"),
-    tSeed(1, "World seed")
+    worldType(LevelSettings::WORLD_LARGE),
+    tLevelName(0, "My World"),
+    tSeed(1, "")
 {
+    bWorldType[0] = bWorldType[1] = bWorldType[2] = 0;
+    bMode[0] = bMode[1] = 0;
 }
 
 SimpleChooseLevelScreen::~SimpleChooseLevelScreen()
 {
-    if (bHeader) delete bHeader;
-    delete bGamemode;
     delete bBack;
     delete bCreate;
+    for (int i = 0; i < 3; ++i) delete bWorldType[i];
+    for (int i = 0; i < 2; ++i) delete bMode[i];
+    delete panel;
+}
+
+Button* SimpleChooseLevelScreen::makeButton(int id, const std::string& label)
+{
+    if (minecraft->useTouchscreen()) return new Touch::TButton(id, label);
+    return new Button(id, label);
 }
 
 void SimpleChooseLevelScreen::init()
 {
-    // header + close button
-    bHeader = new Touch::THeader(0, "Create World");
-    // create the back/X button as ImageButton like CreditsScreen
-    bBack = new ImageButton(2, "");
-    {
-        ImageDef def;
-        def.name = "gui/touchgui.png";
-        def.width = 34;
-        def.height = 26;
-        def.setSrc(IntRectangle(150, 0, (int)def.width, (int)def.height));
-        bBack->setImageDef(def, true);
-    }
-    if (minecraft->useTouchscreen()) {
-        bGamemode = new Touch::TButton(1, "Survival mode");
-        bCreate  = new Touch::TButton(3, "Create");
-    } else {
-        bGamemode = new Button(1, "Survival mode");
-        bCreate  = new Button(3, "Create");
-    }
+    bBack   = makeButton(2, "Back");
+    bCreate = makeButton(3, "Create World!");
+    bWorldType[0] = makeButton(10, "Old");
+    bWorldType[1] = makeButton(11, "Large");
+    bWorldType[2] = makeButton(12, "Flat");
+    bMode[0] = makeButton(20, "Survival");
+    bMode[1] = makeButton(21, "Creative");
 
-    buttons.push_back(bHeader);
     buttons.push_back(bBack);
-    buttons.push_back(bGamemode);
+    for (int i = 0; i < 3; ++i) buttons.push_back(bWorldType[i]);
+    for (int i = 0; i < 2; ++i) buttons.push_back(bMode[i]);
     buttons.push_back(bCreate);
 
-    tabButtons.push_back(bGamemode);
     tabButtons.push_back(bBack);
+    for (int i = 0; i < 3; ++i) tabButtons.push_back(bWorldType[i]);
+    for (int i = 0; i < 2; ++i) tabButtons.push_back(bMode[i]);
     tabButtons.push_back(bCreate);
 
     textBoxes.push_back(&tLevelName);
     textBoxes.push_back(&tSeed);
+    if (tLevelName.text.empty()) tLevelName.text = "My World";
+
+    NinePatchFactory builder(minecraft->textures, "gui/spritesheet.png");
+    panel = builder.createSymmetrical(IntRectangle(0, 0, 16, 16), 4, 4);
+
+    updateToggles();
+}
+
+// button order on screen -> LevelSettings::WorldType
+static const int WORLD_TYPE_FOR_BUTTON[3] = { LevelSettings::WORLD_OLD, LevelSettings::WORLD_LARGE, LevelSettings::WORLD_FLAT };
+
+// Selected toggles are drawn "pressed" (inactive) like 0.9.0
+void SimpleChooseLevelScreen::updateToggles()
+{
+    for (int i = 0; i < 3; ++i) bWorldType[i]->active = (WORLD_TYPE_FOR_BUTTON[i] != worldType);
+    bMode[0]->active = (gamemode != GameType::Survival);
+    bMode[1]->active = (gamemode != GameType::Creative);
 }
 
 void SimpleChooseLevelScreen::setupPositions()
 {
-    int buttonHeight = bBack->height;
+    // header bar: Back on the left, title in the middle
+    bBack->width = 54;
+    bBack->height = 20;
+    bBack->x = 3;
+    bBack->y = 3;
+    const int headerH = 26;
 
-    // position back button in upper-right
-    bBack->x = width - bBack->width;
-    bBack->y = 0;
+    const int px = 8, py = headerH + 4;
+    const int pw = width - 16, ph = height - py - 4;
+    if (panel) panel->setSize((float)pw, (float)ph);
 
-    // header occupies remaining top bar
-    if (bHeader) {
-        bHeader->x = 0;
-        bHeader->y = 0;
-        bHeader->width = width - bBack->width;
-        bHeader->height = buttonHeight;
+    const int lh = Font::DefaultLineHeight;
+    const int colW = (pw - 24) / 2;
+    tLevelName.x = px + 8;
+    tLevelName.y = py + 6 + lh + 2;
+    tLevelName.width = colW;
+    tSeed.x = tLevelName.x + colW + 8;
+    tSeed.y = tLevelName.y;
+    tSeed.width = colW;
+
+    const int bh = 18;
+    int y = tLevelName.y + tLevelName.height + lh + 8;
+    const int bw = Mth::Min(84, (pw - 16 - 16) / 3);
+    for (int i = 0; i < 3; ++i) {
+        bWorldType[i]->width = bw;
+        bWorldType[i]->height = bh;
+        bWorldType[i]->x = px + 8 + i * (bw + 8);
+        bWorldType[i]->y = y;
     }
-
-    // layout the form elements below the header
-    int centerX = width / 2;
-    const int padding = 5;
-
-    tLevelName.width = tSeed.width = 200;
-    tLevelName.x = centerX - tLevelName.width / 2;
-    tLevelName.y = buttonHeight + Font::DefaultLineHeight + 8;
-
-    tSeed.x = tLevelName.x;
-    tSeed.y = tLevelName.y + tLevelName.height + Font::DefaultLineHeight + 6;
-
-    // Mode + create stacked when there is room, otherwise side by side, so
-    // nothing overlaps the mode description (used to on landscape phones).
-    bGamemode->width = 140;
-    bCreate->width = 100;
-    const int rowY = tSeed.y + tSeed.height + 8;
-    const int descH = Font::DefaultLineHeight + 4;
-    const int stackedNeed = rowY + bGamemode->height + descH + bCreate->height + padding;
-    if (stackedNeed <= height) {
-        bGamemode->x = centerX - bGamemode->width / 2;
-        bGamemode->y = rowY;
-        bCreate->x = centerX - bCreate->width / 2;
-        bCreate->y = Mth::Max(rowY + bGamemode->height + descH, height - bCreate->height - padding);
-    } else {
-        bGamemode->x = centerX - (bGamemode->width + bCreate->width + padding) / 2;
-        bGamemode->y = rowY;
-        bCreate->x = bGamemode->x + bGamemode->width + padding;
-        bCreate->y = rowY;
+    y += bh + lh + 6;
+    for (int i = 0; i < 2; ++i) {
+        bMode[i]->width = bw;
+        bMode[i]->height = bh;
+        bMode[i]->x = px + 8 + i * (bw + 8);
+        bMode[i]->y = y;
     }
+    bCreate->x = px + 8 + 2 * (bw + 8);
+    bCreate->width = px + pw - 8 - bCreate->x;
+    bCreate->height = bh + 4;
+    bCreate->y = y - 2;
 }
 
 void SimpleChooseLevelScreen::tick()
@@ -124,19 +138,25 @@ void SimpleChooseLevelScreen::render( int xm, int ym, float a )
 {
     renderDirtBackground(0);
     glEnable2(GL_BLEND);
+    glBlendFunc2(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-    const char* str = NULL;
-    if (gamemode == GameType::Survival) {
-        str = "Mobs, health and gather resources";
-    } else if (gamemode == GameType::Creative) {
-        str = "Unlimited resources and flying";
-    }
-    if (str) {
-        drawCenteredString(minecraft->font, str, width/2, bGamemode->y + bGamemode->height + 4, 0xffcccccc);
+    // header bar
+    fill(0, 0, width, 26, 0xff6b625e);
+    fill(0, 25, width, 26, 0xff2c2724);
+    drawCenteredString(minecraft->font, "Create a World", width / 2, 9, 0xffffffff);
+
+    // light panel
+    if (panel) {
+        glColor4f2(1, 1, 1, 1);
+        Tesselator& t = Tesselator::instance;
+        panel->draw(t, 8.0f, 30.0f);
     }
 
-    drawString(minecraft->font, "World name:", tLevelName.x, tLevelName.y - Font::DefaultLineHeight - 2, 0xffcccccc);
-    drawString(minecraft->font, "World seed:", tSeed.x, tSeed.y - Font::DefaultLineHeight - 2, 0xffcccccc);
+    const int lh = Font::DefaultLineHeight;
+    drawString(minecraft->font, "Name", tLevelName.x, tLevelName.y - lh - 1, 0xffffffff);
+    drawString(minecraft->font, "Seed", tSeed.x, tSeed.y - lh - 1, 0xffffffff);
+    drawString(minecraft->font, "Game Type", bWorldType[0]->x, bWorldType[0]->y - lh - 2, 0xffffffff);
+    drawString(minecraft->font, "Game Mode", bMode[0]->x, bMode[0]->y - lh - 2, 0xffffffff);
 
     Screen::render(xm, ym, a);
     glDisable2(GL_BLEND);
@@ -184,11 +204,10 @@ void SimpleChooseLevelScreen::buttonClicked( Button* button )
     if (hasChosen)
         return;
 
-    if (button == bGamemode) {
-        gamemode ^= 1;
-        bGamemode->msg = (gamemode == GameType::Survival) ? "Survival mode" : "Creative mode";
-        return;
-    }
+    for (int i = 0; i < 3; ++i)
+        if (button == bWorldType[i]) { worldType = WORLD_TYPE_FOR_BUTTON[i]; updateToggles(); return; }
+    if (button == bMode[0]) { gamemode = GameType::Survival; updateToggles(); return; }
+    if (button == bMode[1]) { gamemode = GameType::Creative; updateToggles(); return; }
 
     if (button == bCreate) {
         int seed = getEpochTimeS();
@@ -202,9 +221,9 @@ void SimpleChooseLevelScreen::buttonClicked( Button* button )
             }
         }
         std::string levelName = Util::stringTrim(tLevelName.text);
-        if (levelName.empty()) levelName = "My World"; // blank names showed up as "."
+        if (levelName.empty()) levelName = "My World";
         std::string levelId = getUniqueLevelName(levelName);
-        LevelSettings settings(seed, gamemode);
+        LevelSettings settings(seed, gamemode, worldType);
         minecraft->selectLevel(levelId, levelId, settings);
         minecraft->hostMultiplayer();
         minecraft->setScreen(new ProgressScreen());

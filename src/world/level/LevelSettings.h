@@ -14,11 +14,16 @@ namespace GameType {
 class LevelSettings
 {
 public:
-    LevelSettings(long seed, int gameType)
+    // World types offered on the 0.9.0 style Create World screen
+    enum WorldType { WORLD_LARGE = 0, WORLD_OLD = 1, WORLD_FLAT = 2 };
+
+    LevelSettings(long seed, int gameType, int worldType = WORLD_LARGE)
     :   seed(seed),
-        gameType(gameType)
+        gameType(gameType),
+        worldType(worldType)
     {
     }
+    int getWorldType() const { return worldType; }
 	static LevelSettings None() {
 		return LevelSettings(-1,-1);
 	}
@@ -53,6 +58,7 @@ public:
 private:
     const long seed;
     const int gameType;
+    const int worldType;
 };
 
 #endif /*NET_MINECRAFT_WORLD_LEVEL__LevelSettings_H__*/
