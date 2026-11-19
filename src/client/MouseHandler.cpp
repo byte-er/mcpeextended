@@ -8,6 +8,10 @@
 #ifdef PLATFORM_GLFW
 #include <GLFW/glfw3.h>
 #endif
+#ifdef __EMSCRIPTEN__
+#include <emscripten/html5.h>
+bool webIsTouchDevice(); // platform/WebGLBind.cpp
+#endif
 
 MouseHandler::MouseHandler( ITurnInput* turnInput )
 :	_turnInput(turnInput)
@@ -34,6 +38,12 @@ void MouseHandler::grab() {
 	SDL_ShowCursor(0);
 #endif
 
+#ifdef __EMSCRIPTEN__
+	// Browsers only grant pointer lock inside a user gesture: defer the
+	// request to the next click / key press (touch devices don't need it).
+	if (webIsTouchDevice()) return;
+	emscripten_request_pointerlock("#canvas", 1);
+#endif
 #ifdef PLATFORM_GLFW
 	glfwSetInputMode(glfwGetCurrentContext(), GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 #endif
@@ -46,6 +56,9 @@ void MouseHandler::release() {
 	SDL_ShowCursor(1);
 #endif
 
+#ifdef __EMSCRIPTEN__
+	if (!webIsTouchDevice()) emscripten_exit_pointerlock();
+#endif
 #ifdef PLATFORM_GLFW
 	glfwSetInputMode(glfwGetCurrentContext(), GLFW_CURSOR, GLFW_CURSOR_NORMAL);
 #endif

@@ -158,6 +158,14 @@ static void webResize() {
 }
 
 static EM_BOOL web_resize(int, const EmscriptenUiEvent*, void*) { webResize(); return EM_FALSE; }
+
+// The browser releases pointer lock on Esc: open the pause menu, as Java does
+static EM_BOOL web_pointerlock(int, const EmscriptenPointerlockChangeEvent* e, void*) {
+	MAIN_CLASS* mc = (MAIN_CLASS*)g_app;
+	if (mc && !e->isActive && mc->mouseGrabbed && mc->level && !mc->screen)
+		mc->pauseGame(false);
+	return EM_FALSE;
+}
 static EM_BOOL web_orientation(int, const EmscriptenOrientationChangeEvent*, void*) { webResize(); return EM_FALSE; }
 
 static void web_main_loop() {
@@ -208,6 +216,7 @@ int main(void) {
 	emscripten_set_touchcancel_callback("#canvas", 0, 1, web_touch);
 	emscripten_set_resize_callback(EMSCRIPTEN_EVENT_TARGET_WINDOW, 0, 1, web_resize);
 	emscripten_set_orientationchange_callback(0, 1, web_orientation);
+	emscripten_set_pointerlockchange_callback(EMSCRIPTEN_EVENT_TARGET_DOCUMENT, 0, 1, web_pointerlock);
 #endif
 	gladLoadGLES1Loader((GLADloadproc)winGLLoader);
 #ifdef __EMSCRIPTEN__

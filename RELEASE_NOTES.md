@@ -4,9 +4,7 @@
 | Platform | File |
 |---|---|
 | Android (most phones) | `mcpeextended-0.9.1-arm64-v8a.apk` (or `-universal.apk` if unsure, `-armeabi-v7a.apk` for old 32-bit phones) |
-| Windows 10/11 (64-bit) | `mcpeextended-windows-x64.zip`: unzip, run `MinecraftPE.exe` |
-| Linux (x86-64) | `mcpeextended-linux-x86_64.tar.gz`: extract, run `./MinecraftPE` |
-| Browser / PWA / **iOS** | `mcpeextended-web.zip`: host the files on any web server (HTTPS for install). On iPhone/iPad open it in Safari → Share → **Add to Home Screen** to install it as a fullscreen app. |
+| PC (Windows / macOS / Linux), **iOS**, other devices | `mcpeextended-web.zip`: the browser build. Host the files on any web server (HTTPS to install it as an app). On PC it uses mouse + keyboard (click to capture the mouse, Esc pauses); on phones and tablets it uses touch controls. On iPhone/iPad open it in Safari → Share → **Add to Home Screen** to install it as a fullscreen app. |
 
 If installing the APK over an older build fails, uninstall the old one first; builds can be signed with different keys. Old worlds in `/sdcard/games/com.mojang` are copied over automatically when Android lets the app read them.
 
@@ -21,7 +19,7 @@ If installing the APK over an older build fails, uninstall the old one first; bu
 - **Caves and ravines** (Java Beta cave generator, previously disabled).
 - **Distant Terrain (LOD)**: low-detail terrain beyond your render distance, so you can see the whole world to the horizon. Toggle it under Options → Graphics.
 - **0.9.0 menus**: rotating panorama title screen, 0.9.0 GUI textures, "Play" button, tidier Create World screen.
-- **New platforms**: Windows, Linux and a browser build that installs as a PWA. The browser build supports touch controls, screen rotation, offline play and saves stored in the browser.
+- **Browser build (PC, iOS and more)**: installs as a PWA. It supports mouse + keyboard on PC and touch controls on phones and tablets, screen rotation, offline play, and saves stored in the browser.
 
 ### Notes
 - The browser build is single-player; LAN multiplayer isn't available in browsers.

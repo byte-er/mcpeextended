@@ -43,7 +43,7 @@ export ANDROID_NDK_HOME=/path/to/android-ndk-r27d
 ```
 APKs are signed with a generated debug key unless `KEYSTORE`, `KS_PASS` and `KEY_ALIAS` are set.
 
-GitHub Actions (`.github/workflows/build.yml`) builds Android, Windows, Linux and web on every push. Pushing a `v*` tag,
+GitHub Actions (`.github/workflows/build.yml`) builds Android and the web build (PC / iOS / PWA) on every push. Pushing a `v*` tag,
 running the workflow manually, or a commit message containing `[release]` publishes a GitHub release.
 Add `KEYSTORE_BASE64`, `KEYSTORE_PASSWORD` and `KEY_ALIAS` repository secrets to sign releases with a
 stable key (otherwise each release is signed with a throwaway debug key).
@@ -64,7 +64,7 @@ C:\apkbuild\build.ps1 -NoJava
 C:\apkbuild\build.ps1 -NoBuild
 ```
 
-### Browser / PWA (also the iOS route)
+### Browser / PWA (PC, iOS and other devices)
 Needs the Emscripten SDK (tested with 3.1.74):
 ```
 source /path/to/emsdk/emsdk_env.sh
@@ -76,7 +76,7 @@ Saves go to IndexedDB. Serve over HTTPS to install it as an app (on iOS: Safari,
 The CI can also publish it to GitHub Pages: enable Pages with source "GitHub Actions" and set the
 repository variable `ENABLE_PAGES=true`.
 
-### Windows (cross compiled from Linux)
+### Windows (optional native build, cross compiled from Linux)
 ```
 sudo apt install mingw-w64
 cmake -B build-win -G Ninja -DCMAKE_TOOLCHAIN_FILE=cmake/mingw-w64-x86_64.cmake && cmake --build build-win
