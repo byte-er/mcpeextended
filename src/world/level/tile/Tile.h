@@ -231,6 +231,19 @@ public:
 
 	// invisible bedrock is used to block off empty chunks (i.e. prevent player movement)
 	static Tile* invisible_bedrock;
+
+	// Pocket Edition 0.9.0 blocks
+	static Tile* podzol;
+	static Tile* mycelium;
+	static Tile* packedIce;
+	static Tile* hardenedClay;
+	static Tile* stainedClay;
+	static Tile* coalBlock;
+	static Tile* log2;
+	static LeafTile* leaves2;
+
+	static bool isLog(int id);
+	static bool isLeaf(int id);
 	static Tile* info_updateGame1;
 	static Tile* info_updateGame2;
 	static Tile* info_reserved6;
@@ -320,6 +333,8 @@ public:
     virtual void handleEntityInside(Level* level, int x, int y, int z, Entity* e, Vec3& current) {}
 
     virtual int getColor(LevelSource* level, int x, int y, int z);
+    /** Tint applied when the tile is drawn as an item (hand / inventory). */
+    virtual int getItemColor(int data) { return 0xffffff; }
 
 	virtual bool isSignalSource();
     virtual bool getSignal(LevelSource* level, int x, int y, int z);

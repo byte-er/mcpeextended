@@ -144,6 +144,12 @@ int ItemRenderer::getAtlasPos(const ItemInstance* item) {
 	if (id < 0 || id >= sizeof(_mapper) / sizeof(const signed short))
 		return -1;
 
+	// Data variants added with the 0.9.0 blocks are not in gui_blocks.png:
+	// draw those as real 3D tiles / terrain icons instead of the base icon.
+	if (item->getAuxValue() != 0 &&
+		(id == Tile::sand->id || id == Tile::wood->id || id == ((Tile*)Tile::rose)->id))
+		return -1;
+
 	int texId = _mapper[id];
 	if (texId != -2)
 		return texId;
@@ -188,11 +194,11 @@ void ItemRenderer::renderGuiItem(Font* font, Textures* textures, const ItemInsta
 			// @huge @attn @todo @fix:	This is just guess-works..
 			//							it we're batching for saving the
 			//							buffer, this will fail miserably
+			// Flush the batched atlas icons, draw this item directly, then
+			// resume batching. (Used to also paint a red debug square.)
 			t.endOverrideAndDraw();
-			glDisable2(GL_TEXTURE_2D);
-			fillRect(t, x, y, w, h, 0xff0000);
-			glEnable2(GL_TEXTURE_2D);
 			renderGuiItemCorrect(font, textures, item, int(x), int(y));
+			textures->loadAndBindTexture("gui/gui_blocks.png");
 			t.beginOverride();
 		}
 		return;

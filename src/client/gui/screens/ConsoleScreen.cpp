@@ -9,6 +9,7 @@
 #include "../../../network/ServerSideNetworkHandler.h"
 #include "../../../network/packet/ChatPacket.h"
 #include "../../../platform/log.h"
+#include "../../../util/Mth.h"
 
 #include <sstream>
 #include <cstdlib>
@@ -185,6 +186,32 @@ std::string ConsoleScreen::processCommand(const std::string& raw)
         }
 
         return "Unknown sub-command. Usage: /time <add|set|query> ...";
+    }
+
+    // -----------------------------------------------------------------------
+    // /tp <x> <y> <z>   (~ = current coordinate)
+    // -----------------------------------------------------------------------
+    if (args[0] == "tp" || args[0] == "teleport") {
+        if (level->isClientSide) return "Only the host can teleport.";
+        if (args.size() < 4) return "Usage: /tp <x> <y> <z>";
+        LocalPlayer* p = minecraft->player;
+        float c[3] = { p->x, p->y - p->heightOffset, p->z };
+        for (int i = 0; i < 3; ++i) {
+            const std::string& a = args[1 + i];
+            if (!a.empty() && a[0] == '~') c[i] += (a.size() > 1) ? (float)std::atof(a.c_str() + 1) : 0.0f;
+            else c[i] = (float)std::atof(a.c_str());
+        }
+        // keep the player inside the finite world (outside is solid bedrock)
+        const float pad = p->bbWidth * 0.5f + 0.01f;
+        c[0] = Mth::clamp(c[0], pad, (float)LEVEL_WIDTH - pad);
+        c[2] = Mth::clamp(c[2], pad, (float)LEVEL_DEPTH - pad);
+        if (c[1] < 1) c[1] = 1;
+        p->moveTo(c[0], c[1] + p->heightOffset, c[2], p->yRot, p->xRot);
+        p->xd = p->yd = p->zd = 0;
+        p->fallDistance = 0;
+        std::ostringstream out;
+        out << "Teleported to " << c[0] << ", " << c[1] << ", " << c[2];
+        return out.str();
     }
 
     // -----------------------------------------------------------------------

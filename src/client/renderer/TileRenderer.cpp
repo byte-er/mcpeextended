@@ -2029,11 +2029,17 @@ void TileRenderer::renderEast( Tile* tt, float x, float y, float z, int tex )
 	}
 }
 
+// Multiplies a grey shade by the tile's item tint (stained clay, new leaves...)
+static void itemShade(Tesselator& t, int shade, int tint) {
+	t.color(((tint >> 16) & 0xff) * shade / 255, ((tint >> 8) & 0xff) * shade / 255, (tint & 0xff) * shade / 255);
+}
+
 void TileRenderer::renderTile( Tile* tile, int data )
 {
 	Tesselator& t = Tesselator::instance;
 
-	t.color(0xff, 0xff, 0xff);
+	const int tint = tile->getItemColor(data);
+	itemShade(t, 0xff, tint);
 	int shape = tile->getRenderShape();
 
 	if (shape == Tile::SHAPE_BLOCK) {
@@ -2175,17 +2181,18 @@ void TileRenderer::renderGuiTile( Tile* tile, int data )
 	if (shape == Tile::SHAPE_BLOCK) {
 		tile->updateDefaultShape();
 
+		const int tint = tile->getItemColor(data);
 		t.begin();
 		t.addOffset(-0.5f, -0.5f, -0.5f);
-		t.color(0xff, 0xff, 0xff);
+		itemShade(t, 0xff, tint);
 		renderFaceUp(tile, 0, 0, 0, tile->getTexture(1, data));
 		renderFaceDown(tile, 0, 0, 0, tile->getTexture(0, data));
 
-		t.color(0x80, 0x80, 0x80);
+		itemShade(t, 0x80, tint);
 		renderNorth(tile, 0, 0, 0, tile->getTexture(2, data));
 		renderSouth(tile, 0, 0, 0, tile->getTexture(3, data));
 
-		t.color(0xbb, 0xbb, 0xbb);
+		itemShade(t, 0xbb, tint);
 		renderEast(tile, 0, 0, 0, tile->getTexture(5, data));
 		renderWest(tile, 0, 0, 0, tile->getTexture(4, data));
 		t.draw();

@@ -1,4 +1,5 @@
 #include "Recipes.h"
+#include "../../level/tile/Tiles09.h"
 #include "ShapedRecipe.h"
 #include "ShapelessRecipe.h"
 
@@ -195,6 +196,26 @@ Recipes::Recipes()
 		"#", //
 
 		definition('#', Tile::treeTrunk));
+
+	// Pocket Edition 0.9.0 woods
+	addShapedRecipe(ItemInstance(Tile::wood, 4, PlanksTile::ACACIA), //
+		"#", //
+
+		definition('#', ItemInstance(Tile::log2, 1, Log2Tile::ACACIA)));
+	addShapedRecipe(ItemInstance(Tile::wood, 4, PlanksTile::DARK_OAK), //
+		"#", //
+
+		definition('#', ItemInstance(Tile::log2, 1, Log2Tile::DARK_OAK)));
+
+	// Stained clay: 8 hardened clay around a dye (dye data is the inverse of the colour data)
+	for (int dye = 0; dye < 16; ++dye) {
+		addShapedRecipe(ItemInstance(Tile::stainedClay, 8, 15 - dye), //
+			"###", //
+			"#X#", //
+			"###", //
+
+			definition('#', Tile::hardenedClay, 'X', ItemInstance(Item::dye_powder, 1, dye)));
+	}
 
 	addShapedRecipe(ItemInstance(Item::stick, 4), //
 		"#", //

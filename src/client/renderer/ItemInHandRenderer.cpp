@@ -39,6 +39,7 @@ ItemInHandRenderer::ItemInHandRenderer( Minecraft* mc )
 
 	for (int i = 0; i < MaxNumRenderObjects; ++i) {
 		renderObjects[i].itemId = -1;
+		renderObjects[i].auxValue = 0;
 		renderObjects[i].chunk.vboId = ids[i];
 		//LOGI("IDS: %d\n", ids[i]);
 	}
@@ -99,6 +100,11 @@ void ItemInHandRenderer::renderItem(Mob* mob,  ItemInstance* item )
 	lastItemRendered = itemId;
 	lastIconRendered = itemIcon;
 	//const int aux = item->getAuxValue();
+
+	// cached meshes are per (id, data): rebuild when a different variant is held
+	if (renderObject.auxValue != item->getAuxValue())
+		reTesselate = true;
+	renderObject.auxValue = item->getAuxValue();
 
 	if (renderObject.itemId == -1 || reTesselate) {
 		if (item->id < 256 && TileRenderer::canRender(Tile::tiles[item->id]->getRenderShape())) {
@@ -535,6 +541,7 @@ void ItemInHandRenderer::onGraphicsReset()
 
 	for (int i = 0; i < MaxNumRenderObjects; ++i) {
 		renderObjects[i].itemId = -1;
+		renderObjects[i].auxValue = 0;
 		renderObjects[i].chunk.vboId = ids[i];
 	}
 }

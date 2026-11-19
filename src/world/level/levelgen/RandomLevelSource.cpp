@@ -1,4 +1,5 @@
 #include "RandomLevelSource.h"
+#include "feature/Features09.h"
 
 #include "feature/FeatureInclude.h"
 #include "../Level.h"
@@ -27,6 +28,7 @@ RandomLevelSource::RandomLevelSource(Level* level, long seed, int version, bool 
 	scaleNoise(&random, 10),
 	depthNoise(&random, 16),
 	forestNoise(&random, 8),
+	surfaceNoise09(&random, 4),
 	spawnMobs(spawnMobs),
 	pnr(NULL), ar(NULL), br(NULL), sr(NULL), dr(NULL), fi(NULL), fis(NULL)
 	//biomes(NULL)
@@ -353,11 +355,22 @@ void RandomLevelSource::postProcess(ChunkSource* parent, int xt, int zt) {
     if (biome == Biome::tundra) forests -= 20;
     if (biome == Biome::plains) forests -= 20;
 
+    if (biome == Biome::savanna) forests += 1;
+
     for (int i = 0; i < forests; i++) {
         int x = xo + random.nextInt(16) + 8;
         int z = zo + random.nextInt(16) + 8;
 		int y = level->getHeightmap(x, z);
-        Feature* tree = biome->getTreeFeature(&random);
+        // 0.9.0 trees: acacia in savannas, dark oak mixed into the lush forests
+        Feature* tree = NULL;
+        if (biome == Biome::savanna && random.nextInt(4) != 0)
+            tree = new AcaciaFeature(false);
+        else if ((biome == Biome::seasonalForest || biome == Biome::rainForest) && random.nextInt(3) == 0)
+            tree = new DarkOakFeature(false);
+        else if (biome == Biome::forest && random.nextInt(10) == 0)
+            tree = new DarkOakFeature(false);
+        else
+            tree = biome->getTreeFeature(&random);
 		if (tree) {
 	        tree->init(1, 1, 1);
 		    tree->place(level, &random, x, y, z);
@@ -380,6 +393,23 @@ void RandomLevelSource::postProcess(ChunkSource* parent, int xt, int zt) {
         int z = zo + random.nextInt(16) + 8;
 		FlowerFeature feature(Tile::rose->id);
         feature.place(level, &random, x, y, z);
+    }
+
+    // 0.9.0 flowers (id 38 with data), picked per biome like Java 1.7
+    {
+        int flowerData = -1;
+        if (biome == Biome::swampland) flowerData = 1;                         // blue orchid
+        else if (biome == Biome::plains || biome == Biome::shrubland || biome == Biome::savanna)
+            flowerData = 3 + random.nextInt(6);                                // bluet, tulips, daisy
+        else if (biome == Biome::forest || biome == Biome::seasonalForest)
+            flowerData = (random.nextInt(4) == 0) ? 2 : 3 + random.nextInt(6); // allium is rarer
+        if (flowerData > 0 && random.nextInt(2) == 0) {
+            int x = xo + random.nextInt(16) + 8;
+            int y = random.nextInt(128);
+            int z = zo + random.nextInt(16) + 8;
+            DataFlowerFeature feature(Tile::rose->id, flowerData);
+            feature.place(level, &random, x, y, z);
+        }
     }
 
     if (random.nextInt(4) == 0) {
@@ -451,6 +481,8 @@ void RandomLevelSource::postProcess(ChunkSource* parent, int xt, int zt) {
         SpringFeature feature(Tile::lava->id);
 		feature.place(level, &random, x, y, z);
     }
+
+	decorate09(biome, xo, zo);
 
 	if (spawnMobs && !level->isClientSide)
 		MobSpawner::postProcessSpawnMobs(level, biome, xo + 8, zo + 8, 16, 16, &random);
@@ -720,4 +752,68 @@ LevelChunk* PerformanceTestChunkSource::create(int x, int z)
 	levelChunk->recalcHeightmap();
 
 	return levelChunk;
+}
+
+
+// ---------------------------------------------------------------------------
+// 0.9.0 surface decoration: badlands (red sand + terracotta bands) in deserts,
+// podzol in taigas, ice spikes in snowy biomes and rare mushroom patches.
+// Works on the same 16x16 area (offset by 8) as the rest of postProcess.
+// ---------------------------------------------------------------------------
+void RandomLevelSource::decorate09(Biome* chunkBiome, int xo, int zo)
+{
+	static const int CLAY_BANDS[] = { 1, -1, 4, 0, -1, 12, 14, -1, 1, 8, -1, 4, 0, 14, -1, 12 };
+	const int numBands = sizeof(CLAY_BANDS) / sizeof(CLAY_BANDS[0]);
+
+	for (int x = xo + 8; x < xo + 24; ++x)
+	for (int z = zo + 8; z < zo + 24; ++z) {
+		Biome* b = level->getBiome(x, z);
+		const float n = surfaceNoise09.getValue(x * 0.08f, z * 0.08f);
+		int y = level->getHeightmap(x, z) - 1;
+		if (y < 2 || y >= Level::DEPTH) continue;
+		int top = level->getTile(x, y, z);
+
+		if (b == Biome::desert && n > 2.5f) {
+			// Badlands: red sand on top, stained / hardened clay bands below
+			int depth = 0;
+			for (int yy = y; yy > 2 && depth < 24; --yy, ++depth) {
+				const int t = level->getTile(x, yy, z);
+				if (t == Tile::sand->id) {
+					level->setTileAndDataNoUpdate(x, yy, z, Tile::sand->id, SandVariantTile::TYPE_RED);
+				} else if (t == Tile::sandStone->id || (t == Tile::rock->id && depth < 12)) {
+					const int band = CLAY_BANDS[(yy + (int)(n * 3)) % numBands];
+					if (band < 0) level->setTileNoUpdate(x, yy, z, Tile::hardenedClay->id);
+					else level->setTileAndDataNoUpdate(x, yy, z, Tile::stainedClay->id, band);
+				} else if (t != 0 && t != Tile::cactus->id) {
+					break;
+				}
+			}
+		} else if (b == Biome::taiga && n > 0.5f && top == ((Tile*)Tile::grass)->id) {
+			level->setTileNoUpdate(x, y, z, Tile::podzol->id);
+			if (level->getTile(x, y + 1, z) == Tile::topSnow->id && n > 1.5f)
+				level->setTileNoUpdate(x, y + 1, z, 0);
+		}
+	}
+
+	// Ice spikes cluster where the surface noise is high in snowy biomes
+	if (chunkBiome == Biome::iceDesert || chunkBiome == Biome::tundra) {
+		const float n = surfaceNoise09.getValue((xo + 16) * 0.08f, (zo + 16) * 0.08f);
+		if (n > 1.5f) {
+			const int spikes = 1 + random.nextInt(3);
+			for (int i = 0; i < spikes; ++i) {
+				int x = xo + random.nextInt(16) + 8;
+				int z = zo + random.nextInt(16) + 8;
+				IceSpikeFeature feature;
+				feature.place(level, &random, x, level->getHeightmap(x, z), z);
+			}
+		}
+	}
+
+	// Rare mushroom field patches
+	if ((chunkBiome == Biome::swampland || chunkBiome == Biome::plains) && random.nextInt(48) == 0) {
+		int x = xo + random.nextInt(16) + 8;
+		int z = zo + random.nextInt(16) + 8;
+		MyceliumPatchFeature feature;
+		feature.place(level, &random, x, level->getHeightmap(x, z), z);
+	}
 }

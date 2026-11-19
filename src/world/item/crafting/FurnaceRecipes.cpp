@@ -48,6 +48,8 @@ FurnaceRecipes::FurnaceRecipes()
 	addFurnaceRecipe(Tile::cactus->id,      ItemInstance(Item::dye_powder, 1, DyePowderItem::GREEN));
 	addFurnaceRecipe(Tile::mushroom2->id, ItemInstance(Item::dye_powder, 1, DyePowderItem::RED));
 	addFurnaceRecipe(Tile::treeTrunk->id,   ItemInstance(Item::coal, 1, CoalItem::CHAR_COAL));
+	addFurnaceRecipe(Tile::log2->id,        ItemInstance(Item::coal, 1, CoalItem::CHAR_COAL));
+	addFurnaceRecipe(Tile::clay->id,        ItemInstance(Tile::hardenedClay));
 	addFurnaceRecipe(Tile::netherrack->id,  ItemInstance(Item::netherbrick));
 	/*
 		// special silk touch related recipes:

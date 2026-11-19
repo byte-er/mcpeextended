@@ -67,7 +67,7 @@ public:
             for (int yo = -r; yo <= r; yo++)
             for (int zo = -r; zo <= r; zo++) {
                 int t = level->getTile(x + xo, y + yo, z + zo);
-                if (t == Tile::leaves->id) {
+                if (Tile::isLeaf(t)) {
                     int currentData = level->getData(x + xo, y + yo, z + zo);
                     level->setDataNoUpdate(x + xo, y + yo, z + zo, currentData | UPDATE_LEAF_BIT);
                 }
@@ -97,9 +97,9 @@ public:
                 for (int yo = -r; yo <= r; yo++)
                 for (int zo = -r; zo <= r; zo++) {
                     int t = level->getTile(x + xo, y + yo, z + zo);
-                    if (t == Tile::treeTrunk->id) {
+                    if (Tile::isLog(t)) {
                         checkBuffer[(xo + WO) * WW + (yo + WO) * W + (zo + WO)] = 0;
-                    } else if (t == Tile::leaves->id) {
+                    } else if (Tile::isLeaf(t)) {
                         checkBuffer[(xo + WO) * WW + (yo + WO) * W + (zo + WO)] = -2;
                     } else {
                         checkBuffer[(xo + WO) * WW + (yo + WO) * W + (zo + WO)] = -1;
@@ -147,7 +147,7 @@ public:
 			ItemInstance* item = player->inventory->getSelected();
 			if (item && item->id == ((Item*)Item::shears)->id) {
 				// drop leaf block instead of sapling
-				popResource(level, x, y, z, ItemInstance(Tile::leaves->id, 1, data & LEAF_TYPE_MASK));
+				popResource(level, x, y, z, ItemInstance(id, 1, data & LEAF_TYPE_MASK));
 				return;
 			}
 		}

@@ -67,7 +67,8 @@ public:
 
 protected:
     virtual bool mayPlaceOn(int tile) {
-        return tile == ((Tile*)Tile::grass)->id || tile == Tile::dirt->id || tile == Tile::farmland->id;
+        return tile == ((Tile*)Tile::grass)->id || tile == Tile::dirt->id || tile == Tile::farmland->id
+            || (Tile::podzol && tile == Tile::podzol->id);
     }
 
     const void checkAlive(Level* level, int x, int y, int z) {

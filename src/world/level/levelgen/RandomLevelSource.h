@@ -47,6 +47,7 @@ public:
 	void prepareHeights(int xOffs, int zOffs, unsigned char* blocks, /*Biome*/void* biomes, float* temperatures);
     void buildSurfaces(int xOffs, int zOffs, unsigned char* blocks, Biome** biomes);
 	void postProcess(ChunkSource* parent, int xt, int zt);
+	void decorate09(Biome* chunkBiome, int xo, int zo);
 
     bool tick();
 
@@ -76,6 +77,9 @@ private:
 	PerlinNoise scaleNoise;
     PerlinNoise depthNoise;
     PerlinNoise forestNoise;
+	// 0.9.0 surface variation (badlands, podzol, ice spikes). Initialised after
+	// all original noises so existing seeds keep generating the same terrain.
+	PerlinNoise surfaceNoise09;
 
 	Level* level;
 	bool spawnMobs;

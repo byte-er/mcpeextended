@@ -40,7 +40,7 @@ public:
             for (int yo = -r; yo <= r; yo++)
             for (int zo = -r; zo <= r; zo++) {
                 int t = level->getTile(x + xo, y + yo, z + zo);
-                if (t == Tile::leaves->id) {
+                if (Tile::isLeaf(t)) {
                     int currentData = level->getData(x + xo, y + yo, z + zo);
                     if ((currentData & LeafTile::UPDATE_LEAF_BIT) == 0) {
                         level->setDataNoUpdate(x + xo, y + yo, z + zo, currentData | LeafTile::UPDATE_LEAF_BIT);

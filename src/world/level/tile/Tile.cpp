@@ -1,4 +1,6 @@
 #include "TileInclude.h"
+#include "Tiles09.h"
+#include "../../item/AuxDataTileItem.h"
 #include "../Level.h"
 #include "../../entity/player/Player.h"
 #include "../../entity/item/ItemEntity.h"
@@ -155,6 +157,26 @@ Tile* Tile::stairs_netherBricks   = NULL;
 Tile* Tile::stairs_sandStone   = NULL;
 Tile* Tile::quartzBlock   = NULL;
 Tile* Tile::stairs_quartz   = NULL;
+Tile* Tile::podzol          = NULL;
+Tile* Tile::mycelium        = NULL;
+Tile* Tile::packedIce       = NULL;
+Tile* Tile::hardenedClay    = NULL;
+Tile* Tile::stainedClay     = NULL;
+Tile* Tile::coalBlock       = NULL;
+Tile* Tile::log2            = NULL;
+LeafTile* Tile::leaves2     = NULL;
+
+bool Tile::isLog(int id) {
+	return id > 0 && (id == treeTrunk->id || (log2 && id == log2->id));
+}
+bool Tile::isLeaf(int id) {
+	return id > 0 && (id == ((Tile*)leaves)->id || (leaves2 && id == ((Tile*)leaves2)->id));
+}
+
+const int StainedClayTile::COLORS[16] = {
+	0xeecab7, 0xb85f2b, 0xaa647c, 0x817b9d, 0xd49728, 0x76863c, 0xb85959, 0x423028,
+	0x9a796f, 0x636767, 0x875062, 0x544468, 0x583a29, 0x565f30, 0xa34535, 0x2a1a13
+};
 
 /*static*/
 void Tile::initTiles() {
@@ -162,14 +184,14 @@ void Tile::initTiles() {
 	grass       = (GrassTile*) (new GrassTile(2))->init()->setDestroyTime(0.6f)->setSoundType(SOUND_GRASS)->setCategory(ItemCategory::Structures)->setDescriptionId("grass");
 	dirt        = (new DirtTile(3, 2))->init()->setDestroyTime(0.5f)->setSoundType(SOUND_GRAVEL)->setCategory(ItemCategory::Structures)->setDescriptionId("dirt");
 	stoneBrick  = (new Tile(4, 16, Material::stone))->init()->setDestroyTime(2.0f)->setExplodeable(10)->setSoundType(SOUND_STONE)->setCategory(ItemCategory::Structures)->setDescriptionId("stonebrick");
-	wood        = (new Tile(5, 4, Material::wood))->init()->setDestroyTime(2.0f)->setExplodeable(5)->setSoundType(SOUND_WOOD)->setCategory(ItemCategory::Structures)->setDescriptionId("wood");
+	wood        = (new PlanksTile(5))->init()->setDestroyTime(2.0f)->setExplodeable(5)->setSoundType(SOUND_WOOD)->setCategory(ItemCategory::Structures)->setDescriptionId("wood");
 	sapling     = (new Sapling(6, 15))->init()->setDestroyTime(0.0f)->setSoundType(SOUND_GRASS)->setCategory(ItemCategory::Structures)->setDescriptionId("sapling");//->sendTileData();
 	unbreakable = (new Tile(7, 17, Material::stone))->init()->setDestroyTime(-1)->setExplodeable(6000000)->setSoundType(SOUND_STONE)->setCategory(ItemCategory::Structures)->setDescriptionId("bedrock");
 	water       = (new LiquidTileDynamic(8, Material::water))->init()->setDestroyTime(100.0f)->setLightBlock(3)->setCategory(ItemCategory::Structures)->setDescriptionId("water");
 	calmWater   = (new LiquidTileStatic(9, Material::water))->init()->setDestroyTime(100.0f)->setLightBlock(3)->setCategory(ItemCategory::Structures)->setDescriptionId("water");
 	lava        = (new LiquidTileDynamic(10, Material::lava))->init()->setDestroyTime(00.0f)->setLightEmission(1.0f)->setLightBlock(255)->setCategory(ItemCategory::Structures)->setDescriptionId("lava"); // 00.0?
 	calmLava    = (new LiquidTileStatic(11, Material::lava))->init()->setDestroyTime(100.0f)->setLightEmission(1.0f)->setLightBlock(255)->setCategory(ItemCategory::Structures)->setDescriptionId("lava");
-	sand        = (new HeavyTile(12, 18))->init()->setDestroyTime(0.5f)->setSoundType(SOUND_SAND)->setCategory(ItemCategory::Structures)->setDescriptionId("sand");
+	sand        = (new SandVariantTile(12, 18))->init()->setDestroyTime(0.5f)->setSoundType(SOUND_SAND)->setCategory(ItemCategory::Structures)->setDescriptionId("sand");
 	gravel      = (new GravelTile(13, 19))->init()->setDestroyTime(0.6f)->setSoundType(SOUND_GRAVEL)->setCategory(ItemCategory::Structures)->setDescriptionId("gravel");
 	goldOre     = (new OreTile(14, 32))->init()->setDestroyTime(3.0f)->setExplodeable(5)->setSoundType(SOUND_STONE)->setCategory(ItemCategory::Decorations)->setDescriptionId("oreGold");
 	ironOre     = (new OreTile(15, 33))->init()->setDestroyTime(3.0f)->setExplodeable(5)->setSoundType(SOUND_STONE)->setCategory(ItemCategory::Decorations)->setDescriptionId("oreIron");
@@ -187,7 +209,7 @@ void Tile::initTiles() {
 	cloth       = (new ClothTile(35))->init()->setDestroyTime(0.8f)->setSoundType(SOUND_CLOTH)->setCategory(ItemCategory::Structures)->setDescriptionId("cloth");
 
 	flower      = (new Bush(37, 13))->init()->setDestroyTime(0.0f)->setSoundType(SOUND_GRASS)->setCategory(ItemCategory::Decorations)->setDescriptionId("flower");
-	rose        = (new Bush(38, 12))->init()->setDestroyTime(0.0f)->setSoundType(SOUND_GRASS)->setCategory(ItemCategory::Decorations)->setDescriptionId("rose");
+	rose        = (new FlowerTile(38, 12))->init()->setDestroyTime(0.0f)->setSoundType(SOUND_GRASS)->setCategory(ItemCategory::Decorations)->setDescriptionId("rose");
 	mushroom1   = (new Mushroom(39, 13 + 16))->init()->setDestroyTime(0.0f)->setSoundType(SOUND_GRASS)->setLightEmission(2 / 16.0f)->setCategory(ItemCategory::Decorations)->setDescriptionId("mushroom");
 	mushroom2   = (new Mushroom(40, 12 + 16))->init()->setDestroyTime(0.0f)->setSoundType(SOUND_GRASS)->setCategory(ItemCategory::Decorations)->setDescriptionId("mushroom");
 	goldBlock   = (new MetalTile(41, 39 - 16))->init()->setDestroyTime(3.0f)->setExplodeable(10)->setSoundType(SOUND_METAL)->setCategory(ItemCategory::Decorations)->setDescriptionId("blockGold");
@@ -237,6 +259,18 @@ void Tile::initTiles() {
 
 	lightGem	= (new LightGemTile(89, 9 + 16 * 6, Material::glass))->init()->setDestroyTime(0.3f)->setCategory(ItemCategory::Structures)->setSoundType(SOUND_GLASS)->setLightEmission(1.0f)->setDescriptionId("lightgem");
 	invisible_bedrock = (new InvisibleTile(95, 0, Material::stone))->init()->setDestroyTime(-1)->setExplodeable(6000000);//->setSoundType(SOUND_SILENT);
+
+	// ---- Pocket Edition 0.9.0 blocks (PE block ids) ----
+	mycelium     = (new TopSideTile(110, Tex09::MYCELIUM_TOP, Tex09::MYCELIUM_SIDE, Tex09::DIRT, Material::dirt))->init()->setDestroyTime(0.6f)->setSoundType(SOUND_GRASS)->setCategory(ItemCategory::Structures)->setDescriptionId("mycel");
+	podzol       = (new TopSideTile(243, Tex09::PODZOL_TOP, Tex09::PODZOL_SIDE, Tex09::DIRT, Material::dirt))->init()->setDestroyTime(0.5f)->setSoundType(SOUND_GRAVEL)->setCategory(ItemCategory::Structures)->setDescriptionId("podzol");
+	stainedClay  = (new StainedClayTile(159))->init()->setDestroyTime(1.25f)->setExplodeable(7)->setSoundType(SOUND_STONE)->setCategory(ItemCategory::Structures)->setDescriptionId("stainedClay");
+	hardenedClay = (new Tile(172, Tex09::HARDENED_CLAY, Material::stone))->init()->setDestroyTime(1.25f)->setExplodeable(7)->setSoundType(SOUND_STONE)->setCategory(ItemCategory::Structures)->setDescriptionId("hardenedClay");
+	coalBlock    = (new Tile(173, Tex09::COAL_BLOCK, Material::stone))->init()->setDestroyTime(5.0f)->setExplodeable(10)->setSoundType(SOUND_STONE)->setCategory(ItemCategory::Decorations)->setDescriptionId("blockCoal");
+	packedIce    = (new Tile(174, Tex09::PACKED_ICE, Material::stone))->init();
+	packedIce->friction = 0.98f; // slippery like ice, but opaque and doesn't melt
+	packedIce    = packedIce->setDestroyTime(0.5f)->setSoundType(SOUND_GLASS)->setCategory(ItemCategory::Structures)->setDescriptionId("icePacked");
+	leaves2      = (LeafTile*) (new Leaves2Tile(161))->init()->setDestroyTime(0.2f)->setLightBlock(1)->setSoundType(SOUND_GRASS)->setCategory(ItemCategory::Structures)->setDescriptionId("leaves");
+	log2         = (new Log2Tile(162))->init()->setDestroyTime(2.0f)->setSoundType(SOUND_WOOD)->setCategory(ItemCategory::Structures)->setDescriptionId("log");
 	trapdoor = (new TrapDoorTile(96, Material::wood))->init()->setDestroyTime(3.0f)->setSoundType(SOUND_WOOD)->setCategory(ItemCategory::Structures)->setDescriptionId("trapdoor");//->sendTileData();
 
 	stoneBrickSmooth = (new MultiTextureTile(98, (const int*)&STONE_BRICK_TEXTURES, STONE_BRICK_TEXTURE_COUNT, Material::stone))->init()->setDestroyTime(1.5f)->setExplodeable(10)->setSoundType(SOUND_STONE)->setCategory(ItemCategory::Structures)->setDescriptionId("stonebricksmooth");
@@ -285,6 +319,17 @@ void Tile::initTiles() {
 	Item::items[sandStone->id] = (new AuxDataTileItem(sandStone->id - 256, sandStone))->setCategory(ItemCategory::Structures)->setDescriptionId("sandStone");
 
 	Item::items[quartzBlock->id] = (new AuxDataTileItem(quartzBlock->id - 256, quartzBlock))->setCategory(ItemCategory::Structures)->setDescriptionId("quartzBlock");
+	static const char* const PLANK_NAMES[] = { "", "", "", "", "acacia", "big_oak" };
+	static const char* const SAND_NAMES[]  = { "", "red" };
+	static const char* const FLOWER_NAMES[] = { "", "blueOrchid", "allium", "houstonia", "tulipRed", "tulipOrange", "tulipWhite", "tulipPink", "oxeyeDaisy" };
+	static const char* const CLAY_NAMES[]  = { "white", "orange", "magenta", "lightBlue", "yellow", "lime", "pink", "gray", "silver", "cyan", "purple", "blue", "brown", "green", "red", "black" };
+	static const char* const LOG2_NAMES[]  = { "acacia", "big_oak" };
+	Item::items[wood->id]        = (new VariantTileItem(wood->id - 256, wood, PLANK_NAMES, 6))->setCategory(ItemCategory::Structures)->setDescriptionId("wood");
+	Item::items[sand->id]        = (new VariantTileItem(sand->id - 256, sand, SAND_NAMES, 2))->setCategory(ItemCategory::Structures)->setDescriptionId("sand");
+	Item::items[rose->id]        = (new VariantTileItem(rose->id - 256, rose, FLOWER_NAMES, 9))->setCategory(ItemCategory::Decorations)->setDescriptionId("rose");
+	Item::items[stainedClay->id] = (new VariantTileItem(stainedClay->id - 256, stainedClay, CLAY_NAMES, 16))->setCategory(ItemCategory::Structures)->setDescriptionId("stainedClay");
+	Item::items[log2->id]        = (new VariantTileItem(log2->id - 256, log2, LOG2_NAMES, 2))->setCategory(ItemCategory::Structures)->setDescriptionId("log");
+	Item::items[((Tile*)leaves2)->id] = (new VariantTileItem(((Tile*)leaves2)->id - 256, leaves2, LOG2_NAMES, 2))->setCategory(ItemCategory::Decorations)->setDescriptionId("leaves");
 
     for (int i = 0; i < 256; i++) {
         if (Tile::tiles[i] != NULL) {

@@ -11,6 +11,7 @@ class Minecraft;
 
 typedef struct RenderCall {
 	int itemId;
+	int auxValue;	// data value the cached mesh was built for
 	RenderChunk chunk;
 	std::string	texture;
 	bool		isFlat;

@@ -1,4 +1,5 @@
 #include "Inventory.h"
+#include "../../level/tile/Tiles09.h"
 #include "../../level/material/Material.h"
 #include "../../level/tile/QuartzBlockTile.h"
 #include "../../level/tile/TreeTile.h"
@@ -142,11 +143,22 @@ void Inventory::setupDefault() {
 		addItem(new ItemInstance(Tile::sandStone, 1, 1));
 		addItem(new ItemInstance(Tile::sandStone, 1, 2));
 		addItem(new ItemInstance(Tile::sand));
+		addItem(new ItemInstance(Tile::sand, 1, SandVariantTile::TYPE_RED));
 		addItem(new ItemInstance(Tile::gravel));
-		
+		addItem(new ItemInstance(Tile::podzol));
+		addItem(new ItemInstance(Tile::mycelium));
+		addItem(new ItemInstance(Tile::packedIce));
+		addItem(new ItemInstance(Tile::hardenedClay));
+		for (int c = 0; c < 16; ++c)
+			addItem(new ItemInstance(Tile::stainedClay, 1, c));
+
+		addItem(new ItemInstance(Tile::wood, 1, PlanksTile::ACACIA));
+		addItem(new ItemInstance(Tile::wood, 1, PlanksTile::DARK_OAK));
 		Sel[7] = addItem(new ItemInstance(Tile::treeTrunk, 1, 0));
 		addItem(new ItemInstance(Tile::treeTrunk, 1, 1));
 		addItem(new ItemInstance(Tile::treeTrunk, 1, 2));
+		addItem(new ItemInstance(Tile::log2, 1, Log2Tile::ACACIA));
+		addItem(new ItemInstance(Tile::log2, 1, Log2Tile::DARK_OAK));
 		addItem(new ItemInstance(Tile::netherBrick));
 		addItem(new ItemInstance(Tile::netherrack));
 		addItem(new ItemInstance(Tile::stairs_stone));
@@ -181,6 +193,7 @@ void Inventory::setupDefault() {
 		addItem(new ItemInstance(Tile::ironBlock));
 		addItem(new ItemInstance(Tile::emeraldBlock));
 		addItem(new ItemInstance(Tile::lapisBlock));
+		addItem(new ItemInstance(Tile::coalBlock));
 		addItem(new ItemInstance(Tile::obsidian));
 		addItem(new ItemInstance(Tile::snow));
 		addItem(new ItemInstance(Tile::glass));
@@ -228,7 +241,8 @@ void Inventory::setupDefault() {
 		addItem(new ItemInstance(Tile::tnt));
 
 		addItem(new ItemInstance(((Tile*)Tile::flower)));
-		addItem(new ItemInstance(((Tile*)Tile::rose)));
+		for (int f = 0; f < FlowerTile::TYPE_COUNT; ++f)
+			addItem(new ItemInstance(((Tile*)Tile::rose), 1, f));
 		addItem(new ItemInstance(((Tile*)Tile::mushroom1)));
 		addItem(new ItemInstance(((Tile*)Tile::mushroom2)));
 		addItem(new ItemInstance(Tile::cactus));
@@ -240,6 +254,8 @@ void Inventory::setupDefault() {
 		addItem(new ItemInstance((Tile*)Tile::leaves, 1, 0));
 		addItem(new ItemInstance((Tile*)Tile::leaves, 1, 1));
 		addItem(new ItemInstance((Tile*)Tile::leaves, 1, 2));
+		addItem(new ItemInstance((Tile*)Tile::leaves2, 1, Leaves2Tile::ACACIA));
+		addItem(new ItemInstance((Tile*)Tile::leaves2, 1, Leaves2Tile::DARK_OAK));
 
 		addItem(new ItemInstance(Item::seeds_wheat));
 		addItem(new ItemInstance(Item::seeds_melon));
