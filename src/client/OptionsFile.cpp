@@ -8,6 +8,8 @@ OptionsFile::OptionsFile() {
 	settingsPath = "./Documents/options.txt";
 #elif defined(ANDROID)
 	settingsPath = "options.txt";
+#elif defined(__EMSCRIPTEN__)
+	settingsPath = "/persist/options.txt"; // IndexedDB backed (see web/shell.html)
 #else
 	settingsPath = "options.txt";
 #endif

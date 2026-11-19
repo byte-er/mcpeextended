@@ -73,8 +73,14 @@ jobs:
           source "$RUNNER_TEMP/emsdk/emsdk_env.sh"
           emcmake cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
           cmake --build build
+      - name: Build single file version
+        run: |
+          source "$RUNNER_TEMP/emsdk/emsdk_env.sh"
+          emcmake cmake -B build-single -G Ninja -DCMAKE_BUILD_TYPE=Release -DMCPE_WEB_SINGLE_FILE=ON
+          cmake --build build-single
       - name: Package
         run: |
+          cp build-single/mcpeextended.html mcpeextended.html
           mkdir -p site
           cp build/index.html build/index.js build/index.wasm build/index.data site/
           cp web/manifest.webmanifest web/sw.js web/icon-192.png web/icon-512.png site/
@@ -83,7 +89,9 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: web
-          path: mcpeextended-web.zip
+          path: |
+            mcpeextended-web.zip
+            mcpeextended.html
       - uses: actions/upload-pages-artifact@v3
         if: vars.ENABLE_PAGES == 'true' && github.event_name != 'pull_request'
         with:

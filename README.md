@@ -72,6 +72,10 @@ emcmake cmake -B build-web -G Ninja -DCMAKE_BUILD_TYPE=Release && cmake --build 
 cp web/manifest.webmanifest web/sw.js web/icon-*.png build-web/
 python3 -m http.server -d build-web 8000   # open http://localhost:8000
 ```
+Single file version (wasm + data inlined, opens straight from disk, no server):
+`emcmake cmake -B build-web1 -G Ninja -DMCPE_WEB_SINGLE_FILE=ON && cmake --build build-web1`
+gives `build-web1/mcpeextended.html`.
+
 Saves go to IndexedDB. Serve over HTTPS to install it as an app (on iOS: Safari, Share, Add to Home Screen).
 The CI can also publish it to GitHub Pages: enable Pages with source "GitHub Actions" and set the
 repository variable `ENABLE_PAGES=true`.

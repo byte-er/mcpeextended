@@ -214,9 +214,18 @@ if(EMSCRIPTEN)
         "-sALLOW_MEMORY_GROWTH=1" "-sINITIAL_MEMORY=268435456" "-sSTACK_SIZE=4194304"
         "-sFORCE_FILESYSTEM=1" "-lidbfs.js" "-lopenal"
         "-sEXPORTED_RUNTIME_METHODS=['FS','addRunDependency','removeRunDependency']"
-        "--preload-file" "${CMAKE_SOURCE_DIR}/data@/data"
         "--exclude-file" "${CMAKE_SOURCE_DIR}/data/app"
         "--shell-file" "${CMAKE_SOURCE_DIR}/web/shell.html")
+    option(MCPE_WEB_SINGLE_FILE "Web: one self contained .html (wasm + data embedded)" OFF)
+    if(MCPE_WEB_SINGLE_FILE)
+        # everything inlined: open the file straight from disk, no web server
+        set_target_properties(${PROJECT_NAME} PROPERTIES OUTPUT_NAME "mcpeextended")
+        target_link_options(${PROJECT_NAME} PUBLIC "-sSINGLE_FILE=1"
+            "--embed-file" "${CMAKE_SOURCE_DIR}/data@/data")
+    else()
+        target_link_options(${PROJECT_NAME} PUBLIC
+            "--preload-file" "${CMAKE_SOURCE_DIR}/data@/data")
+    endif()
 else()
 target_link_libraries(${PROJECT_NAME} zlib png_shared alsoft.common OpenAL::OpenAL glfw ${EXTRA_LIBS})
 endif()

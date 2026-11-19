@@ -201,7 +201,9 @@ void SimpleChooseLevelScreen::buttonClicked( Button* button )
                 seed = Util::hashCode(seedString);
             }
         }
-        std::string levelId = getUniqueLevelName(tLevelName.text);
+        std::string levelName = Util::stringTrim(tLevelName.text);
+        if (levelName.empty()) levelName = "My World"; // blank names showed up as "."
+        std::string levelId = getUniqueLevelName(levelName);
         LevelSettings settings(seed, gamemode);
         minecraft->selectLevel(levelId, levelId, settings);
         minecraft->hostMultiplayer();

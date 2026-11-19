@@ -83,24 +83,31 @@ void StartMenuScreen::init()
 }
 
 void StartMenuScreen::setupPositions() {
-	int yBase = height / 2 + 25;
-
-	//#ifdef ANDROID
-	bHost.y =	 yBase - 28;
-#ifdef RPI
-	bJoin.y =	 yBase + 4;
-#else
-	bJoin.y =	 yBase;
+	// Three stacked 160 wide buttons (0.9.0 style), kept clear of the footer
+	const int gap = 4;
+	bHost.width = bJoin.width = 160;
+	bHost.height = bJoin.height = 20;
+#ifndef DEMO_MODE
+	bOptions.width = 160;
 #endif
+	bOptions.height = 20;
+	const int stackH = bHost.height + bJoin.height + bOptions.height + 2 * gap;
+	int yTop = height / 2 - 2;
+	if (yTop + stackH > height - 14) yTop = height - 14 - stackH;
+	if (yTop < 64) yTop = 64;
 
-	bOptions.y = yBase + 28 + 2;
+	bHost.y    = yTop;
+	bJoin.y    = bHost.y + bHost.height + gap;
+	bOptions.y = bJoin.y + bJoin.height + gap;
 	bTest.y = bBuy.y = bOptions.y;
-	//#endif
 
-	// Center buttons
-	bHost.x = (width - bHost.width) / 2;
-	bJoin.x = (width - bJoin.width) / 2;
-	bOptions.x = (width - bJoin.width) / 2;
+	bHost.x    = (width - bHost.width) / 2;
+	bJoin.x    = (width - bJoin.width) / 2;
+#ifdef DEMO_MODE
+	bOptions.x = bJoin.x;
+#else
+	bOptions.x = (width - bOptions.width) / 2;
+#endif
 	bTest.x = bBuy.x = bOptions.x + bOptions.width + 4;
 
 	copyrightPosX = width - minecraft->font->width(copyright) - 1;
@@ -200,6 +207,7 @@ void StartMenuScreen::render( int xm, int ym, float a )
 			float y0 = height - 10 + font->lineHeight - 1;
 			this->fill(12, (int)y0, 12 + (int)wtxt, (int)(y0 + 1), 0xffffffff);
     }
+	Screen::render(xm, ym, a); // draws the buttons (was missing: invisible menu)
 }
 
 void StartMenuScreen::_updateLicense()
