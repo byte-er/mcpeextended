@@ -1043,13 +1043,16 @@ void LevelRenderer::renderClouds( float alpha ) {
 
 	float scale = 1 / 2048.0f;
 
-	float time = (ticks + alpha);
-	float xo = mc->player->xo + (mc->player->x - mc->player->xo) * alpha + time * 0.03f;
-	float zo = mc->player->zo + (mc->player->z - mc->player->zo) * alpha;
-	int xOffs = Mth::floor(xo / 2048);
-	int zOffs = Mth::floor(zo / 2048);
-	xo -= xOffs * 2048;
-	zo -= zOffs * 2048;
+	// Cloud drift is computed in double and wrapped to the texture period
+	// before narrowing: (ticks + alpha) * 0.03 as float got visibly steppy
+	// after a long session.
+	const double drift = std::fmod(((double)ticks + (double)alpha) * 0.03, 2048.0);
+	double xod = mc->player->xo + (mc->player->x - mc->player->xo) * (double)alpha + drift;
+	double zod = mc->player->zo + (mc->player->z - mc->player->zo) * (double)alpha;
+	xod -= std::floor(xod / 2048.0) * 2048.0;
+	zod -= std::floor(zod / 2048.0) * 2048.0;
+	float xo = (float)xod;
+	float zo = (float)zod;
 
 	float yy = /*level.dimension.getCloudHeight()*/ 128 - yOffs + 0.33f;//mc->player->y + 1;
 	float uo = (float) (xo * scale);

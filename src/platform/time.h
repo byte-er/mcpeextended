@@ -5,6 +5,10 @@
 #include <map>
 #include "log.h"
 
+/** Seconds since start, monotonic, full double precision (prefer this). */
+double getTimeSD();
+/** Milliseconds since start, monotonic, 64 bit. */
+long long getTimeMsLL();
 float getTimeS();
 int getTimeMs();
 int getRawTimeS();

@@ -59,6 +59,7 @@ void FlyingMob::travel( float xa, float ya )
 	if (wst > 1) wst = 1;
 	walkAnimSpeed += (wst - walkAnimSpeed) * 0.4f;
 	walkAnimPos += walkAnimSpeed;
+	wrapWalkAnimPos();
 }
 
 bool FlyingMob::onLadder()

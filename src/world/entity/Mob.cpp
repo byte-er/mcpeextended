@@ -631,6 +631,15 @@ void Mob::travel( float xa, float ya )
 
 }
 
+// Every model animates limbs with cos/sin(walkAnimPos * 0.6662 * k) for an
+// integer k, so wrapping by whole periods is invisible. Without this the float
+// grows forever and limb animation gets choppy after long play sessions.
+void Mob::wrapWalkAnimPos()
+{
+	static const float WALK_ANIM_WRAP = (float)(2.0 * 3.14159265358979323846 / 0.6662 * 100.0);
+	if (walkAnimPos > WALK_ANIM_WRAP) walkAnimPos -= WALK_ANIM_WRAP;
+}
+
 void Mob::updateWalkAnim()
 {
 	walkAnimSpeedO = walkAnimSpeed;
@@ -640,6 +649,7 @@ void Mob::updateWalkAnim()
 	if (wst > 1) wst = 1;
 	walkAnimSpeed += (wst - walkAnimSpeed) * 0.4f;
 	walkAnimPos += walkAnimSpeed;
+	wrapWalkAnimPos();
 }
 
 bool Mob::onLadder()

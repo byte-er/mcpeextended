@@ -187,6 +187,7 @@ public:
 	float walkAnimSpeedO;
 	float walkAnimSpeed;
 	float walkAnimPos;
+	void wrapWalkAnimPos();
 
     Vec3 aimDirection;
 	int arrowCount;

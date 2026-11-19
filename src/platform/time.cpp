@@ -8,34 +8,44 @@
 	#include <unistd.h>
 #endif
 
-// Ugly ass temporary solution;
-// since gettimeofday() returns seconds & microseconds since
-// Epoch(1970) rather than since computer started, getTimeMs()
-// would overflow if just using an int -> subtract the number
-// of seconds that had passed when starting the app before
-// doing any calculations.
+// Monotonic, double precision clock measured from application start.
+//
+// The original implementation returned *float* seconds derived from
+// gettimeofday(): float only has 24 bits of mantissa, so after a few hours
+// of uptime frame deltas were quantised to several milliseconds (stuttering
+// interpolation), and wall-clock adjustments (NTP, DST, user changing the
+// clock) could make time jump or run backwards.
 #ifdef WIN32
-	static long long getStartTime() {
+	static LARGE_INTEGER getStartCounter() {
 		LARGE_INTEGER ts;
 		QueryPerformanceCounter(&ts);
-		return ts.QuadPart;
+		return ts;
 	}
-	static unsigned long long _t_start = getStartTime();
-
+	static LARGE_INTEGER getCounterFreq() {
+		LARGE_INTEGER f;
+		QueryPerformanceFrequency(&f);
+		return f;
+	}
+	static const LARGE_INTEGER _t_start = getStartCounter();
+	static const LARGE_INTEGER _t_freq  = getCounterFreq();
 #else
-	static int getStartTime() {
+	#include <time.h>
+	static double monotonicNow() {
+		struct timespec ts;
+	#ifdef CLOCK_MONOTONIC
+		if (clock_gettime(CLOCK_MONOTONIC, &ts) == 0)
+			return (double)ts.tv_sec + (double)ts.tv_nsec * 1e-9;
+	#endif
 		timeval now;
 		gettimeofday(&now, 0);
-		return now.tv_sec;
+		return (double)now.tv_sec + (double)now.tv_usec * 1e-6;
 	}
-	static unsigned int _t_start = getStartTime();
+	static const double _t_start = monotonicNow();
 #endif
 
 #include <cstdio>
 
 /// Returns a platform dependent time in seconds
-/// This is allowed to be here, since getTimeS and getTimeMs both have t(0)
-/// as base (and obviously not good for an initial random seed)
 int getRawTimeS() {
 #ifdef WIN32
 	return (int)(GetTickCount() / 1000);
@@ -46,25 +56,26 @@ int getRawTimeS() {
 #endif
 }
 
-float getTimeS() {
+double getTimeSD() {
 #ifdef WIN32
-	// If the game seems to go with different speeds, this might most
-	// possibly be the cause. QueryPerformanceCounter has indeed high
-	// resolution, but (imho) only guaranteed to be correct for (short)
-	// deltas between consecutive calls
-	LARGE_INTEGER freq, ts;
-	QueryPerformanceFrequency(&freq);
+	LARGE_INTEGER ts;
 	QueryPerformanceCounter(&ts);
-	return (ts.QuadPart - _t_start) / (float)freq.QuadPart;
+	return (double)(ts.QuadPart - _t_start.QuadPart) / (double)_t_freq.QuadPart;
 #else
-    timeval now;
-    gettimeofday(&now, 0);
-    return (float)(now.tv_sec - _t_start) + now.tv_usec / 1000000.0f;
+	return monotonicNow() - _t_start;
 #endif
 }
 
+float getTimeS() {
+	return (float)getTimeSD();
+}
+
+long long getTimeMsLL() {
+	return (long long)(getTimeSD() * 1000.0);
+}
+
 int getTimeMs() {
-	return (int)(getTimeS() * 1000.0f);
+	return (int)getTimeMsLL();
 }
 
 void sleepMs(int ms) {

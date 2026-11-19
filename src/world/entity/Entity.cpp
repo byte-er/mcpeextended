@@ -301,6 +301,13 @@ void Entity::move(float xa, float ya, float za) {
 
     if (makeStepSound && !sneaking) {
         walkDist += Mth::sqrt(xm * xm + zm * zm) * 0.6f;
+        // Keep walkDist small so view bobbing (period 2) and step sounds stay
+        // precise; shift every related value by the same whole amount.
+        if (walkDist > 1024.0f) {
+            walkDist  -= 1024.0f;
+            walkDistO -= 1024.0f;
+            nextStep  -= 1024;
+        }
         int xt = Mth::floor(x);
         int yt = Mth::floor(y - 0.2f - this->heightOffset);
         int zt = Mth::floor(z);

@@ -77,8 +77,9 @@ public class MainActivity extends Activity {
         nativeOnCreate(_screenWidth, _screenHeight);
 
         _glView = new GLView(getApplication(), this);
-        //_glView.setEGLConfigChooser(8, 8, 8, 8, 16, 0);
-        _glView.setEGLConfigChooser(true);
+        // Prefer a 24 bit depth buffer: with the 0.05 near plane and up to
+        // 400 block view distance, 16 bit depth makes distant terrain z-fight.
+        _glView.setEGLConfigChooser(new DepthPreferringConfigChooser());
         //_glView
         
 //        _glView.setEGLConfigChooser(
@@ -672,10 +673,19 @@ class GLView extends GLSurfaceView {
         
     }
 
+	// The EGL context is intentionally kept alive across pause/resume (the
+	// native side does not reload GL resources), but stop the render loop so
+	// the GL thread doesn't spin at full speed while the app is in background.
 	@Override
-	public void onPause() { _renderer.paused = true; }
+	public void onPause() {
+		_renderer.paused = true;
+		setRenderMode(RENDERMODE_WHEN_DIRTY);
+	}
 	@Override
-	public void onResume() { _renderer.paused = false; }
+	public void onResume() {
+		_renderer.paused = false;
+		setRenderMode(RENDERMODE_CONTINUOUSLY);
+	}
 	
 	public void commit() {
 		setRenderer(_renderer);
@@ -698,6 +708,41 @@ class GLView extends GLSurfaceView {
 
     private GLRenderer _renderer;
 	private MainActivity _activity;
+}
+
+/** Picks an RGB888 config with the deepest available depth buffer (24 -> 16). */
+class DepthPreferringConfigChooser implements GLSurfaceView.EGLConfigChooser {
+	public javax.microedition.khronos.egl.EGLConfig chooseConfig(
+			javax.microedition.khronos.egl.EGL10 egl,
+			javax.microedition.khronos.egl.EGLDisplay display) {
+		final int E = javax.microedition.khronos.egl.EGL10.EGL_NONE;
+		final int R = javax.microedition.khronos.egl.EGL10.EGL_RED_SIZE;
+		final int G = javax.microedition.khronos.egl.EGL10.EGL_GREEN_SIZE;
+		final int B = javax.microedition.khronos.egl.EGL10.EGL_BLUE_SIZE;
+		final int D = javax.microedition.khronos.egl.EGL10.EGL_DEPTH_SIZE;
+		int[][] attempts = {
+			{ R, 8, G, 8, B, 8, D, 24, E },
+			{ R, 8, G, 8, B, 8, D, 16, E },	// R,G,B 8 + depth 16
+			{ R, 5, G, 6, B, 5, D, 16, E },	// RGB565 + depth 16
+			{ D, 16, E },
+		};
+		for (int[] spec : attempts) {
+			int[] num = new int[1];
+			if (!egl.eglChooseConfig(display, spec, null, 0, num) || num[0] <= 0) continue;
+			javax.microedition.khronos.egl.EGLConfig[] configs = new javax.microedition.khronos.egl.EGLConfig[num[0]];
+			egl.eglChooseConfig(display, spec, configs, num[0], num);
+			// eglChooseConfig sorts by "best" - but may prefer configs with
+			// alpha/MSAA; take the first one that has the requested depth.
+			int wantDepth = spec[spec.length - 2];
+			for (javax.microedition.khronos.egl.EGLConfig c : configs) {
+				int[] v = new int[1];
+				egl.eglGetConfigAttrib(display, c, D, v);
+				if (v[0] >= wantDepth) return c;
+			}
+			return configs[0];
+		}
+		throw new IllegalArgumentException("No usable EGL config");
+	}
 }
 
 class GLRenderer implements GLSurfaceView.Renderer {
