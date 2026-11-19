@@ -538,7 +538,9 @@ LevelChunk* RandomLevelSource::getChunk(int xOffs, int zOffs) {
     prepareHeights(xOffs, zOffs, blocks, 0, temperatures);//biomes, temperatures);
     buildSurfaces(xOffs, zOffs, blocks, biomes);
 
-	//caveFeature.apply(this, level, xOffs, zOffs, blocks, LevelChunk::ChunkBlockCount);
+	// Caves and ravines (were disabled in 0.6.1)
+	caveFeature.apply(this, level, xOffs, zOffs, blocks, LevelChunk::ChunkBlockCount);
+	ravineFeature.apply(this, level, xOffs, zOffs, blocks, LevelChunk::ChunkBlockCount);
     levelChunk->recalcHeightmap();
 
     return levelChunk;

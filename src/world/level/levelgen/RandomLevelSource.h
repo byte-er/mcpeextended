@@ -64,6 +64,7 @@ private:
 public:
 	//Biome** biomes;
 	LargeCaveFeature caveFeature;
+	RavineFeature ravineFeature;
 	int waterDepths[16+16][16+16];
 private:
 	ChunkMap chunkMap;

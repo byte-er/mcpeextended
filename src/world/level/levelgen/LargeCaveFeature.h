@@ -177,4 +177,26 @@ protected:
     }
 };
 
+/**
+ * Ravines (Java "canyons"): rare, very tall and narrow tunnels carved with the
+ * same tunnel routine as caves, using a large vertical scale.
+ */
+class RavineFeature: public LargeCaveFeature
+{
+protected:
+    void addFeature(Level* level, int x, int z, int xOffs, int zOffs, unsigned char* blocks, int blocksSize) {
+        if (random.nextInt(50) != 0) return;
+
+        float xCave = (float)(x * 16 + random.nextInt(16));
+        float yCave = (float)(random.nextInt(random.nextInt(40) + 8) + 20);
+        float zCave = (float)(z * 16 + random.nextInt(16));
+
+        float yRot = random.nextFloat() * Mth::PI * 2;
+        float xRot = ((random.nextFloat() - 0.5f) * 2) / 8;
+        float thickness = (random.nextFloat() * 2 + random.nextFloat()) * 2;
+
+        addTunnel(xOffs, zOffs, blocks, xCave, yCave, zCave, thickness, yRot, xRot, 0, 0, 3.0f);
+    }
+};
+
 #endif /*NET_MINECRAFT_WORLD_LEVEL_LEVELGEN__LargeCaveFeature_H__*/
