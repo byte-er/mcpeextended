@@ -94,6 +94,8 @@ public:
 	bool isOnlineClient();
 	bool isOnline();
 	void pauseGame(bool isBackPaused);
+	/** Save everything (and pause) because the app is being backgrounded. */
+	void saveForBackground();
 	void gameLostFocus();
 
 	void prepareLevel(const std::string& message);
@@ -200,6 +202,7 @@ protected:
 	Timer timer;
     // @note @attn @warn: this is dangerous as fuck!
 	volatile bool isGeneratingLevel;
+	bool _destroyedThisTick;
 	bool _hasSignaledGeneratingLevelFinished;
 
 	LevelStorageSource* storageSource;

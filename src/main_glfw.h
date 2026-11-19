@@ -160,6 +160,11 @@ int main(void) {
 
 	// Developer convenience: MCPE_AUTOWORLD=<name> [MCPE_SEED=<n>] [MCPE_CREATIVE=1]
 	// loads (or creates) a world straight away, skipping the menus.
+	if (getenv("MCPE_ANAGLYPH")) {
+		MAIN_CLASS* mc = (MAIN_CLASS*)g_app;
+		mc->options.anaglyph3d = true;
+		mc->options.onAnaglyphChanged();
+	}
 	if (const char* autoWorld = getenv("MCPE_AUTOWORLD")) {
 		MAIN_CLASS* mc = (MAIN_CLASS*)g_app;
 		const char* seedStr = getenv("MCPE_SEED");

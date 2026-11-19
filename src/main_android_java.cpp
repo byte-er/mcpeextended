@@ -28,16 +28,24 @@ static void setupExternalPath(JNIEnv* env, MAIN_CLASS* app)
     {
         LOGI("Environment exists");
     }
-    jclass clazz = env->FindClass("android/os/Environment");
-    jmethodID method = env->GetStaticMethodID(clazz, "getExternalStorageDirectory", "()Ljava/io/File;");
-    if (env->ExceptionOccurred()) {
-        env->ExceptionDescribe();
+    // Ask the activity for its (permission free) app specific storage dir
+    jobject pathString = NULL;
+    if (g_pActivity) {
+        jclass actClass = env->GetObjectClass(g_pActivity);
+        jmethodID getPath = env->GetMethodID(actClass, "getStoragePath", "()Ljava/lang/String;");
+        if (getPath && !env->ExceptionCheck())
+            pathString = env->CallObjectMethod(g_pActivity, getPath);
+        if (env->ExceptionCheck()) { env->ExceptionDescribe(); env->ExceptionClear(); pathString = NULL; }
     }
-    jobject file = env->CallStaticObjectMethod(clazz, method);
-
-    jclass fileClass = env->GetObjectClass(file);
-    jmethodID fileMethod = env->GetMethodID(fileClass, "getAbsolutePath", "()Ljava/lang/String;");
-    jobject pathString = env->CallObjectMethod(file, fileMethod);
+    if (!pathString) {
+        // fallback: legacy shared storage root
+        jclass clazz = env->FindClass("android/os/Environment");
+        jmethodID method = env->GetStaticMethodID(clazz, "getExternalStorageDirectory", "()Ljava/io/File;");
+        jobject file = env->CallStaticObjectMethod(clazz, method);
+        jclass fileClass = env->GetObjectClass(file);
+        jmethodID fileMethod = env->GetMethodID(fileClass, "getAbsolutePath", "()Ljava/lang/String;");
+        pathString = env->CallObjectMethod(file, fileMethod);
+    }
 
     const char* str = env->GetStringUTFChars((jstring) pathString, NULL);
     app->externalStoragePath = str;
@@ -176,6 +184,14 @@ Java_com_mojang_minecraftpe_GLRenderer_nativeUpdate(JNIEnv* env) {
         if (gApp->wantToQuit())
             appPlatform.finish();
     }
+}
+
+// Called (on the GL thread) when the activity goes to the background:
+// open the pause menu, which also saves the world, and flush every chunk.
+JNIEXPORT void JNICALL
+Java_com_mojang_minecraftpe_GLRenderer_nativeSaveAndPause(JNIEnv* env, jclass cls) {
+    if (gApp && gApp->isInited())
+        ((MAIN_CLASS*)gApp)->saveForBackground();
 }
 
 //

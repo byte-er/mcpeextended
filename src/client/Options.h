@@ -163,6 +163,7 @@ public:
 	bool isJoyTouchArea;
 	bool useTouchScreen;
 	float pixelsPerMillimeter;
+    void onAnaglyphChanged();
     Options(Minecraft* minecraft, const std::string& workingDirectory)
 	:	minecraft(minecraft)
 	{
@@ -233,7 +234,7 @@ public:
 		if (option == &Option::DESTROY_VIBRATION) destroyVibration = !destroyVibration;
 		if (option == &Option::ANAGLYPH) {
             anaglyph3d = !anaglyph3d;
-            //minecraft->textures.reloadAll();
+            onAnaglyphChanged(); // re-uploads textures and rebuilds terrain
         }
         if (option == &Option::LIMIT_FRAMERATE) limitFramerate = !limitFramerate;
         if (option == &Option::VSYNC) vsync = !vsync;

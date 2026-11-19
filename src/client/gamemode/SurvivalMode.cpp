@@ -28,7 +28,7 @@ void SurvivalMode::continueDestroyBlock( int x, int y, int z, int face ) {
 
 	if (x == xDestroyBlock && y == yDestroyBlock && z == zDestroyBlock) {
 		int t = minecraft->level->getTile(x, y, z);
-		if (t == 0) return;
+		if (t == 0) { stopDestroyBlock(); return; }
 		Tile* tile = Tile::tiles[t];
 
 		destroyProgress += tile->getDestroyProgress(minecraft->player);
@@ -81,7 +81,10 @@ bool SurvivalMode::destroyBlock( int x, int y, int z, int face ) {
 
 void SurvivalMode::stopDestroyBlock() {
 	destroyProgress = 0;
+	oDestroyProgress = 0;
+	destroyTicks = 0;
 	destroyDelay = 0;
+	xDestroyBlock = yDestroyBlock = zDestroyBlock = -1;
 }
 
 void SurvivalMode::initAbilities( Abilities& abilities ) {

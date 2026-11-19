@@ -26,6 +26,7 @@ class Textures
 public:
     Textures(Options* options_,  AppPlatform* platform_);
 	~Textures();
+	void uploadRgba(const TextureData& img, int mode);
 
 	void addDynamicTexture(DynamicTexture* dynamicTexture);
 

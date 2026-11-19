@@ -131,7 +131,7 @@ TextureId Textures::assignTexture( const std::string& resourceName, const Textur
                 glTexImage2D2(GL_TEXTURE_2D, 0, mode, img.w, img.h, 0, mode, GL_UNSIGNED_SHORT_5_5_5_1, img.data);
             }
             else {
-                glTexImage2D2(GL_TEXTURE_2D, 0, mode, img.w, img.h, 0, mode, GL_UNSIGNED_BYTE, img.data);
+                uploadRgba(img, mode);
             }
             break;
     }
@@ -160,6 +160,15 @@ void Textures::tick(bool uploadToGraphicsCard)
 
         if (uploadToGraphicsCard) {
             tex->bindTexture(this);
+            if (options && options->anaglyph3d) {
+                for (int i = 0; i < 16 * 16; ++i) {
+                    unsigned char* p = &tex->pixels[i * 4];
+                    const int r = p[0], g = p[1], b = p[2];
+                    p[0] = (unsigned char)((r * 30 + g * 59 + b * 11) / 100);
+                    p[1] = (unsigned char)((r * 30 + g * 70) / 100);
+                    p[2] = (unsigned char)((r * 30 + b * 70) / 100);
+                }
+            }
 		    for (int xx = 0; xx < tex->replicate; xx++)
 		    for (int yy = 0; yy < tex->replicate; yy++) {
 			    glTexSubImage2D2(GL_TEXTURE_2D, 0, tex->tex % 16 * 16 + xx * 16,
@@ -176,8 +185,39 @@ void Textures::addDynamicTexture( DynamicTexture* dynamicTexture )
 	dynamicTexture->tick();
 }
 
+// Uploads 8 bit RGB(A) data, converting colours for 3D anaglyph mode (the
+// conversion used to be commented out, so anaglyph mode looked "deep fried").
+void Textures::uploadRgba(const TextureData& img, int mode)
+{
+	if (!options || !options->anaglyph3d || !img.data) {
+		glTexImage2D2(GL_TEXTURE_2D, 0, mode, img.w, img.h, 0, mode, GL_UNSIGNED_BYTE, img.data);
+		return;
+	}
+	const int bpp = (mode == GL_RGBA) ? 4 : 3;
+	const int n = img.w * img.h;
+	unsigned char* tmp = new unsigned char[n * bpp];
+	const unsigned char* src = img.data;
+	for (int i = 0; i < n; ++i) {
+		const int r = src[i * bpp], g = src[i * bpp + 1], b = src[i * bpp + 2];
+		tmp[i * bpp]     = (unsigned char)((r * 30 + g * 59 + b * 11) / 100);
+		tmp[i * bpp + 1] = (unsigned char)((r * 30 + g * 70) / 100);
+		tmp[i * bpp + 2] = (unsigned char)((r * 30 + b * 70) / 100);
+		if (bpp == 4) tmp[i * 4 + 3] = src[i * 4 + 3];
+	}
+	glTexImage2D2(GL_TEXTURE_2D, 0, mode, img.w, img.h, 0, mode, GL_UNSIGNED_BYTE, tmp);
+	delete[] tmp;
+}
+
 void Textures::reloadAll()
 {
+	// Re-upload every uncompressed 8 bit texture (e.g. after toggling anaglyph)
+	for (TextureImageMap::iterator it = loadedImages.begin(); it != loadedImages.end(); ++it) {
+		const TextureData& img = it->second;
+		if (!img.data || img.format != TEXF_UNCOMPRESSED_8888) continue;
+		bind(it->first);
+		uploadRgba(img, img.transparent ? GL_RGBA : GL_RGB);
+	}
+
 	//TexturePack skin = skins.selected;
 
 	//for (int id : loadedImages.keySet()) {

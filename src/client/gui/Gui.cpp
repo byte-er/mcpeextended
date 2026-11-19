@@ -560,7 +560,7 @@ void Gui::renderProgressIndicator( const bool isTouchInterface, const int screen
 		const float alpha = Mth::clamp(minecraft->inputHolder->alpha, 0.0f, 1.0f);
 		//LOGI("alpha: %f\n", alpha);
 
-		if (tprogress <= 0 && minecraft->inputHolder->alpha >= 0) {
+		if (tprogress <= 0 && minecraft->inputHolder->alpha > 0.001f) { // was >= 0: drew a fully faded circle forever
 			glDisable2(GL_TEXTURE_2D);
 			glEnable2(GL_BLEND);
 			glBlendFunc2(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);

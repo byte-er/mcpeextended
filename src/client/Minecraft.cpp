@@ -169,6 +169,7 @@ Minecraft::Minecraft()
 #endif
 	ticks(0),
 	isGeneratingLevel(false),
+	_destroyedThisTick(false),
 	_hasSignaledGeneratingLevelFinished(true),
 	generateLevelThread(NULL),
 	progressStagePercentage(0),
@@ -867,11 +868,18 @@ void Minecraft::tickInput() {
 	if (useTouchscreen()) {
 		// Touch: gesture recognizer classifies the action type (turn/destroy/build)
 		BuildActionIntention bai;
+		_destroyedThisTick = false;
 		if (inputHolder && inputHolder->getBuildInput()->tickBuild(player, &bai)) {
 			handleBuildAction(&bai);
 		}
+		// Finger lifted / moved away: reset the destroy progress. Nothing ever
+		// called stopDestroyBlock(), so the crack overlay and the touch
+		// progress circle stayed on screen after breaking.
+		if (!_destroyedThisTick && gameMode) gameMode->stopDestroyBlock();
 	} else {
 		// Desktop: left mouse = destroy/attack
+		if (!Mouse::isButtonDown(MouseAction::ACTION_LEFT) && prevMouseDownLeft && gameMode)
+			gameMode->stopDestroyBlock();
 		if (Mouse::isButtonDown(MouseAction::ACTION_LEFT)) {
 			auto baiFlags = BuildActionIntention::BAI_REMOVE | BuildActionIntention::BAI_ATTACK;
 
@@ -961,6 +969,7 @@ void Minecraft::handleBuildAction(BuildActionIntention* action) {
 			//LOGI("tile: %s - %d, %d, %d. b: %f - %f\n", oldTile->getDescriptionId().c_str(), x, y, z, oldTile->getBrightness(level, x, y, z), oldTile->getBrightness(level, x, y+1, z));
             level->extinguishFire(x, y, z, hitResult.f);
 			
+			_destroyedThisTick = true;
 			if (action->isFirstRemove()) {
 				gameMode->startDestroyBlock(x, y, z, hitResult.f);
 			} else {
@@ -1018,6 +1027,19 @@ void Minecraft::pauseGame(bool isBackPaused) {
 	screenChooser.setScreen(isBackPaused? SCREEN_PAUSEPREV : SCREEN_PAUSE);
 #endif
 }
+void Minecraft::saveForBackground() {
+#ifndef STANDALONE_SERVER
+	if (!level || isGeneratingLevel) return;
+	pauseGame(false); // shows the pause screen, which saves level data + players
+	if (!level->isClientSide) {
+		level->saveLevelData();
+		level->saveGame();
+		if (level->getChunkSource())
+			level->getChunkSource()->saveAll(true);
+	}
+#endif
+}
+
 void Minecraft::gameLostFocus() {
 #ifndef STANDALONE_SERVER
 	if(screen != NULL) {
@@ -1215,6 +1237,9 @@ void Minecraft::reloadOptions() {
 		_reloadInput();
 
 	user->name = options.username;
+#ifndef STANDALONE_SERVER
+	Tesselator::anaglyph = options.anaglyph3d;
+#endif
 
 	LOGI("Reloading-options\n");
 

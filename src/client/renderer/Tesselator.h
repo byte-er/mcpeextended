@@ -26,6 +26,8 @@ public:
 	static const int ACCESS_STATIC = 2;
 
 	static Tesselator instance;
+	/** 3D anaglyph mode: vertex colours are converted like Java's Tessellator users did. */
+	static bool anaglyph;
 
 	~Tesselator();
 

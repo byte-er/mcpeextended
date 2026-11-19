@@ -604,6 +604,11 @@ public class MainActivity extends Activity {
     protected void onPause() {
     	//System.out.println("onPause");
     	super.onPause();
+    	// Save the world (and show the pause menu) before the app can be killed
+    	// in the background. Runs on the GL thread, before rendering is paused.
+    	_glView.queueEvent(new Runnable() {
+    		public void run() { GLRenderer.nativeSaveAndPause(); }
+    	});
         _glView.onPause();
     }
 
@@ -620,6 +625,55 @@ public class MainActivity extends Activity {
     }
 
     protected boolean isDemo() { return false; }
+
+    /**
+     * Where worlds, options and screenshots live.
+     *
+     * The original build used the root of shared storage (/sdcard), which needs
+     * a runtime permission the app never requested (Android 6+) and is blocked
+     * entirely by scoped storage (Android 11+), so worlds silently failed to
+     * save. The app specific external directory needs no permission.
+     * Called from native code (setupExternalPath).
+     */
+    public String getStoragePath() {
+        java.io.File dir = getExternalFilesDir(null);
+        if (dir == null || !(dir.isDirectory() || dir.mkdirs()) || !dir.canWrite())
+            dir = getFilesDir();
+        migrateLegacyWorlds(dir);
+        return dir.getAbsolutePath();
+    }
+
+    /** Copies worlds from the old /sdcard/games location once, if readable. */
+    private void migrateLegacyWorlds(java.io.File newRoot) {
+        try {
+            java.io.File marker = new java.io.File(newRoot, ".migrated");
+            if (marker.exists()) return;
+            java.io.File oldGames = new java.io.File(android.os.Environment.getExternalStorageDirectory(), "games/com.mojang");
+            java.io.File newGames = new java.io.File(newRoot, "games/com.mojang");
+            if (oldGames.isDirectory() && oldGames.canRead() && !newGames.exists())
+                copyTree(oldGames, newGames);
+            marker.createNewFile();
+        } catch (Exception e) {
+            Log.w("MinecraftPE", "World migration skipped: " + e);
+        }
+    }
+
+    private static void copyTree(java.io.File src, java.io.File dst) throws IOException {
+        if (src.isDirectory()) {
+            dst.mkdirs();
+            String[] children = src.list();
+            if (children != null)
+                for (String c : children) copyTree(new java.io.File(src, c), new java.io.File(dst, c));
+        } else {
+            java.io.FileInputStream in = new java.io.FileInputStream(src);
+            FileOutputStream out = new FileOutputStream(dst);
+            byte[] buf = new byte[64 * 1024];
+            int n;
+            while ((n = in.read(buf)) > 0) out.write(buf, 0, n);
+            in.close();
+            out.close();
+        }
+    }
     
     //
     // Native interface
@@ -710,38 +764,49 @@ class GLView extends GLSurfaceView {
 	private MainActivity _activity;
 }
 
-/** Picks an RGB888 config with the deepest available depth buffer (24 -> 16). */
+/**
+ * Picks an opaque config (no alpha channel!) with the deepest depth buffer.
+ *
+ * The alpha channel matters: with an RGBA surface, Android composites the
+ * game window using whatever alpha the renderer leaves in the framebuffer,
+ * which made colours look oversaturated / "deep fried" with black holes.
+ */
 class DepthPreferringConfigChooser implements GLSurfaceView.EGLConfigChooser {
 	public javax.microedition.khronos.egl.EGLConfig chooseConfig(
 			javax.microedition.khronos.egl.EGL10 egl,
 			javax.microedition.khronos.egl.EGLDisplay display) {
 		final int E = javax.microedition.khronos.egl.EGL10.EGL_NONE;
-		final int R = javax.microedition.khronos.egl.EGL10.EGL_RED_SIZE;
-		final int G = javax.microedition.khronos.egl.EGL10.EGL_GREEN_SIZE;
-		final int B = javax.microedition.khronos.egl.EGL10.EGL_BLUE_SIZE;
 		final int D = javax.microedition.khronos.egl.EGL10.EGL_DEPTH_SIZE;
-		int[][] attempts = {
-			{ R, 8, G, 8, B, 8, D, 24, E },
-			{ R, 8, G, 8, B, 8, D, 16, E },	// R,G,B 8 + depth 16
-			{ R, 5, G, 6, B, 5, D, 16, E },	// RGB565 + depth 16
-			{ D, 16, E },
-		};
-		for (int[] spec : attempts) {
-			int[] num = new int[1];
-			if (!egl.eglChooseConfig(display, spec, null, 0, num) || num[0] <= 0) continue;
-			javax.microedition.khronos.egl.EGLConfig[] configs = new javax.microedition.khronos.egl.EGLConfig[num[0]];
-			egl.eglChooseConfig(display, spec, configs, num[0], num);
-			// eglChooseConfig sorts by "best" - but may prefer configs with
-			// alpha/MSAA; take the first one that has the requested depth.
-			int wantDepth = spec[spec.length - 2];
+		int[] num = new int[1];
+		int[] spec = { D, 16, E };
+		egl.eglChooseConfig(display, spec, null, 0, num);
+		if (num[0] <= 0) throw new IllegalArgumentException("No EGL config with a depth buffer");
+		javax.microedition.khronos.egl.EGLConfig[] configs = new javax.microedition.khronos.egl.EGLConfig[num[0]];
+		egl.eglChooseConfig(display, spec, configs, num[0], num);
+
+		// preference: RGB888 + depth 24, RGB888 + depth 16, RGB565 + depth 16; always alpha 0
+		int[][] wanted = { { 8, 8, 8, 24 }, { 8, 8, 8, 16 }, { 5, 6, 5, 16 } };
+		for (int[] w : wanted) {
 			for (javax.microedition.khronos.egl.EGLConfig c : configs) {
-				int[] v = new int[1];
-				egl.eglGetConfigAttrib(display, c, D, v);
-				if (v[0] >= wantDepth) return c;
+				if (attr(egl, display, c, javax.microedition.khronos.egl.EGL10.EGL_RED_SIZE) == w[0]
+				 && attr(egl, display, c, javax.microedition.khronos.egl.EGL10.EGL_GREEN_SIZE) == w[1]
+				 && attr(egl, display, c, javax.microedition.khronos.egl.EGL10.EGL_BLUE_SIZE) == w[2]
+				 && attr(egl, display, c, javax.microedition.khronos.egl.EGL10.EGL_ALPHA_SIZE) == 0
+				 && attr(egl, display, c, D) >= w[3])
+					return c;
 			}
-			return configs[0];
 		}
-		throw new IllegalArgumentException("No usable EGL config");
+		// last resort: anything without alpha, then anything at all
+		for (javax.microedition.khronos.egl.EGLConfig c : configs)
+			if (attr(egl, display, c, javax.microedition.khronos.egl.EGL10.EGL_ALPHA_SIZE) == 0) return c;
+		return configs[0];
+	}
+
+	private static int attr(javax.microedition.khronos.egl.EGL10 egl,
+			javax.microedition.khronos.egl.EGLDisplay d,
+			javax.microedition.khronos.egl.EGLConfig c, int a) {
+		int[] v = new int[1];
+		return egl.eglGetConfigAttrib(d, c, a, v) ? v[0] : 0;
 	}
 }
 
@@ -779,6 +844,7 @@ class GLRenderer implements GLSurfaceView.Renderer {
     private static native void nativeOnSurfaceCreated();
     private static native void nativeOnSurfaceChanged(int w, int h);
     private static native void nativeUpdate();
+    static native void nativeSaveAndPause();
     //private static native void nativeDone();
 }
 

@@ -189,9 +189,19 @@ void Tesselator::color( int r, int g, int b )
 	color(r, g, b, 255);
 }
 
+bool Tesselator::anaglyph = false;
+
 void Tesselator::color( int r, int g, int b, int a )
 {
 	if (_noColor) return;
+
+	if (anaglyph) {
+		// Java's anaglyph colour mix (keeps white/grey unchanged)
+		const int rr = (r * 30 + g * 59 + b * 11) / 100;
+		const int gg = (r * 30 + g * 70) / 100;
+		const int bb = (r * 30 + b * 70) / 100;
+		r = rr; g = gg; b = bb;
+	}
 
 	if (r > 255) r = 255;
 	if (g > 255) g = 255;

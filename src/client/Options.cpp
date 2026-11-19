@@ -477,3 +477,18 @@ void Options::notifyOptionUpdate( const Option* option, float value ) {
 void Options::notifyOptionUpdate( const Option* option, int value ) {
 	minecraft->optionUpdated(option, value);
 }
+
+#include "Minecraft.h"
+#include "renderer/Tesselator.h"
+#include "renderer/Textures.h"
+#include "renderer/LevelRenderer.h"
+
+void Options::onAnaglyphChanged() {
+	Tesselator::anaglyph = anaglyph3d;
+#ifndef STANDALONE_SERVER
+	if (minecraft) {
+		if (minecraft->textures) minecraft->textures->reloadAll();
+		if (minecraft->levelRenderer && minecraft->level) minecraft->levelRenderer->allChanged();
+	}
+#endif
+}
