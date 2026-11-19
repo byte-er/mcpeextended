@@ -25,23 +25,54 @@ I've done some bad and pointless changes to the code so if someone could improve
 - [x] Better F3
 - [ ] Performance optimalizations
 
+## What's new in this fork (0.9.0 update)
+See [RELEASE_NOTES.md](RELEASE_NOTES.md). Highlights: Java Edition world border (`/worldborder`),
+Java style view bobbing, 512×512 worlds, Pocket Edition 0.9.0 blocks and world generation,
+floating point precision fixes, compressed saves and a round of stability fixes.
+
 ## How to Build
-### Android
-Download r14b Android NDK and run `build.ps1`:
+### Android (Linux / macOS / CI)
+Needs an Android SDK (build-tools + a platform), NDK r26 or newer (tested with r27d) and a JDK 11+.
+```
+export ANDROID_HOME=/path/to/sdk
+export ANDROID_NDK_HOME=/path/to/android-ndk-r27d
+./build.sh                  # arm64-v8a + armeabi-v7a + universal APKs in out/apk/
+./build.sh --abi arm64-v8a  # single ABI
+./build.sh --no-cpp         # repackage without recompiling C++
+./build.sh --install        # adb install afterwards
+```
+APKs are signed with a generated debug key unless `KEYSTORE`, `KS_PASS` and `KEY_ALIAS` are set.
+
+GitHub Actions (`.github/workflows/android.yml`) builds the APKs on every push. Pushing a `v*` tag,
+running the workflow manually, or a commit message containing `[release]` publishes a GitHub release.
+Add `KEYSTORE_BASE64`, `KEYSTORE_PASSWORD` and `KEY_ALIAS` repository secrets to sign releases with a
+stable key (otherwise each release is signed with a throwaway debug key).
+
+### Android (Windows)
+Download an Android NDK and run `build.ps1`:
 ```
 # Full build (NDK + Java + APK + install)
 C:\apkbuild\build.ps1
 
 # Skip NDK recompile (Java/assets changed only)
-C:\apkbuild\build.ps1 -NoJava
-
-# Skip Java recompile (C++ changed only)  
 C:\apkbuild\build.ps1 -NoCpp
+
+# Skip Java recompile (C++ changed only)
+C:\apkbuild\build.ps1 -NoJava
 
 # Only repackage + install (no recompile at all)
 C:\apkbuild\build.ps1 -NoBuild
 ```
 
+### Desktop (Linux / Windows)
+```
+cmake -B build -G Ninja && cmake --build build
+./build/MinecraftPE
+```
+For testing, `MCPE_AUTOWORLD=<name> [MCPE_SEED=<n>] [MCPE_CREATIVE=1]` loads or creates a world straight away.
+
 ## Credits
+New block textures come from the "Old Default 1.13.2" resource pack.
+
 Original repository:  
 https://gitea.sffempire.ru/Kolyah35/minecraft-pe-0.6.1
