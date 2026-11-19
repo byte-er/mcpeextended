@@ -313,7 +313,7 @@ void GameRenderer::renderLevel(float a) {
 		// chunk area never poke through nearby terrain.
 		if (useLod) {
 			TIMER_POP_PUSH("lod");
-			levelRenderer->renderLod(cameraEntity, a, levelRenderer->getChunkWindowHalf() - 16.0f);
+			levelRenderer->renderLod(cameraEntity, a, levelRenderer->getChunkWindowHalf());
 			glClear(GL_DEPTH_BUFFER_BIT);
 		}
 

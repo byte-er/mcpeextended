@@ -51,6 +51,7 @@ public:
 	/** Low detail terrain beyond the chunk render distance */
 	void renderLod(Mob* camera, float a, float innerHalf);
 	LodRenderer* lod;
+	std::vector<char> lodColumns;
 	/** Half size of the square around the camera covered by real chunks. */
 	float getChunkWindowHalf() const { return xChunks * CHUNK_SIZE * 0.5f; }
 	void renderEntities(Vec3 cam, Culler* culler, float a);

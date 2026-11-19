@@ -1421,9 +1421,25 @@ void LevelRenderer::renderWorldBorder(Mob* camera, float a, float viewDistance)
 void LevelRenderer::renderLod(Mob* camera, float a, float innerHalf)
 {
 	if (!lod || !level || !camera) return;
-	lod->update(4);
+
+	// Which 16x16 chunk columns are fully rendered by real chunks right now?
+	// A column only counts when every one of its chunks is built: chunks that
+	// just scrolled into range are still dirty, and the LOD must cover them
+	// (otherwise you could see straight through the world for a moment).
+	const int cw = CHUNK_CACHE_WIDTH;
+	lodColumns.assign(cw * cw, 0);
+	std::vector<char> seen(cw * cw, 0);
+	for (int i = 0; i < chunksLength; ++i) {
+		Chunk* c = chunks[i];
+		const int cx = c->x >> 4, cz = c->z >> 4;
+		if (cx < 0 || cz < 0 || cx >= cw || cz >= cw) continue;
+		const int k = cx + cz * cw;
+		if (!seen[k]) { seen[k] = 1; lodColumns[k] = 1; }
+		if (c->isDirty()) lodColumns[k] = 0;
+	}
+
 	const double camX = camera->xOld + (camera->x - camera->xOld) * (double)a;
 	const double camY = camera->yOld + (camera->y - camera->yOld) * (double)a;
 	const double camZ = camera->zOld + (camera->z - camera->zOld) * (double)a;
-	lod->render(camX, camY, camZ, innerHalf);
+	lod->render(camX, camY, camZ, innerHalf, lodColumns);
 }

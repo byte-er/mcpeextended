@@ -159,10 +159,16 @@ static void webResize() {
 
 static EM_BOOL web_resize(int, const EmscriptenUiEvent*, void*) { webResize(); return EM_FALSE; }
 
-// The browser releases pointer lock on Esc: open the pause menu, as Java does
+// The browser releases pointer lock on Esc: open the pause menu, as Java does.
+// Only react to a real locked -> unlocked transition: browsers also send
+// "not locked" change events when a lock request fails or is pending, and
+// pausing on those made "Back to game" bounce straight back to the menu.
+static bool g_webPointerLocked = false;
 static EM_BOOL web_pointerlock(int, const EmscriptenPointerlockChangeEvent* e, void*) {
 	MAIN_CLASS* mc = (MAIN_CLASS*)g_app;
-	if (mc && !e->isActive && mc->mouseGrabbed && mc->level && !mc->screen)
+	const bool wasLocked = g_webPointerLocked;
+	g_webPointerLocked = e->isActive != 0;
+	if (wasLocked && !e->isActive && mc && mc->mouseGrabbed && mc->level && !mc->screen)
 		mc->pauseGame(false);
 	return EM_FALSE;
 }
