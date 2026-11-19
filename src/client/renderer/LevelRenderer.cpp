@@ -1,4 +1,5 @@
 #include <algorithm>
+#include "LodRenderer.h"
 #include <cmath>
 #include "LevelRenderer.h"
 
@@ -64,7 +65,8 @@ LevelRenderer::LevelRenderer( Minecraft* mc)
 	ticks(0),
 	skyList(0), starList(0), darkList(0),
 	tileRenderer(NULL),
-	destroyProgress(0)
+	destroyProgress(0),
+	lod(NULL)
 {
 #ifdef OPENGL_ES
 	// allChanged() never uses a render distance above 400 blocks
@@ -86,6 +88,8 @@ LevelRenderer::LevelRenderer( Minecraft* mc)
 
 LevelRenderer::~LevelRenderer()
 {
+	delete lod;
+	lod = NULL;
 	delete tileRenderer;
 	tileRenderer = NULL;
 
@@ -141,6 +145,9 @@ void LevelRenderer::setLevel( Level* level )
 
 	delete tileRenderer;
 	tileRenderer = new TileRenderer(level);
+
+	if (!lod) lod = new LodRenderer(textures);
+	lod->setLevel(level);
 
 	if (level != NULL) {
 		level->addListener(this);
@@ -843,6 +850,7 @@ void LevelRenderer::renderHitOutline( Player* player, const HitResult& h, int mo
 
 void LevelRenderer::setDirty( int x0, int y0, int z0, int x1, int y1, int z1 )
 {
+	if (lod) lod->markDirty(x0, z0, x1, z1);
 	int _x0 = Mth::intFloorDiv(x0, CHUNK_SIZE);
 	int _y0 = Mth::intFloorDiv(y0, CHUNK_SIZE);
 	int _z0 = Mth::intFloorDiv(z0, CHUNK_SIZE);
@@ -897,6 +905,7 @@ void LevelRenderer::cull( Culler* culler, float a )
 
 void LevelRenderer::skyColorChanged()
 {
+	if (lod) lod->markAllDirty(); // LOD colours include sky light
 	for (int i = 0; i < chunksLength; i++) {
 		if (chunks[i]->skyLit) {
 			if (!chunks[i]->isDirty()) {
@@ -1236,6 +1245,7 @@ void LevelRenderer::renderHitSelect( Player* player, const HitResult& h, int mod
 
 void LevelRenderer::onGraphicsReset()
 {
+	if (lod) lod->onGraphicsReset();
 	generateSky();
 
 	// Get new buffers
@@ -1406,4 +1416,14 @@ void LevelRenderer::renderWorldBorder(Mob* camera, float a, float viewDistance)
 	glBlendFunc2(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	glDisable2(GL_BLEND);
 	glEnable2(GL_FOG);
+}
+
+void LevelRenderer::renderLod(Mob* camera, float a, float innerHalf)
+{
+	if (!lod || !level || !camera) return;
+	lod->update(4);
+	const double camX = camera->xOld + (camera->x - camera->xOld) * (double)a;
+	const double camY = camera->yOld + (camera->y - camera->yOld) * (double)a;
+	const double camZ = camera->zOld + (camera->z - camera->zOld) * (double)a;
+	lod->render(camX, camY, camZ, innerHalf);
 }

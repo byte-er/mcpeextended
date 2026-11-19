@@ -37,6 +37,7 @@ public:
 		static const Option DIFFICULTY;
 		static const Option GRAPHICS;
 		static const Option AMBIENT_OCCLUSION;
+		static const Option LOD_TERRAIN;
 		static const Option GUI_SCALE;
         
 		static const Option THIRD_PERSON;
@@ -117,6 +118,7 @@ public:
     bool vsync;
     bool fancyGraphics;
     bool ambientOcclusion;
+    bool lodTerrain; // distant low detail terrain beyond the render distance
 	bool useMouseForDigging;
 	bool isLeftHanded;
 	bool destroyVibration;
@@ -243,6 +245,7 @@ public:
             fancyGraphics = !fancyGraphics;
             //minecraft->levelRenderer.allChanged();
         }
+        if (option == &Option::LOD_TERRAIN) lodTerrain = !lodTerrain;
         if (option == &Option::AMBIENT_OCCLUSION) {
             ambientOcclusion = !ambientOcclusion;
             //minecraft->levelRenderer.allChanged();
@@ -276,6 +279,8 @@ public:
             return limitFramerate;
         if (item == &Option::VSYNC)
             return vsync;
+        if (item == &Option::LOD_TERRAIN)
+            return lodTerrain;
         if (item == &Option::AMBIENT_OCCLUSION)
             return ambientOcclusion;
         if (item == &Option::THIRD_PERSON)

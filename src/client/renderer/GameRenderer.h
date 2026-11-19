@@ -58,6 +58,8 @@ private:
 	Minecraft* mc;
 
 	float renderDistance;
+	bool useLod;     // distant LOD terrain active this frame
+	float viewFar;   // far plane / fog end (renderDistance, or LOD distance)
 	int _tick;
 	Vec3 pickDirection;
 

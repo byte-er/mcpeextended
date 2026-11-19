@@ -21,6 +21,8 @@ class HitResult;
 class AABB;
 class TripodCamera;
 
+class LodRenderer;
+
 class LevelRenderer: public LevelListener
 {
 public:
@@ -46,6 +48,11 @@ public:
 	void renderClouds(float alpha);
 	/** Java style animated world border force field */
 	void renderWorldBorder(Mob* camera, float a, float viewDistance);
+	/** Low detail terrain beyond the chunk render distance */
+	void renderLod(Mob* camera, float a, float innerHalf);
+	LodRenderer* lod;
+	/** Half size of the square around the camera covered by real chunks. */
+	float getChunkWindowHalf() const { return xChunks * CHUNK_SIZE * 0.5f; }
 	void renderEntities(Vec3 cam, Culler* culler, float a);
     void renderSameAsLast(int layer, float alpha);
 	void renderHit(Player* player, const HitResult& h, int mode, /*ItemInstance*/void* inventoryItem, float a);

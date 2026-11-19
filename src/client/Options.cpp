@@ -37,6 +37,7 @@ void Options::initDefaultValues() {
 	vsync = true;
 	fancyGraphics = true;//false;
 	ambientOcclusion = false;
+	lodTerrain = true;
 	if(minecraft->supportNonTouchScreen())
 		useTouchScreen = false;
 	else
@@ -146,7 +147,8 @@ const Options::Option
 	Options::Option::USE_TOUCH_JOYPAD	 (17, "options.usetouchpad", false, true),
 	Options::Option::DESTROY_VIBRATION   (18, "options.destroyvibration", false, true),
 	Options::Option::PIXELS_PER_MILLIMETER(19, "options.pixelspermilimeter", true, false),
-	Options::Option::VSYNC               (20, "options.vsync",             false, true);
+	Options::Option::VSYNC               (20, "options.vsync",             false, true),
+	Options::Option::LOD_TERRAIN         (21, "options.lod",               false, true);
 
 /* private */
 const float Options::SOUND_MIN_VALUE = 0.0f;
@@ -241,6 +243,8 @@ void Options::update()
 		// Graphics extras
 		if (key == OptionStrings::Graphics_Vsync)
 			readBool(value, vsync);
+		if (key == OptionStrings::Graphics_Lod)
+			readBool(value, lodTerrain);
 		if (key == OptionStrings::Graphics_GUIScale) {
 			int v;
 			if (readInt(value, v)) guiScale = v % 5;
@@ -318,6 +322,7 @@ void Options::save()
 	addOptionToSaveOutput(stringVec, OptionStrings::Controls_UseTouchJoypad, isJoyTouchArea);
 	addOptionToSaveOutput(stringVec, OptionStrings::Controls_FeedbackVibration, destroyVibration);
 	addOptionToSaveOutput(stringVec, OptionStrings::Graphics_Vsync, vsync);
+	addOptionToSaveOutput(stringVec, OptionStrings::Graphics_Lod, lodTerrain);
 	addOptionToSaveOutput(stringVec, OptionStrings::Graphics_GUIScale, guiScale);
 // 
 // 	static const Option MUSIC;

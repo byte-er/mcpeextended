@@ -242,6 +242,7 @@ void OptionsScreen::generateOptionScreens() {
 		.addOptionItem(&Options::Option::GRAPHICS, minecraft)
 		.addOptionItem(&Options::Option::VIEW_BOBBING, minecraft)
 		.addOptionItem(&Options::Option::AMBIENT_OCCLUSION, minecraft)
+		.addOptionItem(&Options::Option::LOD_TERRAIN, minecraft)
 		.addOptionItem(&Options::Option::ANAGLYPH, minecraft)
 		.addOptionItem(&Options::Option::LIMIT_FRAMERATE, minecraft)
 		.addOptionItem(&Options::Option::VSYNC, minecraft)

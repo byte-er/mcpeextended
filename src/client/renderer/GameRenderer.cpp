@@ -1,4 +1,5 @@
 #include "GameRenderer.h"
+#include "LodRenderer.h"
 #include "gles.h"
 
 #include "../../util/PerfTimer.h"
@@ -33,6 +34,8 @@ static int _shTicks = -1;
 GameRenderer::GameRenderer( Minecraft* mc )
 :	mc(mc),
 	renderDistance(0),
+	useLod(false),
+	viewFar(0),
 	_tick(0),
 	_lastTickT(0),
 	fovOffset(0),
@@ -94,6 +97,10 @@ void GameRenderer::setupCamera(float a, int eye) {
     if (mc->isPowerVR() && mc->options.viewDistance <= 2)
 		renderDistance *= 0.8f;
 #endif
+    // Distant terrain (LOD): push the far plane and fog out so the low detail
+    // world beyond the chunk render distance is visible.
+    useLod = mc->options.lodTerrain && renderDistance < LodRenderer::farDistance();
+    viewFar = useLod ? LodRenderer::farDistance() : renderDistance;
 
 	glMatrixMode(GL_PROJECTION);
     glLoadIdentity2();
@@ -103,9 +110,9 @@ void GameRenderer::setupCamera(float a, int eye) {
     if (zoom != 1) {
         glTranslatef2((float) zoom_x, (float) -zoom_y, 0);
 		glScalef2(zoom, zoom, 1);
-        gluPerspective(_setupCameraFov = getFov(a, true), mc->width / (float) mc->height, 0.05f, renderDistance);
+        gluPerspective(_setupCameraFov = getFov(a, true), mc->width / (float) mc->height, 0.05f, viewFar);
     } else {
-        gluPerspective(_setupCameraFov = getFov(a, true), mc->width / (float) mc->height, 0.05f, renderDistance);
+        gluPerspective(_setupCameraFov = getFov(a, true), mc->width / (float) mc->height, 0.05f, viewFar);
     }
 
     glMatrixMode(GL_MODELVIEW);
@@ -301,6 +308,15 @@ void GameRenderer::renderLevel(float a) {
         setupFog(0);
         glEnable2(GL_FOG);
 
+		// Distant LOD terrain is drawn first, then the depth buffer is cleared:
+		// real chunks always draw over it, so LOD regions that overlap the
+		// chunk area never poke through nearby terrain.
+		if (useLod) {
+			TIMER_POP_PUSH("lod");
+			levelRenderer->renderLod(cameraEntity, a, levelRenderer->getChunkWindowHalf() - 16.0f);
+			glClear(GL_DEPTH_BUFFER_BIT);
+		}
+
 		mc->textures->loadAndBindTexture("terrain.png");
         glDisable2(GL_ALPHA_TEST);
         glDisable2(GL_BLEND);
@@ -311,6 +327,7 @@ void GameRenderer::renderLevel(float a) {
 		TIMER_POP_PUSH("terrain-1");
         glEnable2(GL_ALPHA_TEST);
         levelRenderer->render(cameraEntity, 1, a);
+
         
         glShadeModel2(GL_FLAT);
 		TIMER_POP_PUSH("entities");
@@ -583,8 +600,13 @@ void GameRenderer::setupFog(int i) {
 //        }
     } else {
         glFogx(GL_FOG_MODE, GL_LINEAR);
-        glFogf(GL_FOG_START, renderDistance * 0.6f);
-        glFogf(GL_FOG_END, renderDistance);
+        if (useLod) {
+            glFogf(GL_FOG_START, Mth::Max(renderDistance, viewFar * 0.4f));
+            glFogf(GL_FOG_END, viewFar);
+        } else {
+            glFogf(GL_FOG_START, renderDistance * 0.6f);
+            glFogf(GL_FOG_END, renderDistance);
+        }
         if (i < 0) {
             glFogf(GL_FOG_START, 0);
             glFogf(GL_FOG_END, renderDistance * 1.0f);

@@ -164,6 +164,7 @@ options.anaglyph=3D Anaglyph
 options.framerateLimit=Performance
 options.limitFramerate=Limit Framerate
 options.vsync=VSync
+options.lod=Distant Terrain (LOD)
 options.difficulty=Difficulty
 options.difficulty.peaceful=Peaceful
 options.difficulty.easy=Easy
