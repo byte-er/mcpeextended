@@ -88,6 +88,17 @@ std::string I18n::getDescriptionString( const ItemInstance& item )
 	if (I18n::get(s, trans))
 		return trans;
 
+	// Variants (desc.wood.acacia, desc.flower.allium, ...) fall back to the base block
+	{
+		std::string base = s;
+		size_t dot;
+		while ((dot = base.rfind('.')) != std::string::npos && dot > 5) {
+			base = base.substr(0, dot);
+			if (I18n::get(base, trans))
+				return trans;
+		}
+	}
+
 	// Remove all materials from the identifier, since swordWood should
 	// be read as just sword
 	const char* materials[] = {

@@ -49,6 +49,7 @@ private:
 	bool _pendingQuit;
 
 	Button bArmor;
+	Button bCraft; // 2x2 crafting (the touch inventory has this too)
 
 	RectangleArea _area;
 };

@@ -10,6 +10,9 @@
 #include "../../../network/packet/ChatPacket.h"
 #include "../../../platform/log.h"
 #include "../../../util/Mth.h"
+#include "../../../world/item/Item.h"
+#include "../../../world/item/ItemInstance.h"
+#include "../../../world/entity/player/Inventory.h"
 
 #include <sstream>
 #include <cstdlib>
@@ -199,6 +202,27 @@ std::string ConsoleScreen::processCommand(const std::string& raw)
     // -----------------------------------------------------------------------
     // /tp <x> <y> <z>   (~ = current coordinate)
     // -----------------------------------------------------------------------
+    if (args[0] == "give") {
+        // /give <id> [count] [data]   (gives to yourself)
+        if (args.size() < 2) return "Usage: /give <id> [count] [data]";
+        int id = std::atoi(args[1].c_str());
+        int count = args.size() > 2 ? std::atoi(args[2].c_str()) : 1;
+        int data = args.size() > 3 ? std::atoi(args[3].c_str()) : 0;
+        if (id <= 0 || id >= 512 || !Item::items[id]) return "Unknown item id " + args[1];
+        if (count < 1) count = 1;
+        if (count > 64 * 36) count = 64 * 36;
+        int given = 0;
+        while (given < count) {
+            int n = Mth::Min(count - given, Item::items[id]->getMaxStackSize());
+            ItemInstance stack(id, n, data);
+            if (!minecraft->player->inventory->add(&stack)) break;
+            given += n;
+        }
+        std::ostringstream out;
+        out << "Gave " << given << " of item " << id;
+        return out.str();
+    }
+
     if (args[0] == "tp" || args[0] == "teleport") {
         if (level->isClientSide) return "Only the host can teleport.";
         if (args.size() < 4) return "Usage: /tp <x> <y> <z>";

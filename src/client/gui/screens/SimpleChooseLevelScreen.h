@@ -36,6 +36,7 @@ private:
 	Button* bWorldType[3];   // Old, Large, Flat
 	Button* bMode[2];        // Survival, Creative
 	class NinePatchLayer* panel;
+	int panelX, panelY;
 	bool hasChosen;
 
 	std::string levelName;

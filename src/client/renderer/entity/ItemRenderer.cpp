@@ -290,7 +290,14 @@ void ItemRenderer::renderGuiItemCorrect(Font* font, Textures* textures, const It
 
 		//glColor4f2(1, 1, 1, 1);
 		glScalef2(1, 1, 1);
+		// list panes draw their backgrounds with depth: draw the icon on top
+		const GLboolean depthWas = glIsEnabled(GL_DEPTH_TEST);
+		const GLboolean cullWas = glIsEnabled(GL_CULL_FACE);
+		glDisable2(GL_DEPTH_TEST);
+		glEnable2(GL_CULL_FACE);
 		tileRenderer->renderGuiTile(tile, item->getAuxValue());
+		if (depthWas) glEnable2(GL_DEPTH_TEST);
+		if (!cullWas) glDisable2(GL_CULL_FACE);
 		glPopMatrix2();
 	}
 	else if (item->getIcon() >= 0)

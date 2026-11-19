@@ -16,6 +16,8 @@ SimpleChooseLevelScreen::SimpleChooseLevelScreen(const std::string& levelName)
 :   bBack(0),
     bCreate(0),
     panel(0),
+    panelX(8),
+    panelY(30),
     hasChosen(false),
     levelName(levelName),
     gamemode(GameType::Survival),
@@ -92,9 +94,11 @@ void SimpleChooseLevelScreen::setupPositions()
     bBack->y = 3;
     const int headerH = 26;
 
-    const int px = 8, py = headerH + 4;
-    const int pw = width - 16, ph = height - py - 4;
-    if (panel) panel->setSize((float)pw, (float)ph);
+    // panel: full width on phones, capped and centred on big screens /
+    // small GUI scales so buttons never get wider than their texture
+    const int pw = Mth::Min(width - 16, 320);
+    const int px = (width - pw) / 2, py = headerH + 4;
+    panelX = px; panelY = py;
 
     const int lh = Font::DefaultLineHeight;
     const int colW = (pw - 24) / 2;
@@ -125,6 +129,9 @@ void SimpleChooseLevelScreen::setupPositions()
     bCreate->width = px + pw - 8 - bCreate->x;
     bCreate->height = bh + 4;
     bCreate->y = y - 2;
+    // panel hugs its contents
+    const int ph = Mth::Min(height - py - 4, bCreate->y + bCreate->height + 8 - py);
+    if (panel) panel->setSize((float)pw, (float)ph);
 }
 
 void SimpleChooseLevelScreen::tick()
@@ -149,7 +156,7 @@ void SimpleChooseLevelScreen::render( int xm, int ym, float a )
     if (panel) {
         glColor4f2(1, 1, 1, 1);
         Tesselator& t = Tesselator::instance;
-        panel->draw(t, 8.0f, 30.0f);
+        panel->draw(t, (float)panelX, (float)panelY);
     }
 
     const int lh = Font::DefaultLineHeight;

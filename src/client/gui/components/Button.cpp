@@ -1,4 +1,5 @@
 #include "Button.h"
+#include "../../../util/Mth.h"
 #include "../../Minecraft.h"
 #include "../../renderer/Textures.h"
 
@@ -90,8 +91,22 @@ void Button::renderBg( Minecraft* minecraft, int xm, int ym )
 	//printf("ButtonId: %d - Hovered? %d (cause: %d, %d, %d, %d, <> %d, %d)\n", id, hovered, x, y, x+w, y+h, xm, ym);
 	int yImage = getYImage(selected || hovered(minecraft, xm, ym));;
 
-	blit(x, y, 0, 46 + yImage * 20, width / 2, height, 0, 20);
-	blit(x + width / 2, y, 200 - width / 2, 46 + yImage * 20, width / 2, height, 0, 20);
+	const int v = 46 + yImage * 20;
+	if (width <= 396) {
+		blit(x, y, 0, v, width / 2, height, 0, 20);
+		blit(x + width / 2, y, 200 - width / 2, v, width - width / 2, height, 0, 20);
+	} else {
+		// wider than the 200px texture: ends + repeated middle section
+		blit(x, y, 0, v, 100, height, 0, 20);
+		int xx = x + 100;
+		const int end = x + width - 100;
+		while (xx < end) {
+			const int w = Mth::Min(96, end - xx);
+			blit(xx, y, 52, v, w, height, 0, 20);
+			xx += w;
+		}
+		blit(end, y, 100, v, 100, height, 0, 20);
+	}
 }
 
 bool Button::hovered(Minecraft* minecraft, int xm , int ym) {

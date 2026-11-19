@@ -11,6 +11,8 @@
 #include "../../renderer/Textures.h"
 #include "../../gamemode/GameMode.h"
 #include "ArmorScreen.h"
+#include "crafting/WorkbenchScreen.h"
+#include "../../../world/item/crafting/Recipe.h"
 #include "../components/Button.h"
 
 #if defined(__APPLE__)
@@ -26,7 +28,8 @@ IngameBlockSelectionScreen::IngameBlockSelectionScreen()
 	InventoryRows(1),
 	InventoryCols(1),
 	InventorySize(1),
-	bArmor(1, "Armor")
+	bArmor(1, "Armor"),
+	bCraft(2, "Craft")
 {
 }
 
@@ -63,6 +66,10 @@ void IngameBlockSelectionScreen::init()
 		bArmor.x = 0;
 		bArmor.y = height - bArmor.height;
 		buttons.push_back(&bArmor);
+		bCraft.width = 42;
+		bCraft.x = bArmor.x + bArmor.width + 2;
+		bCraft.y = bArmor.y;
+		buttons.push_back(&bCraft);
 	}
 }
 
@@ -229,7 +236,8 @@ void IngameBlockSelectionScreen::mouseClicked(int x, int y, int buttonNum)
 			//minecraft->soundEngine->playUI("random.click", 1, 1);
 		} else {
 			_pendingQuit = !_area.isInside((float)x, (float)y)
-			            && !bArmor.isInside(x, y);
+			            && !bArmor.isInside(x, y)
+			            && !bCraft.isInside(x, y);
 		}
 	}
 	if (!_pendingQuit)
@@ -317,6 +325,11 @@ void IngameBlockSelectionScreen::buttonClicked( Button* button )
 {
 	if (button == &bArmor) {
 		minecraft->setScreen(new ArmorScreen());
+		return;
+	}
+	if (button == &bCraft) {
+		minecraft->setScreen(new WorkbenchScreen(Recipe::SIZE_2X2));
+		return;
 	}
 	super::buttonClicked(button);
 }

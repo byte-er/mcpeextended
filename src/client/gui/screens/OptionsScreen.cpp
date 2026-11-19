@@ -175,7 +175,8 @@ void OptionsScreen::buttonClicked(Button* button) {
 	if (button == btnClose) {
 
 		minecraft->options.save();
-		minecraft->screenChooser.setScreen(SCREEN_STARTMENU);
+		// opened from the pause menu: go back there instead of the title screen
+		minecraft->screenChooser.setScreen(minecraft->level ? SCREEN_PAUSE : SCREEN_STARTMENU);
 
 	}
 	else if (button == btnChangeUsername) {
