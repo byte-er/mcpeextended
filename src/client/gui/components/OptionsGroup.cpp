@@ -76,6 +76,12 @@ void OptionsGroup::createStepSlider( const Options::Option* option, Minecraft* m
 		steps.push_back(1);
 		steps.push_back(2);
 		steps.push_back(3);
+	} else if(option == &Options::Option::RENDER_DISTANCE) {
+		// 0.9.0 "View Distance": short ... far (viewDistance 3 is the shortest)
+		steps.push_back(3);
+		steps.push_back(2);
+		steps.push_back(1);
+		steps.push_back(0);
 	} else if(option == &Options::Option::GUI_SCALE) {
 		// slider order: small,normal,large,larger,auto
 		steps.push_back(1);

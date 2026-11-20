@@ -63,8 +63,11 @@ WaterTexture::~WaterTexture() {
 	delete[] heata;
 }
 
+bool DynamicTexture::animateWater = true;
+
 void WaterTexture::tick()
 {
+	if (!animateWater) return;
 	for (int x = 0; x < 16; x++)
 		for (int y = 0; y < 16; y++) {
 			float pow = 0;
@@ -152,6 +155,7 @@ WaterSideTexture::~WaterSideTexture() {
 }
 
 void WaterSideTexture::tick() {
+	if (!animateWater) return;
 	++_tickCount;
 	for (int x = 0; x < 16; x++)
 		for (int y = 0; y < 16; y++) {

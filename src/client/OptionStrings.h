@@ -15,6 +15,9 @@ public:
 	static const char* Graphics_Lod;
 	static const char* Controls_PcUi;
 	static const char* Graphics_Fov;
+	static const char* Graphics_Skies;
+	static const char* Graphics_AnimWater;
+	static const char* Graphics_ViewDistance;
     static const char* Controls_Sensitivity;
     static const char* Controls_InvertMouse;
     static const char* Controls_UseTouchScreen;

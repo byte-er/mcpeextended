@@ -31,13 +31,13 @@ public:
 
 private:
 	Touch::THeader* bHeader;
-	ImageButton* btnClose;
+	Touch::TButton* btnClose;   // "Back" (0.9.0)
 
 	Button* btnChangeUsername;
 	Button* btnCredits;   // <-- ADD THIS
 	Button* btnSkin;
 
-	std::vector<Touch::TButton*> categoryButtons;
+	std::vector<Button*> categoryButtons;
 	std::vector<OptionsPane*> optionPanes;
 
 	OptionsPane* currentOptionPane;

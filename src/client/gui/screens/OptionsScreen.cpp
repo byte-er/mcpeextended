@@ -12,6 +12,32 @@
 #include "../components/ImageButton.h"
 #include "../components/OptionsGroup.h"
 
+#include "../../renderer/Textures.h"
+#include "../../renderer/gles.h"
+
+namespace {
+// Square tab with an icon from touchgui2.png, drawn with 0.9.0's flat
+// button sprite (spritesheet.png); the selected tab looks pressed.
+class IconTab : public Button {
+public:
+	IconTab(int id, int u, int v, int w, int h) : Button(id, ""), u(u), v(v), iw(w), ih(h) { width = height = 32; }
+	void render(Minecraft* minecraft, int xm, int ym) {
+		if (!visible) return;
+		const bool down = selected || (_currentlyDown && isInside(xm, ym));
+		minecraft->textures->loadAndBindTexture("gui/spritesheet.png");
+		if (down) glColor4f2(0.72f, 0.72f, 0.72f, 1); else glColor4f2(1, 1, 1, 1);
+		blitNineSlice((float)x, (float)y, (float)width, (float)height, 0, 0, 16, 16, 4, 128);
+		minecraft->textures->loadAndBindTexture("gui/touchgui2.png");
+		const float s = height * 0.72f / (float)(iw > ih ? iw : ih);
+		const float w = iw * s, h = ih * s;
+		blit(x + (width - w) * 0.5f, y + (height - h) * 0.5f, u, v, w, h, iw, ih);
+		glColor4f2(1, 1, 1, 1);
+	}
+private:
+	int u, v, iw, ih;
+};
+}
+
 OptionsScreen::OptionsScreen()
 	: btnClose(NULL),
 	bHeader(NULL),
@@ -45,7 +71,7 @@ OptionsScreen::~OptionsScreen() {
 		btnCredits = NULL;
 	}
 
-	for (std::vector<Touch::TButton*>::iterator it = categoryButtons.begin(); it != categoryButtons.end(); ++it) {
+	for (std::vector<Button*>::iterator it = categoryButtons.begin(); it != categoryButtons.end(); ++it) {
 		if (*it != NULL) {
 			delete* it;
 			*it = NULL;
@@ -66,20 +92,14 @@ void OptionsScreen::init() {
 
 	bHeader = new Touch::THeader(0, "Options");
 
-	btnClose = new ImageButton(1, "");
+	btnClose = new Touch::TButton(1, "Back");
 
-	ImageDef def;
-	def.name = "gui/touchgui.png";
-	def.width = 34;
-	def.height = 26;
-
-	def.setSrc(IntRectangle(150, 0, (int)def.width, (int)def.height));
-	btnClose->setImageDef(def, true);
-
-	categoryButtons.push_back(new Touch::TButton(2, "Login"));
-	categoryButtons.push_back(new Touch::TButton(3, "Game"));
-	categoryButtons.push_back(new Touch::TButton(4, "Controls"));
-	categoryButtons.push_back(new Touch::TButton(5, "Graphics"));
+	// 0.9.0 tabs: Game, Controls, Graphics, Sound, Account (icons from touchgui2.png)
+	categoryButtons.push_back(new IconTab(2, 138, 5, 21, 18));
+	categoryButtons.push_back(new IconTab(3, 109, 3, 22, 19));
+	categoryButtons.push_back(new IconTab(4, 136, 33, 24, 20));
+	categoryButtons.push_back(new IconTab(5, 109, 30, 22, 23));
+	categoryButtons.push_back(new IconTab(6, 43, 8, 19, 22));
 
 	btnChangeUsername = new Button(10, "Username");
 	btnCredits = new Button(11, "Credits");
@@ -91,7 +111,7 @@ void OptionsScreen::init() {
 	buttons.push_back(btnCredits);
 	buttons.push_back(btnSkin);
 
-	for (std::vector<Touch::TButton*>::iterator it = categoryButtons.begin(); it != categoryButtons.end(); ++it) {
+	for (std::vector<Button*>::iterator it = categoryButtons.begin(); it != categoryButtons.end(); ++it) {
 		buttons.push_back(*it);
 		tabButtons.push_back(*it);
 	}
@@ -103,34 +123,40 @@ void OptionsScreen::init() {
 
 void OptionsScreen::setupPositions() {
 
-	int buttonHeight = btnClose->height;
-
-	btnClose->x = width - btnClose->width;
-	btnClose->y = 0;
-
-	int offsetNum = 1;
-
-	for (std::vector<Touch::TButton*>::iterator it = categoryButtons.begin(); it != categoryButtons.end(); ++it) {
-
-		(*it)->x = 0;
-		(*it)->y = offsetNum * buttonHeight;
-		(*it)->selected = false;
-
-		offsetNum++;
-	}
+	// 0.9.0: full-width title bar with Back inset on the left, square icon tabs below
+	btnClose->width = 60;
+	btnClose->height = 28;
+	btnClose->x = 3;
+	btnClose->y = 3;
 
 	bHeader->x = 0;
 	bHeader->y = 0;
-	bHeader->width = width - btnClose->width;
-	bHeader->height = btnClose->height;
+	bHeader->width = width;
+	bHeader->height = btnClose->height + 6;
+	bHeader->xText = width / 2;
+
+	int ty = bHeader->height + 5;
+	// square tabs, as big as 0.9.0's but all five must fit the height
+	int tabSize = 32;
+	if (!categoryButtons.empty()) {
+		const int fit = (height - ty - 3) / (int)categoryButtons.size() - 3;
+		if (fit < tabSize) tabSize = fit < 16 ? 16 : fit;
+	}
+	for (std::vector<Button*>::iterator it = categoryButtons.begin(); it != categoryButtons.end(); ++it) {
+		(*it)->width = (*it)->height = tabSize;
+		(*it)->x = 3;
+		(*it)->y = ty;
+		ty += (*it)->height + 3;
+	}
+	const int buttonHeight = 26;
 
 	// Username button (bottom-left)
 	if (btnChangeUsername != NULL) {
 
-		btnChangeUsername->width = categoryButtons.empty() ? 80 : categoryButtons[0]->width;
-		btnChangeUsername->height = btnClose->height;
+		btnChangeUsername->width = 80;
+		btnChangeUsername->height = buttonHeight;
 
-		btnChangeUsername->x = 0;
+		btnChangeUsername->x = categoryButtons.empty() ? 0 : categoryButtons[0]->x + categoryButtons[0]->width + 8;
 		btnChangeUsername->y = height - btnChangeUsername->height;
 	}
 
@@ -157,9 +183,9 @@ void OptionsScreen::setupPositions() {
 
 		if (categoryButtons.size() > 0 && categoryButtons[0] != NULL) {
 
-			(*it)->x = categoryButtons[0]->width;
+			(*it)->x = categoryButtons[0]->x + categoryButtons[0]->width + 4;
 			(*it)->y = bHeader->height;
-			(*it)->width = width - categoryButtons[0]->width;
+			(*it)->width = width - (*it)->x;
 
 			(*it)->setupPositions();
 		}
@@ -172,6 +198,14 @@ void OptionsScreen::setupPositions() {
 void OptionsScreen::render(int xm, int ym, float a) {
 
 	renderBackground();
+
+	// light strip behind the tabs (0.9.0)
+	if (!categoryButtons.empty()) {
+		const int sx = categoryButtons[0]->x + categoryButtons[0]->width + 3;
+		fill(0, bHeader->height, sx, height, 0xffbbb0aa);
+		fill(sx - 1, bHeader->height, sx, height, 0xff534950);
+		fill(0, bHeader->height, sx - 1, bHeader->height + 1, 0xffd4cdc8);
+	}
 
 	super::render(xm, ym, a);
 
@@ -200,7 +234,7 @@ void OptionsScreen::buttonClicked(Button* button) {
 		minecraft->setScreen(new UsernameScreen());
 
 	}
-	else if (button->id > 1 && button->id < 7) {
+	else if (button->id > 1 && button->id < 2 + (int)categoryButtons.size()) {
 
 		int categoryButton = button->id - categoryButtons[0]->id;
 		selectCategory(categoryButton);
@@ -221,7 +255,7 @@ void OptionsScreen::selectCategory(int index) {
 
 	int currentIndex = 0;
 
-	for (std::vector<Touch::TButton*>::iterator it = categoryButtons.begin(); it != categoryButtons.end(); ++it) {
+	for (std::vector<Button*>::iterator it = categoryButtons.begin(); it != categoryButtons.end(); ++it) {
 
 		if (index == currentIndex)
 			(*it)->selected = true;
@@ -233,43 +267,52 @@ void OptionsScreen::selectCategory(int index) {
 
 	if (index < (int)optionPanes.size())
 		currentOptionPane = optionPanes[index];
+	selectedCategory = index;
+	// account buttons live on the last (person) tab
+	const bool account = index == (int)categoryButtons.size() - 1;
+	Button* accountButtons[3] = { btnChangeUsername, btnSkin, btnCredits };
+	for (int i = 0; i < 3; ++i) if (accountButtons[i]) { accountButtons[i]->visible = account; accountButtons[i]->active = account; }
 }
 
 void OptionsScreen::generateOptionScreens() {
 
-	optionPanes.push_back(new OptionsPane());
-	optionPanes.push_back(new OptionsPane());
-	optionPanes.push_back(new OptionsPane());
-	optionPanes.push_back(new OptionsPane());
+	for (int i = 0; i < 5; ++i)
+		optionPanes.push_back(new OptionsPane());
 
-	// Login Pane
-	optionPanes[0]->createOptionsGroup("options.group.mojang")
-		.addOptionItem(&Options::Option::SENSITIVITY, minecraft);
-
-	// Game Pane
-	optionPanes[1]->createOptionsGroup("options.group.game")
+	// Game
+	optionPanes[0]->createOptionsGroup("options.group.game")
 		.addOptionItem(&Options::Option::DIFFICULTY, minecraft)
 		.addOptionItem(&Options::Option::SERVER_VISIBLE, minecraft)
 		.addOptionItem(&Options::Option::THIRD_PERSON, minecraft)
 		.addOptionItem(&Options::Option::GUI_SCALE, minecraft);
 
-	// Controls Pane
-	optionPanes[2]->createOptionsGroup("options.group.controls")
+	// Controls
+	optionPanes[1]->createOptionsGroup("options.group.controls")
+		.addOptionItem(&Options::Option::SENSITIVITY, minecraft)
 		.addOptionItem(&Options::Option::INVERT_MOUSE, minecraft)
 		.addOptionItem(&Options::Option::PC_UI, minecraft);
 
-	// Graphics Pane
-	optionPanes[3]->createOptionsGroup("options.group.graphics")
-		.addOptionItem(&Options::Option::FOV, minecraft)
+	// Graphics (0.9.0's four first, then this game's extras)
+	optionPanes[2]->createOptionsGroup("options.group.graphics")
+		.addOptionItem(&Options::Option::RENDER_DISTANCE, minecraft)
 		.addOptionItem(&Options::Option::GRAPHICS, minecraft)
-		.addOptionItem(&Options::Option::VIEW_BOBBING, minecraft)
+		.addOptionItem(&Options::Option::BEAUTIFUL_SKIES, minecraft)
+		.addOptionItem(&Options::Option::ANIMATED_WATER, minecraft)
+		.addOptionItem(&Options::Option::FOV, minecraft)
 		.addOptionItem(&Options::Option::AMBIENT_OCCLUSION, minecraft)
+		.addOptionItem(&Options::Option::VIEW_BOBBING, minecraft)
 		.addOptionItem(&Options::Option::LOD_TERRAIN, minecraft)
 		.addOptionItem(&Options::Option::ANAGLYPH, minecraft)
 		.addOptionItem(&Options::Option::LIMIT_FRAMERATE, minecraft)
-		.addOptionItem(&Options::Option::VSYNC, minecraft)
+		.addOptionItem(&Options::Option::VSYNC, minecraft);
+
+	// Sound
+	optionPanes[3]->createOptionsGroup("options.group.sound")
 		.addOptionItem(&Options::Option::MUSIC, minecraft)
 		.addOptionItem(&Options::Option::SOUND, minecraft);
+
+	// Account: username, skin, credits buttons
+	optionPanes[4]->createOptionsGroup("options.group.mojang");
 }
 
 void OptionsScreen::mouseClicked(int x, int y, int buttonNum) {

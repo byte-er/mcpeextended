@@ -40,6 +40,8 @@ public:
 		static const Option LOD_TERRAIN;
 		static const Option PC_UI;
 		static const Option FOV;
+		static const Option BEAUTIFUL_SKIES;
+		static const Option ANIMATED_WATER;
 		static const Option GUI_SCALE;
         
 		static const Option THIRD_PERSON;
@@ -123,6 +125,8 @@ public:
     bool lodTerrain; // distant low detail terrain beyond the render distance
     bool pcUi;       // Java-style inventory / crafting screens
     float fov;       // field of view in degrees (30..110)
+    bool beautifulSkies; // sky gradient and clouds (0.9.0)
+    bool animatedWater;  // animated water texture (0.9.0)
 	bool useMouseForDigging;
 	bool isLeftHanded;
 	bool destroyVibration;
@@ -226,6 +230,8 @@ public:
 			difficulty = value;
 		} else if(item == &Option::GUI_SCALE) {
 			guiScale = value % 5;
+		} else if(item == &Option::RENDER_DISTANCE) {
+			viewDistance = value & 3;
 		}
 		notifyOptionUpdate(item, value);
 		save();
@@ -256,6 +262,8 @@ public:
         }
         if (option == &Option::LOD_TERRAIN) lodTerrain = !lodTerrain;
         if (option == &Option::PC_UI) pcUi = !pcUi;
+        if (option == &Option::BEAUTIFUL_SKIES) beautifulSkies = !beautifulSkies;
+        if (option == &Option::ANIMATED_WATER) { animatedWater = !animatedWater; applyAnimatedWater(); }
         if (option == &Option::AMBIENT_OCCLUSION) {
             ambientOcclusion = !ambientOcclusion;
             //minecraft->levelRenderer.allChanged();
@@ -267,6 +275,7 @@ public:
 	int getIntValue(const Option* item) {
 		if(item == &Option::DIFFICULTY) return difficulty;
 		if(item == &Option::GUI_SCALE) return guiScale;
+		if(item == &Option::RENDER_DISTANCE) return viewDistance;
 		return 0;
 	}
 
@@ -294,6 +303,12 @@ public:
             return lodTerrain;
         if (item == &Option::PC_UI)
             return pcUi;
+        if (item == &Option::GRAPHICS)
+            return fancyGraphics;
+        if (item == &Option::BEAUTIFUL_SKIES)
+            return beautifulSkies;
+        if (item == &Option::ANIMATED_WATER)
+            return animatedWater;
         if (item == &Option::AMBIENT_OCCLUSION)
             return ambientOcclusion;
         if (item == &Option::THIRD_PERSON)
@@ -343,6 +358,7 @@ public:
 	void addOptionToSaveOutput(StringVector& stringVector, std::string name, int intValue);
 	void addOptionToSaveOutput(StringVector& stringVector, std::string name, const std::string& strValue);
 	void notifyOptionUpdate(const Option* option, bool value);
+	void applyAnimatedWater();
 	void notifyOptionUpdate(const Option* option, float value);
 	void notifyOptionUpdate(const Option* option, int value);
 private:

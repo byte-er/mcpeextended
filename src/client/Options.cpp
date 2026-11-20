@@ -1,3 +1,4 @@
+#include "renderer/ptexture/DynamicTexture.h"
 #include "Options.h"
 #include "OptionStrings.h"
 #include "Minecraft.h"
@@ -39,6 +40,8 @@ void Options::initDefaultValues() {
 	fancyGraphics = true;//false;
 	ambientOcclusion = true; // 0.9.0 shipped with smooth lighting on
 	fov = 90.0f;
+	beautifulSkies = true;
+	animatedWater = true;
 	lodTerrain = false; // Distant Terrain is opt-in (Options -> Graphics)
 	pcUi = false;
 	if(minecraft->supportNonTouchScreen())
@@ -142,7 +145,7 @@ const Options::Option
 	Options::Option::ANAGLYPH			 (6, "options.anaglyph",		false, true),
 	Options::Option::LIMIT_FRAMERATE	 (7, "options.limitFramerate",false, true),
 	Options::Option::DIFFICULTY			 (8, "options.difficulty",	false, false),
-	Options::Option::GRAPHICS			 (9, "options.graphics",		false, false),
+	Options::Option::GRAPHICS			 (9, "options.graphics",		false, true),   // "Fancy Graphics" toggle (0.9.0)
 	Options::Option::AMBIENT_OCCLUSION	 (10, "options.ao",		false, true),
 	Options::Option::GUI_SCALE			 (11, "options.guiScale",	false, false),
 	Options::Option::THIRD_PERSON		 (12, "options.thirdperson",	false, true),
@@ -156,7 +159,9 @@ const Options::Option
 	Options::Option::VSYNC               (20, "options.vsync",             false, true),
 	Options::Option::LOD_TERRAIN         (21, "options.lod",               false, true),
 	Options::Option::PC_UI               (22, "options.pcui",              false, true),
-	Options::Option::FOV                 (23, "options.fov",               true, false);
+	Options::Option::FOV                 (23, "options.fov",               true, false),
+	Options::Option::BEAUTIFUL_SKIES     (24, "options.beautifulskies",    false, true),
+	Options::Option::ANIMATED_WATER      (25, "options.animatedwater",     false, true);
 
 /* private */
 const float Options::SOUND_MIN_VALUE = 0.0f;
@@ -257,6 +262,9 @@ void Options::update()
 			readBool(value, lodTerrain);
 		if (key == OptionStrings::Controls_PcUi)
 			readBool(value, pcUi);
+		if (key == OptionStrings::Graphics_Skies) readBool(value, beautifulSkies);
+		if (key == OptionStrings::Graphics_AnimWater) readBool(value, animatedWater);
+		if (key == OptionStrings::Graphics_ViewDistance) { int v; if (readInt(value, v)) viewDistance = v & 3; }
 		if (key == OptionStrings::Graphics_Fov) {
 			float f;
 			if (readFloat(value, f) && f >= 30 && f <= 110) fov = f;
@@ -282,6 +290,7 @@ void Options::update()
 #endif
     
     //LOGI("Lefty is: %d\n", isLeftHanded);
+    applyAnimatedWater();
 }
 
 void Options::load()
@@ -343,6 +352,10 @@ void Options::save()
 	addOptionToSaveOutput(stringVec, OptionStrings::Graphics_Lod, lodTerrain);
 	addOptionToSaveOutput(stringVec, OptionStrings::Controls_PcUi, pcUi);
 	addOptionToSaveOutput(stringVec, OptionStrings::Graphics_Fov, fov);
+	addOptionToSaveOutput(stringVec, OptionStrings::Graphics_Fancy, fancyGraphics);
+	addOptionToSaveOutput(stringVec, OptionStrings::Graphics_Skies, beautifulSkies);
+	addOptionToSaveOutput(stringVec, OptionStrings::Graphics_AnimWater, animatedWater);
+	addOptionToSaveOutput(stringVec, OptionStrings::Graphics_ViewDistance, viewDistance);
 	addOptionToSaveOutput(stringVec, OptionStrings::Graphics_GUIScale, guiScale);
 // 
 // 	static const Option MUSIC;
@@ -489,6 +502,10 @@ bool Options::readBool(const std::string& string, bool& value) {
 	if (string == "true" || string == "1" || string == "YES")  { value = true;  return true; }
 	if (string == "false" || string == "0" || string == "NO") { value = false; return true; }
 	return false;
+}
+
+void Options::applyAnimatedWater() {
+	DynamicTexture::animateWater = animatedWater;
 }
 
 void Options::notifyOptionUpdate( const Option* option, bool value ) {

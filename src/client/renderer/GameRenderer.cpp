@@ -284,7 +284,7 @@ void GameRenderer::renderLevel(float a) {
 						screenScissorArea.w, screenScissorArea.h);
 		}
 		
-        if(mc->options.fancyGraphics) {
+        if(mc->options.beautifulSkies) {   // 0.9.0 "Beautiful skies"
 			setupFog(-1);
 			TIMER_POP_PUSH("sky");
 			glFogf(GL_FOG_START, renderDistance  * 0.2f);
@@ -308,7 +308,7 @@ void GameRenderer::renderLevel(float a) {
         mc->levelRenderer->cull(&frustum, a);
         mc->levelRenderer->updateDirtyChunks(cameraEntity, false);
 
-		if(mc->options.fancyGraphics) {
+		if(mc->options.beautifulSkies) {
 			prepareAndRenderClouds(levelRenderer, a);
 		}
 

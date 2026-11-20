@@ -16,6 +16,7 @@ public:
 	virtual ~DynamicTexture() {}
 
 	virtual void tick() = 0;
+	static bool animateWater; // Options -> Graphics -> Animated water
     virtual void bindTexture(Textures* tex);
 };
 
