@@ -692,11 +692,8 @@ void GameRenderer::pick(float a) {
 
     float range = mc->gameMode->getPickRange();
     bool isPicking = true;
-#ifndef PLATFORM_DESKTOP
-    bool freeform = mc->useTouchscreen()  && !mc->options.isJoyTouchArea;
-#else 
-    bool freeform = false;
-#endif
+    // touch: blocks are picked where the finger is (0.9.0), not at the crosshair
+    bool freeform = mc->touchUi() && !mc->options.isJoyTouchArea;
     if (freeform) {
         isPicking = updateFreeformPickDirection(a, pickDirection);
     } else {

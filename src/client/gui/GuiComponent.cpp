@@ -53,6 +53,29 @@ void GuiComponent::blit( float x, float y, int sx, int sy, float w, float h, int
 	t.draw();
 }
 
+void GuiComponent::blitNineSlice( float x, float y, float w, float h, int sx, int sy, int sw, int sh, int b, int texSize )
+{
+	const float bw = w < 2 * b ? w * 0.5f : (float)b;
+	const float bh = h < 2 * b ? h * 0.5f : (float)b;
+	const float xs[4] = { x, x + bw, x + w - bw, x + w };
+	const float ys[4] = { y, y + bh, y + h - bh, y + h };
+	const int us[4] = { sx, sx + b, sx + sw - b, sx + sw };
+	const int vs[4] = { sy, sy + b, sy + sh - b, sy + sh };
+	const float k = 1.0f / (float)texSize;
+	Tesselator& t = Tesselator::instance;
+	t.begin();
+	for (int j = 0; j < 3; ++j)
+		for (int i = 0; i < 3; ++i) {
+			if (xs[i + 1] <= xs[i] || ys[j + 1] <= ys[j] || us[i + 1] <= us[i] || vs[j + 1] <= vs[j]) continue;
+			const float u0 = us[i] * k, u1 = us[i + 1] * k, v0 = vs[j] * k, v1 = vs[j + 1] * k;
+			t.vertexUV(xs[i],     ys[j + 1], blitOffset, u0, v1);
+			t.vertexUV(xs[i + 1], ys[j + 1], blitOffset, u1, v1);
+			t.vertexUV(xs[i + 1], ys[j],     blitOffset, u1, v0);
+			t.vertexUV(xs[i],     ys[j],     blitOffset, u0, v0);
+		}
+	t.draw();
+}
+
 void GuiComponent::fill( int x0, int y0, int x1, int y1, int col ) {
 	fill((float)x0, (float)y0, (float)x1, (float)y1, col);
 }

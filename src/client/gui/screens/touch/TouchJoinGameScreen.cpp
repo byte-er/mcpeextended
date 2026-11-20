@@ -140,7 +140,7 @@ void JoinGameScreen::buttonClicked(Button* button)
 	if (button->id == bBack.id)
 	{
 		minecraft->cancelLocateMultiplayer();
-		minecraft->screenChooser.setScreen(SCREEN_STARTMENU);
+		minecraft->screenChooser.setScreen(SCREEN_SELECTWORLD); // opened from the world list
 	}
 }
 
@@ -149,7 +149,7 @@ bool JoinGameScreen::handleBackEvent(bool isDown)
 	if (!isDown)
 	{
 		minecraft->cancelLocateMultiplayer();
-		minecraft->screenChooser.setScreen(SCREEN_STARTMENU);
+		minecraft->screenChooser.setScreen(SCREEN_SELECTWORLD); // opened from the world list
 	}
 	return true;
 }

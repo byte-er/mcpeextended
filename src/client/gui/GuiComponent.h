@@ -18,6 +18,8 @@ public:
 
 	void blit(int x, int y, int sx, int sy, int w, int h, int sw=0, int sh=0);
 	void blit(float x, float y, int sx, int sy, float w, float h, int sw=0, int sh=0);
+	/** Draws the sw x sh source rect into w x h keeping a b pixel border unstretched (256x256 sheets). */
+	void blitNineSlice(float x, float y, float w, float h, int sx, int sy, int sw, int sh, int b, int texSize = 256);
 
 protected:
     void fill(int x0, int y0, int x1, int y1, int col);

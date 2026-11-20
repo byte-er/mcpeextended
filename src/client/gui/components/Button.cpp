@@ -168,7 +168,8 @@ void TButton::renderBg( Minecraft* minecraft, int xm, int ym )
 	else
 		glColor4f2(0.5f, 0.5f, 0.5f, 1);
 
-	blit(x, y, hovered?66:0, 0, width, height, 66, 26);
+	// nine-slice so wide / tall buttons keep a crisp 0.9.0 bevel
+	blitNineSlice((float)x, (float)y, (float)width, (float)height, hovered ? 66 : 0, 0, 66, 26, 3);
 	//blit(x + w / 2, y, 200 - w / 2, 46 + yImage * 20, w / 2, h, 0, 20);
 }
 

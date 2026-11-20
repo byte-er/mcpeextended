@@ -62,6 +62,8 @@ public:
 
 	bool supportNonTouchScreen();
 	bool useTouchscreen();
+	/** Phone UI ("..." hotbar slot, D-pad, tap to build): touch devices; MCPE_TOUCHUI on desktop. */
+	bool touchUi();
 	void grabMouse();
 	void releaseMouse();
 

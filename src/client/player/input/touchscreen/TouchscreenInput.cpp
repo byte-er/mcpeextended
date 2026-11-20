@@ -87,12 +87,12 @@ TouchscreenInput_TestFps::TouchscreenInput_TestFps( Minecraft* mc, Options* opti
 	onConfigChanged( createConfig(mc) );
 
 	Tesselator& t = Tesselator::instance;
-	const int alpha = 128;
+	const int alpha = 104; // 0.9.0: lightly see-through
 	t.color( 0xc0c0c0, alpha); cPressed  = t.getColor();
 	t.color( 0xffffff, alpha); cReleased = t.getColor();
 	t.color( 0xffffff, alpha / 4); cDiscreet = t.getColor();
-    t.color( 0xa0a0a0, 220); cPressedPause=t.getColor();
-    t.color( 0xffffff, 200); cReleasedPause=t.getColor();
+    t.color( 0xa0a0a0, 190); cPressedPause=t.getColor();
+    t.color( 0xffffff, 150); cReleasedPause=t.getColor();
 }
 
 TouchscreenInput_TestFps::~TouchscreenInput_TestFps() {

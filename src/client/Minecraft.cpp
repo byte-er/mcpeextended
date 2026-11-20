@@ -714,9 +714,7 @@ void Minecraft::tickInput() {
 			Inventory* v = player->inventory;
 
 			int numSlots = gui.getNumSlots();
-#ifndef PLATFORM_DESKTOP
-			numSlots--;
-#endif
+			if (touchUi()) numSlots--; // last slot is the "..." button
 
 			int slot = (v->selected - e.dy + numSlots) % numSlots;
 			v->selectSlot(slot);
@@ -1183,6 +1181,15 @@ bool Minecraft::useTouchscreen() {
 #endif
 	return options.useTouchScreen || !_supportsNonTouchscreen;
 }
+bool Minecraft::touchUi() {
+#if defined(PLATFORM_DESKTOP) && !defined(__EMSCRIPTEN__)
+	static const bool on = getenv("MCPE_TOUCHUI") != NULL;
+	return on;
+#else
+	return useTouchscreen();
+#endif
+}
+
 bool Minecraft::supportNonTouchScreen() {
 	return _supportsNonTouchscreen;
 }
@@ -1316,11 +1323,7 @@ void Minecraft::_reloadInput() {
 #ifndef STANDALONE_SERVER
 	delete inputHolder;
 
-#if defined(PLATFORM_DESKTOP) && !defined(__EMSCRIPTEN__)
-	const bool useTouchHolder = false;
-#else
-	const bool useTouchHolder = useTouchscreen();
-#endif
+	const bool useTouchHolder = touchUi(); // desktop: MCPE_TOUCHUI=1 (mouse acts as one finger)
 	if (useTouchHolder) {
 		inputHolder = new TouchInputHolder(this, &options);
 	} else {

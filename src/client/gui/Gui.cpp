@@ -71,11 +71,7 @@ void Gui::render(float a, bool mouseFree, int xMouse, int yMouse) {
 	//minecraft->gameRenderer->setupGuiScreen();
 	Font* font = minecraft->font;
 
-#if defined(PLATFORM_DESKTOP) && !defined(__EMSCRIPTEN__)
-	const bool isTouchInterface = false;
-#else
-	const bool isTouchInterface = minecraft->useTouchscreen();
-#endif
+	const bool isTouchInterface = minecraft->touchUi();
 	const int screenWidth = (int)(minecraft->width * InvGuiScale);
 	const int screenHeight = (int)(minecraft->height * InvGuiScale);
 	blitOffset = -90;
@@ -204,13 +200,11 @@ void Gui::handleClick(int button, int x, int y) {
 	int slot = getSlotIdAt(x, y);
 	if (slot != -1)
 	{
-#ifndef PLATFORM_DESKTOP
-		if (slot == (getNumSlots()-1))
+		if (minecraft->touchUi() && slot == (getNumSlots()-1))
 		{
 			minecraft->screenChooser.setScreen(SCREEN_BLOCKSELECTION);
 		}
 		else
-#endif
 		{
 			minecraft->player->inventory->selectSlot(slot);
 			itemNameOverlayTime = 0;
@@ -440,7 +434,7 @@ void Gui::onConfigChanged( const Config& c ) {
 	}
 	rcFeedbackInner = t.end(true, rcFeedbackInner.vboId);
 
-	if (c.minecraft->useTouchscreen()) {
+	if (c.minecraft->touchUi()) {
 		// I'll bump this up to 6.
 		int num = 6; // without "..." dots
 		if (!c.minecraft->options.isJoyTouchArea && c.width > 480) {
@@ -500,9 +494,7 @@ void Gui::tickItemDrop()
 
 	int slots = getNumSlots();
 
-#ifndef PLATFORM_DESKTOP
-	slots--;
-#endif
+	if (minecraft->touchUi()) slots--; // "..." button
 
 	if (Mouse::isButtonDown(MouseAction::ACTION_LEFT)) {
 		int slot = getSlotIdAt(Mouse::getX(), Mouse::getY());
@@ -1057,9 +1049,7 @@ void Gui::renderToolBar( float a, int ySlot, const int screenWidth ) {
 
 	// TODO: if using touchscreen
 
-#ifndef PLATFORM_DESKTOP
-	slots--;
-#endif
+	if (minecraft->touchUi()) slots--; // "..." button
 
 	for (int i = 0; i < slots; i++) {
 		renderSlot(i, (int)x, ySlot, a);
@@ -1067,9 +1057,8 @@ void Gui::renderToolBar( float a, int ySlot, const int screenWidth ) {
 	}
 	_inventoryNeedsUpdate = false;
 
-#ifndef PLATFORM_DESKTOP
-	blit(screenWidth / 2 + 10 * getNumSlots() - 20 + 4, ySlot + 6, 242, 252, 14, 4, 14, 4);
-#endif
+	if (minecraft->touchUi())
+		blit(screenWidth / 2 + 10 * getNumSlots() - 20 + 4, ySlot + 6, 242, 252, 14, 4, 14, 4);
 
 	minecraft->textures->loadAndBindTexture("gui/gui_blocks.png");
 	t.endOverrideAndDraw();

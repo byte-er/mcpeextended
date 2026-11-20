@@ -4,6 +4,7 @@
 #include "../../Screen.h"
 #include "../../components/LargeImageButton.h"
 #include "../../components/TextBox.h"
+#include "../../components/Button.h"
 
 class BuyButton: public ImageButton {
 	typedef ImageButton super;
@@ -14,6 +15,22 @@ public:
 
 
 namespace Touch {
+
+/** 0.9.0's flat button (spritesheet.png nine-patch), used by the title screen. */
+class FlatButton: public Button {
+	typedef Button super;
+public:
+	FlatButton(int id, const std::string& msg);
+protected:
+	void renderBg(Minecraft* minecraft, int xm, int ym);
+};
+
+class ToolsButton: public FlatButton {
+	typedef FlatButton super;
+public:
+	ToolsButton(int id);
+	void render(Minecraft* minecraft, int xm, int ym);
+};
 
 class StartMenuScreen: public Screen
 {
@@ -35,16 +52,14 @@ public:
 private:
 	void _updateLicense();
 	
-	LargeImageButton bHost;
-	LargeImageButton bJoin;
-	LargeImageButton bOptions;
+	FlatButton bHost;
+	ToolsButton bOptions;
 	BuyButton bBuy;
 
 	std::string copyright;
-	int copyrightPosX;
-
 	std::string version;
-	int versionPosX;
+	std::string splash;
+	float logoX, logoY, logoW, logoH;
 };
 };
 

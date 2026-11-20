@@ -1,4 +1,5 @@
 #include "TouchSelectWorldScreen.h"
+#include "../../Font.h"
 #include "../StartMenuScreen.h"
 #include "../ProgressScreen.h"
 #include "../DialogDefinitions.h"
@@ -280,6 +281,7 @@ SelectWorldScreen::SelectWorldScreen()
 :	bDelete (1, ""),
 	bCreate (2, "Create new"),
 	bBack   (3, "Back"),
+	bJoin   (5, "Join Game"),
 	bHeader (0, "Select world"),
 	bWorldView(4, ""),
 	worldsList(NULL),
@@ -319,6 +321,7 @@ void SelectWorldScreen::init()
 	buttons.push_back(&bDelete);
 	buttons.push_back(&bCreate);
 	buttons.push_back(&bBack);
+	buttons.push_back(&bJoin);
 	buttons.push_back(&bHeader);
 
 	_mouseHasBeenUp = !Mouse::getButtonState(MouseAction::ACTION_LEFT);
@@ -327,6 +330,7 @@ void SelectWorldScreen::init()
 	tabButtons.push_back(&bDelete);
 	tabButtons.push_back(&bCreate);
 	tabButtons.push_back(&bBack);
+	tabButtons.push_back(&bJoin);
 }
 
 void SelectWorldScreen::setupPositions() {
@@ -340,8 +344,12 @@ void SelectWorldScreen::setupPositions() {
 	bDelete.x   = (width - bDelete.width) / 2;
 	bCreate.x   = width - bCreate.width;//width / 2					- bCreate.w / 2;
 	bBack.x     = 0;//width / 2 + 4 + bCreate.w - bBack.w / 2;
-	bHeader.x   = bBack.width;
-	bHeader.width   = width - (bBack.width + bCreate.width);
+	bJoin.y = 0;
+	bJoin.width = minecraft->font->width(bJoin.msg) + 14;
+	if (bJoin.width < 66) bJoin.width = 66;
+	bJoin.x = bBack.width;
+	bHeader.x   = bBack.width + bJoin.width;
+	bHeader.width   = width - (bBack.width + bJoin.width + bCreate.width);
 	bHeader.height   = bCreate.height;
 }
 
@@ -363,6 +371,10 @@ void SelectWorldScreen::buttonClicked(Button* button)
 	if (button->id == bBack.id) {
 		minecraft->cancelLocateMultiplayer();
 		minecraft->screenChooser.setScreen(SCREEN_STARTMENU);
+	}
+	if (button->id == bJoin.id) {
+		minecraft->locateMultiplayer();
+		minecraft->screenChooser.setScreen(SCREEN_JOINGAME);
 	}
 	if (button->id == bWorldView.id) {
 		// Try to "click" the item in the middle

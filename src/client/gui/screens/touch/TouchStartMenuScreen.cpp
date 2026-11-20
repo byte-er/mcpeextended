@@ -21,6 +21,12 @@
 
 #include "../DialogDefinitions.h"
 #include "../SimpleChooseLevelScreen.h"
+#include "../Splashes.h"
+#include "../../../renderer/gles.h"
+#include "../../../../platform/time.h"
+#include <cmath>
+#include <cstdlib>
+#include <ctime>
 
 //
 // Buy Button implementation
@@ -80,32 +86,69 @@ void BuyButton::render(Minecraft* minecraft, int xm, int ym) {
 
 namespace Touch {
 
-// 
-// Start menu screen implementation
-//
+FlatButton::FlatButton(int id, const std::string& msg)
+:	super(id, msg)
+{
+	width = 66;
+	height = 26;
+}
 
-// Some kind of default settings, might be overridden in ::init
+void FlatButton::renderBg(Minecraft* minecraft, int xm, int ym) {
+	const bool down = active && _currentlyDown && xm >= x && ym >= y && xm < x + width && ym < y + height;
+	minecraft->textures->loadAndBindTexture("gui/spritesheet.png");
+	if (!active) glColor4f2(0.5f, 0.5f, 0.5f, 1);
+	else if (down) glColor4f2(0.75f, 0.75f, 0.75f, 1);
+	else glColor4f2(1, 1, 1, 1);
+	// the 16x16 sprite has a 1px outline and a 2px bevel; scale the border with the button
+	const int b = 4;
+	blitNineSlice((float)x, (float)y, (float)width, (float)height, 0, 0, 16, 16, b, 128);
+	glColor4f2(1, 1, 1, 1);
+}
+
+//
+// Square button with the 0.9.0 tools (wrench + hammer) icon
+//
+ToolsButton::ToolsButton(int id)
+:	super(id, "")
+{
+	width = height = 46;
+}
+
+void ToolsButton::render(Minecraft* minecraft, int xm, int ym) {
+	if (!visible) return;
+	renderBg(minecraft, xm, ym);
+	if (active && _currentlyDown && xm >= x && ym >= y && xm < x + width && ym < y + height) glColor4f2(0.75f, 0.75f, 0.75f, 1);
+	minecraft->textures->loadAndBindTexture("gui/touchgui.png");
+	const float s = height * 0.66f;
+	blit(x + (width - s) * 0.5f, y + (height - s) * 0.5f, 219, 0, s, s, 20, 20);
+	glColor4f2(1, 1, 1, 1);
+}
+
+static std::string pickSplash() {
+	time_t now = time(NULL);
+	struct tm* lt = localtime(&now);
+	if (lt) {
+		if (lt->tm_mon == 11 && lt->tm_mday == 24) return "Merry X-mas!";
+		if (lt->tm_mon == 0 && lt->tm_mday == 1) return "Happy new year!";
+		if (lt->tm_mon == 9 && lt->tm_mday == 31) return "OOoooOOOoooo! Spooky!";
+	}
+	static bool seeded = false;
+	if (!seeded) { srand((unsigned int)now ^ 0x5eed); seeded = true; }
+	return SPLASHES[rand() % SPLASH_COUNT];
+}
+
+//
+// Start menu screen, as in Pocket Edition 0.9.0: the logo with a splash,
+// one wide Play button, and the tools button in the bottom right corner.
+// (Join Game lives on the world list, like 0.9.0's LAN games.)
+//
 StartMenuScreen::StartMenuScreen()
 :	bHost(    2, "Play"),
-	bJoin(    3, "Join Game"),
-	bOptions( 4, "Options"),
-	bBuy(     5)
+	bOptions( 4),
+	bBuy(     5),
+	logoX(0), logoY(0), logoW(0), logoH(0)
 {
-	ImageDef def;
-	bJoin.width = 75;
-	def.width = def.height = (float) bJoin.width;
-
-	def.setSrc(IntRectangle(0, 26, (int)def.width, (int)def.width));
-	def.name = "gui/touchgui.png";
-	IntRectangle& defSrc = *def.getSrc();
-
-	bOptions.setImageDef(def, true);
-
-	defSrc.y += defSrc.h;
-	bHost.setImageDef(def, true);
-
-	defSrc.y += defSrc.h;
-	bJoin.setImageDef(def, true);
+	splash = pickSplash();
 }
 
 StartMenuScreen::~StartMenuScreen()
@@ -115,13 +158,9 @@ StartMenuScreen::~StartMenuScreen()
 void StartMenuScreen::init()
 {
 	buttons.push_back(&bHost);
-	buttons.push_back(&bJoin);
 	buttons.push_back(&bOptions);
-    
-
 
 	tabButtons.push_back(&bHost);
-	tabButtons.push_back(&bJoin);
 	tabButtons.push_back(&bOptions);
 
 	#ifdef DEMO_MODE
@@ -129,51 +168,36 @@ void StartMenuScreen::init()
 		tabButtons.push_back(&bBuy);
 	#endif
 
-	copyright = "\xffMojang AB";//. Do not distribute!";
-
-	// always show base version string
-	std::string versionString = Common::getGameVersionString();
-
+	copyright = "\xffMojang AB";
+	version = "v0.9.0 alpha";
 	#ifdef DEMO_MODE
-        #ifdef __APPLE__
-            version = versionString + " (Lite)";
-        #else
-            version = versionString + " (Demo)";
-        #endif
-	#else
-		version = versionString;
+		version += " (Demo)";
 	#endif
-    
-    #ifdef APPLE_DEMO_PROMOTION
-        version = versionString + " (Demo)";
-    #endif
 
-	bJoin.active = bHost.active = bOptions.active = false;
+	bHost.active = bOptions.active = false;
 }
 
 void StartMenuScreen::setupPositions() {
-	int yBase = 2 + height / 3;
-	int buttonWidth = bHost.width;
-	float spacing = (width - (3.0f * buttonWidth)) / 4;
+	// proportions measured from a 960x540 screenshot of 0.9.0
+	logoW = width * 0.521f;
+	logoH = logoW * 64.0f / 274.0f;
+	logoX = (width - logoW) * 0.5f;
+	logoY = height * 0.065f;
 
-	//#ifdef ANDROID
-	bHost.y =	 yBase;
-	bJoin.y =	 yBase;
-	bOptions.y = yBase;
-	//#endif
+	bHost.width  = (int)(width * 0.31f);
+	bHost.height = (int)(height * 0.163f);
+	if (bHost.height < 24) bHost.height = 24;
+	bHost.x = (width - bHost.width) / 2;
+	bHost.y = (int)(height * 0.552f);
 
-	// Center buttons
-	bJoin.x		= 0*buttonWidth + (int)(1*spacing);
-	bHost.x		= 1*buttonWidth + (int)(2*spacing);
-	bOptions.x	= 2*buttonWidth + (int)(3*spacing);
-	//bBuy.y = bOptions.y - bBuy.h - 6;
-	//bBuy.x = bOptions.x + bOptions.w - bBuy.w;
+	int s = (int)(height * 0.171f);
+	if (s < 26) s = 26;
+	bOptions.width = bOptions.height = s;
+	bOptions.x = width - s - (int)(width * 0.0083f + 1);
+	bOptions.y = height - s - (int)(height * 0.0185f + 1);
 
 	bBuy.y = height - bBuy.height - 3;
 	bBuy.x = (width - bBuy.width) / 2;
-    
-	copyrightPosX = width - minecraft->font->width(copyright) - 1;
-	versionPosX = (width - minecraft->font->width(version)) / 2;// - minecraft->font->width(version) - 2;
 }
 
 void StartMenuScreen::tick() {
@@ -190,15 +214,6 @@ void StartMenuScreen::buttonClicked(::Button* button) {
 			minecraft->screenChooser.setScreen(SCREEN_SELECTWORLD);
 		#endif
 	}
-	if (button->id == bJoin.id)
-	{
-        #ifdef APPLE_DEMO_PROMOTION
-            minecraft->platform()->createUserInput(DialogDefinitions::DIALOG_DEMO_FEATURE_DISABLED);
-        #else
-            minecraft->locateMultiplayer();
-            minecraft->screenChooser.setScreen(SCREEN_JOINGAME);
-        #endif
-	}
 	if (button->id == bOptions.id)
 	{
 		minecraft->setScreen(new OptionsScreen());
@@ -206,7 +221,6 @@ void StartMenuScreen::buttonClicked(::Button* button) {
 	if (button->id == bBuy.id)
 	{
 		minecraft->platform()->buyGame();
-		//minecraft->setScreen(new BuyGameScreen());
 	}
 }
 
@@ -215,45 +229,49 @@ bool StartMenuScreen::isInGameScreen() { return false; }
 void StartMenuScreen::render( int xm, int ym, float a )
 {
 	renderBackground();
-    
-    glEnable2(GL_BLEND);
+
+	glEnable2(GL_BLEND);
+	glBlendFunc2(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
 #if defined(RPI)
 	TextureId id = minecraft->textures->loadTexture("gui/pi_title.png");
 #else
 	TextureId id = minecraft->textures->loadTexture("gui/title.png");
 #endif
-	const TextureData* data = minecraft->textures->getTemporaryTextureData(id);
-
-	if (data) {
+	if (minecraft->textures->getTemporaryTextureData(id)) {
 		minecraft->textures->bind(id);
-
-		const float x = (float)width / 2;
-		const float y = 4;
-		const float wh = 0.5f * Mth::Min((float)width/2.0f, (float)data->w / 2);
-		const float scale = 2.0f * wh / (float)data->w;
-		const float h = scale * (float)data->h;
-
-		// Render title text
 		Tesselator& t = Tesselator::instance;
 		glColor4f2(1, 1, 1, 1);
 		t.begin();
-			t.vertexUV(x-wh, y+h, blitOffset, 0, 1);
-			t.vertexUV(x+wh, y+h, blitOffset, 1, 1);
-			t.vertexUV(x+wh, y+0, blitOffset, 1, 0);
-			t.vertexUV(x-wh, y+0, blitOffset, 0, 0);
+			t.vertexUV(logoX,         logoY + logoH, blitOffset, 0, 1);
+			t.vertexUV(logoX + logoW, logoY + logoH, blitOffset, 1, 1);
+			t.vertexUV(logoX + logoW, logoY,         blitOffset, 1, 0);
+			t.vertexUV(logoX,         logoY,         blitOffset, 0, 0);
 		t.draw();
-
-		drawString(font, version, versionPosX, (int)(y+h)+2, /*50,*/ 0xffcccccc);//0x666666);
-		drawString(font, copyright, copyrightPosX, height - 10, 0xffffff);
-		glColor4f2(1, 1, 1, 1);
-		if (Textures::isTextureIdValid(minecraft->textures->loadAndBindTexture("gui/logo/github.png")))
-			blit(2, height - 10, 0, 0, 8, 8, 256, 256);
-		drawString(font, "Kolyah35/minecraft-pe-0.6.1", 12, height - 10, 0xffcccccc);
-		//patch->draw(t, 0, 20);
 	}
+
+	// splash: yellow, tilted, gently pulsing (as in Java / PE)
+	{
+		glPushMatrix2();
+		glTranslatef2(width * 0.715f, logoY + logoH * 0.85f, 0);
+		glRotatef2(-20.0f, 0, 0, 1);
+		const float ms = (float)(getTimeMs() % 1000) / 1000.0f;
+		float sc = 1.8f - std::fabs(std::sin(ms * 6.2831855f)) * 0.1f;
+		sc = sc * 100.0f / (float)(font->width(splash) + 32);
+		sc *= 1.5f;           // PE's font is wider than Java's: match 0.9.0's splash size
+		if (sc > 1.8f) sc = 1.8f;
+		sc *= logoW / 250.0f; // keep it in proportion with the logo
+		glScalef2(sc, sc, sc);
+		drawCenteredString(font, splash, 0, -8, 0xffffff00);
+		glPopMatrix2();
+	}
+
+	drawString(font, version,   2, (int)(height * 0.889f), 0xffffffff);
+	drawString(font, copyright, 2, (int)(height * 0.939f), 0xffffffff);
+
+	glColor4f2(1, 1, 1, 1);
 	Screen::render(xm, ym, a);
-    glDisable2(GL_BLEND);
+	glDisable2(GL_BLEND);
 }
 
 void StartMenuScreen::_updateLicense()
@@ -262,26 +280,19 @@ void StartMenuScreen::_updateLicense()
 	if (LicenseCodes::isReady(id))
 	{
 		if (LicenseCodes::isOk(id))
-			bJoin.active = bHost.active = bOptions.active = true;
+			bHost.active = bOptions.active = true;
 		else
 		{
 			bool hasBuyButton = minecraft->platform()->hasBuyButtonWhenInvalidLicense();
 			minecraft->setScreen(new InvalidLicenseScreen(id, hasBuyButton));
 		}
 	} else {
-		bJoin.active = bHost.active = bOptions.active = false;
+		bHost.active = bOptions.active = false;
 	}
 }
 
 void StartMenuScreen::mouseClicked(int x, int y, int buttonNum) {
-	const int logoX = 2;
-	const int logoW = 8 + 2 + font->width("Kolyah35/minecraft-pe-0.6.1");
-	const int logoY = height - 10;
-	const int logoH = 10;
-	if (x >= logoX && x <= logoX + logoW && y >= logoY && y <= logoY + logoH)
-		minecraft->platform()->openURL("https://gitea.sffempire.ru/Kolyah35/minecraft-pe-0.6.1");
-	else
-		Screen::mouseClicked(x, y, buttonNum);
+	Screen::mouseClicked(x, y, buttonNum);
 }
 
 bool StartMenuScreen::handleBackEvent( bool isDown ) {
@@ -290,4 +301,3 @@ bool StartMenuScreen::handleBackEvent( bool isDown ) {
 }
 
 } // namespace Touch
-

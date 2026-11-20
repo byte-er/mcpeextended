@@ -106,6 +106,7 @@ private:
 	TButton bCreate;
 	THeader bHeader;
 	TButton bBack;
+	TButton bJoin;   // 0.9.0 has no Join Game on the title: it lives here
 	Button bWorldView;
 	TouchWorldSelectionList* worldsList;
 	LevelSummaryList levels;
