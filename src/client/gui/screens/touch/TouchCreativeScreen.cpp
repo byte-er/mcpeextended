@@ -170,10 +170,12 @@ void CreativeScreen::setupPositions()
 	contentW = right - unit * 0.12f - contentX;
 	contentH = panelY + panelH - unit * 0.12f - contentY;
 
+	// 8 columns (0.9.0); on wide screens cells are capped so about four rows
+	// show, and the extra width becomes extra columns
 	columns = 8;
 	pitch = contentW / 8.31f;
-	if (pitch > contentH / 3.0f) {              // short screens: smaller cells, more columns
-		pitch = contentH / 3.0f;
+	if (pitch > contentH / 4.2f) {
+		pitch = contentH / 4.2f;
 		columns = (int)((contentW - pitch * 0.31f) / pitch);
 		if (columns < 1) columns = 1;
 	}
@@ -298,7 +300,13 @@ void CreativeScreen::renderItem(const ItemInstance* item, float cx, float cy, fl
 {
 	if (!item || item->isNull()) return;
 	ItemInstance copy(*item);
-	ItemRenderer::renderGuiItem(minecraft->font, minecraft->textures, &copy, cx - size * 0.5f, cy - size * 0.5f, size, size, true);
+	// scale with the matrix: blocks without a pre-rendered icon only draw at 16x16
+	glPushMatrix2();
+	glTranslatef2(cx - size * 0.5f, cy - size * 0.5f, 0);
+	const float k = size / 16.0f;
+	glScalef2(k, k, 1);
+	ItemRenderer::renderGuiItem(minecraft->font, minecraft->textures, &copy, 0, 0, 16, 16, true);
+	glPopMatrix2();
 }
 
 void CreativeScreen::renderTab(int t, bool selected)

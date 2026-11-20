@@ -126,8 +126,9 @@ void TouchscreenInput_TestFps::onConfigChanged(const Config& c) {
 	*/
 
 	// Code for "D-pad with jump in center"
-	float Bw = w * 0.11f;//0.08f;
-	float Bh = Bw;//0.15f;
+	// 0.9.0 proportions; wide phones (2:1 and more) would get a huge pad from the width alone
+	float Bw = Mth::Min(w * 0.11f, h * 0.12f);
+	float Bh = Bw;
     
     // If too large (like playing on Tablet)
     PixelCalc& pc = _minecraft->pixelCalc;

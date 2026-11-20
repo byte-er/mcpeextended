@@ -1,3 +1,4 @@
+#include "../../../world/level/tile/TallGrass.h"
 #include "ItemRenderer.h"
 #include "EntityRenderDispatcher.h"
 #include "../Tesselator.h"
@@ -314,7 +315,14 @@ void ItemRenderer::renderGuiItemCorrect(Font* font, Textures* textures, const It
 		}
 		//Tesselator& t = Tesselator::instance;
 		//t.scale2d(Gui::InvGuiScale, Gui::InvGuiScale);
+		// tall grass / fern icons are grey in terrain.png: tint them like 0.9.0
+		const bool tint = Tile::tallgrass && item->id == Tile::tallgrass->id;
+		if (tint) {
+			const int c = ((TallGrass*)Tile::tallgrass)->getColor(item->getAuxValue());
+			glColor4f2(((c >> 16) & 255) / 255.0f, ((c >> 8) & 255) / 255.0f, (c & 255) / 255.0f, 1);
+		}
 		blit((float)x, (float)y, (float)(item->getIcon() % 16 * 16), (float)(item->getIcon() / 16 * 16), 16, 16);
+		if (tint) glColor4f2(1, 1, 1, 1);
 		//t.resetScale();
 	}
 	//glEnable(GL_CULL_FACE);

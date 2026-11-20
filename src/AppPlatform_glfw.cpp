@@ -1,4 +1,8 @@
 #include "AppPlatform_glfw.h"
+#ifdef __EMSCRIPTEN__
+#include <emscripten/html5.h>
+bool webIsTouchDevice(); // platform/WebGLBind.cpp
+#endif
 
 #ifdef WIN32
 #include <windows.h>
@@ -70,6 +74,12 @@ void glPatchDesktopCompat() {
 }
 
 float AppPlatform_glfw::getPixelsPerMillimeter() {
+#ifdef __EMSCRIPTEN__
+    // browsers don't report the screen's physical size: a CSS pixel is ~1/160 inch
+    // on phones and tablets and ~1/96 inch on computers
+    const double dpr = emscripten_get_device_pixel_ratio();
+    return (float)(dpr * (webIsTouchDevice() ? 160.0 : 96.0) / 25.4);
+#endif
     GLFWmonitor* monitor = glfwGetPrimaryMonitor();
 
     int width_mm, height_mm;
