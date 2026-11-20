@@ -167,6 +167,8 @@ public:
 	NetEventCallback* netCallback;
 	/** Connection to an Eaglercraft 1.8 server, when playing on one. */
 	EaglerClient* eagler;
+	/** C held: zoom in (desktop / PC browser). */
+	bool zoomHeld;
 	/** Starts connecting; the screen shows progress and errors. */
 	void joinEaglerServer(const std::string& address);
 	/** Local crafting would desync on a server (it owns the inventory); explains and returns false there. */

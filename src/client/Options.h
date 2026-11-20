@@ -151,6 +151,7 @@ public:
     int difficulty;
     bool hideGui;
     bool thirdPersonView;
+    bool frontView;     // third person, camera in front (F5 second press)
     bool renderDebug;
 
     bool isFlying;

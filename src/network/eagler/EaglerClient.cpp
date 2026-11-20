@@ -151,6 +151,8 @@ EaglerClient::EaglerClient(Minecraft* mc, const std::string& address_, const std
 	playerEid(0),
 	gameMode(0),
 	positionKnown(false),
+	released(false),
+	held(false),
 	holdX(0), holdY(0), holdZ(0),
 	lastX(0), lastY(0), lastZ(0),
 	lastYaw(0), lastPitch(0),
@@ -253,11 +255,22 @@ void EaglerClient::tick()
 	if (state == PLAY && levelReady && mc->player) {
 		recentreIfNeeded();
 		LocalPlayer* pl = mc->player;
-		// hold the player in place until the server placed us and the ground exists
-		bool ready = positionKnown && localChunkReady(Mth::floor(pl->x) >> 4, Mth::floor(pl->z) >> 4);
-		if (!ready && positionKnown) {
-			pl->moveTo((float)(holdX - offX), (float)holdY, (float)(holdZ - offZ), pl->yRot, pl->xRot);
+		const bool chunkHere = localChunkReady(Mth::floor(pl->x) >> 4, Mth::floor(pl->z) >> 4);
+		held = false;
+		if (positionKnown && !released) {
+			// after a server teleport: wait at that spot until its terrain arrived
+			if (chunkHere) released = true;
+			else {
+				pl->moveTo((float)(holdX - offX), (float)holdY, (float)(holdZ - offZ), pl->yRot, pl->xRot);
+				pl->xd = pl->yd = pl->zd = 0;
+				held = true;
+			}
+		} else if (released && !chunkHere) {
+			// walked to the edge of the loaded terrain: stop there instead of
+			// falling into the not-yet-received chunk
+			pl->setPos(pl->xo, pl->yo, pl->zo);
 			pl->xd = pl->yd = pl->zd = 0;
+			held = true;
 		}
 		if (positionKnown) sendMovement();
 		syncHeldItem();
@@ -412,10 +425,10 @@ void EaglerClient::handlePlay(const std::vector<unsigned char>& msg)
 	case 0x09: { int s = in.i8(); if (mc->player && s >= 0 && s < 9) { mc->player->inventory->selectSlot(s); lastSelected = s; } break; }
 	case 0x0B: { // animation
 		int eid = in.varint(); int anim = in.u8();
-		std::map<int, TrackedEntity>::iterator it = entities.find(eid);
-		if (it != entities.end() && it->second.e && it->second.e->isMob()) {
-			if (anim == 0) ((Mob*)it->second.e)->swing();
-			else if (anim == 1) it->second.e->handleEntityEvent(2);
+		Entity* e = live(eid);
+		if (e && e->isMob()) {
+			if (anim == 0) ((Mob*)e)->swing();
+			else if (anim == 1) e->handleEntityEvent(2);
 		}
 		break;
 	}
@@ -431,8 +444,7 @@ void EaglerClient::handlePlay(const std::vector<unsigned char>& msg)
 	case 0x18: onEntityTeleport(in); break;
 	case 0x1A: { // entity status
 		int eid = in.i32(); int st = in.i8();
-		std::map<int, TrackedEntity>::iterator it = entities.find(eid);
-		if (it != entities.end() && it->second.e) it->second.e->handleEntityEvent((char)st);
+		if (Entity* e = live(eid)) e->handleEntityEvent((char)st);
 		break;
 	}
 	case 0x1C: onMetadata(in); break;
@@ -698,6 +710,7 @@ void EaglerClient::onPositionLook(PacketIn& in)
 	}
 	holdX = x; holdY = y; holdZ = z;
 	positionKnown = true;
+	released = false;
 	if (pl) {
 		pl->moveTo((float)(x - offX), (float)y, (float)(z - offZ), yaw, pitch);
 		pl->xd = pl->yd = pl->zd = 0;
@@ -719,14 +732,16 @@ void EaglerClient::sendMovement()
 	float yaw = pl->yRot, pitch = pl->xRot;
 	bool moved = fabs(x - lastX) > 0.03 || fabs(y - lastY) > 0.03 || fabs(z - lastZ) > 0.03 || ++ticksSinceMove >= 20;
 	bool rotated = yaw != lastYaw || pitch != lastPitch;
+	// held while terrain loads: claim ground so anti-fly checks don't kick us
+	const bool onGround = held ? true : pl->onGround;
 	if (moved && rotated) {
-		PacketOut o(0x06); o.f64(x); o.f64(y); o.f64(z); o.f32(yaw); o.f32(pitch); o.boolean(pl->onGround); send(o);
+		PacketOut o(0x06); o.f64(x); o.f64(y); o.f64(z); o.f32(yaw); o.f32(pitch); o.boolean(onGround); send(o);
 	} else if (moved) {
-		PacketOut o(0x04); o.f64(x); o.f64(y); o.f64(z); o.boolean(pl->onGround); send(o);
+		PacketOut o(0x04); o.f64(x); o.f64(y); o.f64(z); o.boolean(onGround); send(o);
 	} else if (rotated) {
-		PacketOut o(0x05); o.f32(yaw); o.f32(pitch); o.boolean(pl->onGround); send(o);
+		PacketOut o(0x05); o.f32(yaw); o.f32(pitch); o.boolean(onGround); send(o);
 	} else {
-		PacketOut o(0x03); o.boolean(pl->onGround); send(o);
+		PacketOut o(0x03); o.boolean(onGround); send(o);
 	}
 	if (moved) { lastX = x; lastY = y; lastZ = z; ticksSinceMove = 0; }
 	if (rotated) { lastYaw = yaw; lastPitch = pitch; }
@@ -1099,17 +1114,18 @@ void EaglerClient::skipMetadata(PacketIn& in)
 
 void EaglerClient::placeEntity(TrackedEntity& t, bool snap)
 {
-	if (!t.e) return;
+	Entity* e = live(t.id);
+	if (!e) return;
 	float x = t.fx / 32.0f - offX, y = t.fy / 32.0f, z = t.fz / 32.0f - offZ;
-	if (snap) t.e->moveTo(x, y, z, t.yaw, t.pitch);
-	else t.e->lerpTo(x, y, z, t.yaw, t.pitch, 3);
+	if (snap) e->moveTo(x, y, z, t.yaw, t.pitch);
+	else e->lerpTo(x, y, z, t.yaw, t.pitch, 3);
 }
 
 void EaglerClient::removeTracked(int id)
 {
 	std::map<int, TrackedEntity>::iterator it = entities.find(id);
 	if (it == entities.end()) return;
-	Entity* e = it->second.e;
+	Entity* e = live(id);
 	entities.erase(it);
 	if (e && level) {
 		if (e->isPlayer()) ((Player*)e)->reallyRemoveIfPlayer = true;
@@ -1138,9 +1154,9 @@ void EaglerClient::onSpawnPlayer(PacketIn& in)
 		p->inventory->replaceSlot(Inventory::MAX_SELECTION_SIZE, &held);
 		p->inventory->moveToSelectedSlot(Inventory::MAX_SELECTION_SIZE, true);
 	}
-	t.e = p;
+	t.id = eid;
 	t.isPlayer = true;
-	placeEntity(t, true);
+	p->moveTo(t.fx / 32.0f - offX, t.fy / 32.0f, t.fz / 32.0f - offZ, t.yaw, t.pitch);
 	level->putEntity(eid, p);
 	entities[eid] = t;
 
@@ -1218,8 +1234,8 @@ void EaglerClient::onSpawnMob(PacketIn& in)
 	removeTracked(eid);
 	Mob* mob = MobFactory::CreateMob(pe, level);
 	if (!mob) return;
-	t.e = mob;
-	placeEntity(t, true);
+	t.id = eid;
+	mob->moveTo(t.fx / 32.0f - offX, t.fy / 32.0f, t.fz / 32.0f - offZ, t.yaw, t.pitch);
 	level->putEntity(eid, mob);
 	entities[eid] = t;
 }
@@ -1235,6 +1251,7 @@ void EaglerClient::onSpawnObject(PacketIn& in)
 	if (data != 0) { in.i16(); in.i16(); in.i16(); }
 	if (type != 2) return; // only dropped items; the item arrives with the metadata
 	t.pendingItemType = 2;
+	t.id = eid;
 	entities[eid] = t;
 }
 
@@ -1255,7 +1272,7 @@ void EaglerClient::onMetadata(PacketIn& in)
 				t.pendingItemType = 0;
 				ItemEntity* ie = new ItemEntity(level, t.fx / 32.0f - offX, t.fy / 32.0f, t.fz / 32.0f - offZ, item);
 				ie->xd = ie->yd = ie->zd = 0;
-				t.e = ie;
+				t.id = eid;
 				level->putEntity(eid, ie);
 				return;
 			}
@@ -1308,7 +1325,7 @@ void EaglerClient::onVelocity(PacketIn& in)
 	float vx = in.i16() / 8000.0f, vy = in.i16() / 8000.0f, vz = in.i16() / 8000.0f;
 	if (eid == playerEid && mc->player) { mc->player->xd = vx; mc->player->yd = vy; mc->player->zd = vz; return; }
 	std::map<int, TrackedEntity>::iterator it = entities.find(eid);
-	if (it != entities.end() && it->second.e) it->second.e->lerpMotion(vx, vy, vz);
+	if (it != entities.end()) if (Entity* e = live(eid)) e->lerpMotion(vx, vy, vz);
 }
 
 void EaglerClient::onEquipment(PacketIn& in)
@@ -1319,8 +1336,9 @@ void EaglerClient::onEquipment(PacketIn& in)
 	bool has = readSlot(in, item);
 	if (slot != 0) return;
 	std::map<int, TrackedEntity>::iterator it = entities.find(eid);
-	if (it == entities.end() || !it->second.isPlayer || !it->second.e) return;
-	Player* p = (Player*)it->second.e;
+	Entity* pe = it != entities.end() && it->second.isPlayer ? live(eid) : 0;
+	if (!pe) return;
+	Player* p = (Player*)pe;
 	if (has) p->inventory->replaceSlot(Inventory::MAX_SELECTION_SIZE, &item);
 	else p->inventory->clearSlot(Inventory::MAX_SELECTION_SIZE);
 	p->inventory->moveToSelectedSlot(Inventory::MAX_SELECTION_SIZE, true);
@@ -1441,4 +1459,11 @@ bool EaglerClient::isTerrainReady() const
 	for (int dz = -1; dz <= 1; ++dz)
 		if (!localChunkReady(cx + dx, cz + dz)) return false;
 	return true;
+}
+
+Entity* EaglerClient::live(int id)
+{
+	if (!level) return 0;
+	Entity* e = level->getEntity(id);
+	return (e && !e->removed) ? e : 0;
 }

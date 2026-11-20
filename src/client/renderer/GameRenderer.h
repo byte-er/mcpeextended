@@ -16,6 +16,7 @@ class LevelRenderer;
 class GameRenderer
 {
 public:
+	float zoomAmount; // 0..1, C zoom
 	GameRenderer(Minecraft* mc_);
 	~GameRenderer();
 

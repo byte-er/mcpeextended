@@ -8,7 +8,7 @@ class ConsoleScreen: public Screen
 {
     typedef Screen super;
 public:
-    ConsoleScreen();
+    ConsoleScreen(const std::string& initial = "");
     virtual ~ConsoleScreen() {}
 
     void init();

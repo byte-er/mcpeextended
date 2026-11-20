@@ -276,7 +276,7 @@ public:
 protected:
 	void setZombieAi(std::vector<Zombie*>& zombies);
 	/*virtual*/ void entityAdded(Entity* e);
-	/*virtual*/ void entityRemoved(Entity* e);
+	virtual void entityRemoved(Entity* e);
 	/*virtual*/ void tileUpdated(int x, int y, int z, int tile);
 	void updateSkyDarken();
 

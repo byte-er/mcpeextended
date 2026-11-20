@@ -19,8 +19,8 @@
 #include <cstdlib>
 #include <cctype>
 
-ConsoleScreen::ConsoleScreen()
-:   _input(""),
+ConsoleScreen::ConsoleScreen(const std::string& initial)
+:   _input(initial),
     _cursorBlink(0)
 {
 }

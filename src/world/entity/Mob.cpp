@@ -1063,6 +1063,7 @@ void Mob::checkDespawn() {
 }
 
 void Mob::checkDespawn(Mob* nearestBlocking) {
+	if (level->isClientSide) return; // the server decides when mobs go away
 	if (nearestBlocking != NULL) {
 		const bool removeIfFar = removeWhenFarAway();
 		float xd = nearestBlocking->x - x;

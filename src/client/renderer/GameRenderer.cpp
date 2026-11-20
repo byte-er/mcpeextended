@@ -33,6 +33,7 @@ static int _shTicks = -1;
 
 GameRenderer::GameRenderer( Minecraft* mc )
 :	mc(mc),
+	zoomAmount(0),
 	renderDistance(0),
 	useLod(false),
 	viewFar(0),
@@ -130,12 +131,18 @@ extern int _t_keepPic;
 /*public*/
 void GameRenderer::render(float a) {
 	TIMER_PUSH("mouse");
+	{
+		// ease the C zoom in/out (the mouse is slowed down while zoomed, below)
+		const float zoomTarget = mc->zoomHeld ? 1.0f : 0.0f;
+		zoomAmount += (zoomTarget - zoomAmount) * 0.35f;
+		if (fabsf(zoomTarget - zoomAmount) < 0.01f) zoomAmount = zoomTarget;
+	}
 	if (mc->player && mc->mouseGrabbed) {
         mc->mouseHandler.poll();
         //printf("Controller.x,y : %f,%f\n", Controller::getX(0), Controller::getY(0));
 
         float ss = mc->options.sensitivity * 0.6f + 0.2f;
-        float sens = (ss * ss * ss) * 8;
+        float sens = (ss * ss * ss) * 8 * (1.0f - 0.7f * zoomAmount);
         float xo = mc->mouseHandler.xd * sens * 4.f;
         float yo = mc->mouseHandler.yd * sens * 4.f;
 
@@ -427,6 +434,7 @@ float GameRenderer::getFov(float a, bool applyEffects) {
 		fov *= this->oFov + (this->fov - this->oFov) * a;
 
     if (player->isUnderLiquid(Material::water)) fov = 60;
+    fov /= 1.0f + 3.0f * zoomAmount; // C zoom: up to 4x
     if (player->health <= 0) {
         float duration = player->deathTime + a;
 
@@ -477,7 +485,9 @@ void GameRenderer::moveCameraToPlayer(float a) {
             glRotatef2(rotationY, 0, 1, 0);
         } else {
             float yRot = player->yRot;
-            float xRot = player->xRot/* + 180.0f*/;
+            float xRot = player->xRot;
+            const bool front = mc->options.frontView;
+            if (front) xRot += 180.0f; // look back at the player (Java F5)
             float xd = -Mth::sin(yRot / 180 * Mth::PI) * Mth::cos(xRot / 180 * Mth::PI) * cameraDist;
             float zd = Mth::cos(yRot / 180 * Mth::PI) * Mth::cos(xRot / 180 * Mth::PI) * cameraDist;
             float yd = -Mth::sin(xRot / 180 * Mth::PI) * cameraDist;
@@ -498,7 +508,7 @@ void GameRenderer::moveCameraToPlayer(float a) {
                 }
             }
 
-			//glRotatef2(180, 0, 1, 0);
+			if (front) glRotatef2(180, 0, 1, 0);
 
 			glRotatef2(player->xRot - xRot, 1, 0, 0);
             glRotatef2(player->yRot - yRot, 0, 1, 0);

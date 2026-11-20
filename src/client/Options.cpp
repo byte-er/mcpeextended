@@ -12,6 +12,7 @@ void Options::initDefaultValues() {
 	difficulty = Difficulty::NORMAL;
 	hideGui = false;
 	thirdPersonView = false;
+    frontView = false;
 	renderDebug = false;
 	isFlying = false;
 	smoothCamera = true;
@@ -37,7 +38,7 @@ void Options::initDefaultValues() {
 	vsync = true;
 	fancyGraphics = true;//false;
 	ambientOcclusion = true; // 0.9.0 shipped with smooth lighting on
-	lodTerrain = true;
+	lodTerrain = false; // Distant Terrain is opt-in (Options -> Graphics)
 	if(minecraft->supportNonTouchScreen())
 		useTouchScreen = false;
 	else
@@ -99,6 +100,7 @@ void Options::initDefaultValues() {
 #if defined(ANDROID) || defined(__APPLE__) || defined(RPI)
     viewDistance = 2;
     thirdPersonView = false;
+    frontView = false;
 	useMouseForDigging = false;
 	fancyGraphics = true; // 0.9.0 look: fancy leaves, sky and 3D clouds
 

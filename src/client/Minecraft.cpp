@@ -164,6 +164,7 @@ Minecraft::Minecraft()
 #endif
 	netCallback(NULL),
 	eagler(NULL),
+	zoomHeld(false),
 #ifndef STANDALONE_SERVER
 	screen(NULL),
 	font(NULL),
@@ -552,6 +553,10 @@ void Minecraft::tick(int nTick, int maxTick) {
 		}
 		TIMER_POP();
 	}
+#if defined(PLATFORM_DESKTOP)
+	// hold C to zoom (like the zoom mod)
+	zoomHeld = level && !screen && Keyboard::isKeyDown(Keyboard::KEY_C);
+#endif
 	TIMER_PUSH("gameMode");
 	if (level && !pause) {
 		gameMode->tick();
@@ -762,19 +767,22 @@ void Minecraft::tickInput() {
 				if (key == Keyboard::KEY_E) {
 					screenChooser.setScreen(SCREEN_BLOCKSELECTION);
 				}
-				// C: crafting (survival)
-				if (!screen && key == Keyboard::KEY_C && level && player && !isCreativeMode() && allowLocalCrafting()) {
-					setScreen(new WorkbenchScreen(Recipe::SIZE_2X2));
-				}
 				if (!screen && key == Keyboard::KEY_T && level) {
 					setScreen(new ConsoleScreen());
+				}
+				// "/": chat with the command slash already typed (Java)
+				if (!screen && key == 47 && level) {
+					setScreen(new ConsoleScreen("/"));
 				}
 				if (!screen && key == Keyboard::KEY_O || key == 250) {
 					releaseMouse();
 				}
 
 				if (key == Keyboard::KEY_F5) {
-					options.thirdPersonView = !options.thirdPersonView;
+					// Java order: first person -> behind -> in front
+					if (!options.thirdPersonView) { options.thirdPersonView = true; options.frontView = false; }
+					else if (!options.frontView) options.frontView = true;
+					else { options.thirdPersonView = false; options.frontView = false; }
 					/*
 					ImprovedNoise noise;
 					for (int i = 0; i < 16; ++i)

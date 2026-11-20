@@ -70,12 +70,12 @@ private:
 		unsigned char biomes[256];
 	};
 	struct TrackedEntity {
-		Entity* e;
+		int id;                  // entity id (looked up each time: the game may delete entities)
 		int fx, fy, fz;          // server position, 1/32 block fixed point
 		float yaw, pitch;
 		bool isPlayer;
 		int pendingItemType;     // object type 2 (item) waiting for its metadata
-		TrackedEntity() : e(0), fx(0), fy(0), fz(0), yaw(0), pitch(0), isPlayer(false), pendingItemType(0) {}
+		TrackedEntity() : id(0), fx(0), fy(0), fz(0), yaw(0), pitch(0), isPlayer(false), pendingItemType(0) {}
 	};
 
 	void send(const PacketOut& p);
@@ -122,6 +122,7 @@ private:
 	bool chunkInWindow(int scx, int scz) const;
 	bool localChunkReady(int lcx, int lcz) const;
 	void removeTracked(int id);
+	Entity* live(int id);
 	static std::string chatToText(const std::string& json);
 	static long long key(int x, int z) { return ((long long)x << 32) ^ (unsigned int)z; }
 
@@ -144,6 +145,8 @@ private:
 	int playerEid;
 	int gameMode;
 	bool positionKnown;
+	bool released;           // placed after the last server teleport
+	bool held;               // kept in place this tick (terrain missing)
 	double holdX, holdY, holdZ; // server-requested position while waiting for chunks
 	double lastX, lastY, lastZ;
 	float lastYaw, lastPitch;

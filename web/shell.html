@@ -28,7 +28,7 @@
   #skinpick[hidden] { display: none; }
   #skinpick label, #skinpick button { padding: 10px 16px; color: #fff; background: rgba(0,0,0,.75); border: 1px solid rgba(255,255,255,.5); border-radius: 6px; cursor: pointer; font: inherit; }
   #skinfile { display: none; }
-  #kbdhint { position: fixed; left: 50%; top: 30%; transform: translateX(-50%); z-index: 3; font: 16px sans-serif; padding: 10px 18px;
+  #kbdhint { position: fixed; left: 50%; top: 12%; transform: translateX(-50%); z-index: 3; font: 18px sans-serif; padding: 12px 22px;
         color: #fff; background: rgba(0,0,0,.7); border: 1px solid rgba(255,255,255,.5); border-radius: 6px; }
 </style>
 </head>
@@ -37,7 +37,7 @@
 <div id="loading"><div id="status">Loading…</div><div id="bar"><div></div></div></div>
 <button id="fs" hidden>Fullscreen</button>
 <input id="kbd" type="text" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" enterkeyhint="send" aria-hidden="true" tabindex="-1">
-<button id="kbdhint" hidden>&#9000; Tap to type</button>
+<button id="kbdhint" hidden>&#9000; Tap here to type</button>
 <div id="skinpick" hidden><label>Choose skin PNG (64&times;64)<input id="skinfile" type="file" accept="image/png"></label><button id="skincancel">Cancel</button></div>
 <script>
   // ---- saves: /persist lives in IndexedDB ----
@@ -99,6 +99,7 @@
     function chr(c) { if (Module._web_kbd_char) Module._web_kbd_char(c); }
     function focusKbd() { reset(); kbd.focus({ preventScroll: true }); hint.hidden = document.activeElement === kbd; }
     kbd.addEventListener('input', function (e) {
+      hint.hidden = true; // typing works: the on-screen keyboard is up
       var v = kbd.value, p = 0;
       while (p < prev.length && p < v.length && prev[p] === v[p]) p++;
       for (var i = prev.length; i > p; --i) key(8);
@@ -118,10 +119,19 @@
       }, true);
     });
     kbd.addEventListener('blur', function () { if (wanted) hint.hidden = false; });
-    hint.addEventListener('click', function (e) { e.preventDefault(); focusKbd(); });
+    function tapToType(e) { e.preventDefault(); e.stopPropagation(); reset(); kbd.focus({ preventScroll: true }); hint.hidden = true; }
+    hint.addEventListener('touchend', tapToType);
+    hint.addEventListener('click', tapToType);
+    var touchDevice = matchMedia('(pointer: coarse)').matches || 'ontouchstart' in window;
     window.mcpeKeyboard = function (show) {
       wanted = show;
-      if (show) { focusKbd(); setTimeout(function () { if (wanted) hint.hidden = document.activeElement === kbd; }, 150); }
+      if (show) {
+        focusKbd();
+        // Phones only open the keyboard from a direct tap, and a programmatic
+        // focus can "succeed" without it: offer the bar until typing starts.
+        if (touchDevice) hint.hidden = false;
+        else setTimeout(function () { if (wanted) hint.hidden = document.activeElement === kbd; }, 150);
+      }
       else { hint.hidden = true; kbd.blur(); }
     };
   })();
@@ -151,6 +161,14 @@
       });
     };
   })();
+
+  // ---- keys the browser would otherwise act on ----
+  // F1-F10 (F5 = reload!) are game keys; "/" opens chat in game (Firefox quick find)
+  window.addEventListener('keydown', function (e) {
+    if (e.target && e.target.id === 'kbd') return;
+    if (/^F([1-9]|10)$/.test(e.key)) e.preventDefault();
+    else if (e.key === '/' && document.pointerLockElement) e.preventDefault();
+  }, true);
 
   // ---- offline support ----
   if ('serviceWorker' in navigator && location.protocol !== 'file:')

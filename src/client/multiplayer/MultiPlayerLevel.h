@@ -133,7 +133,7 @@ public:
         if (!addEntity(e)) {
             reEntries.insert(e);
         }
-        entitiesById.insert(std::make_pair(id, e));
+        entitiesById[id] = e; // replace: insert() kept the old (removed) entity
     }
 
     Entity* getEntity(int id) {
@@ -147,9 +147,23 @@ public:
             Entity* e = it->second;
             entitiesById.erase(it);
             removeEntity(e);
-            return it->second;
+            return e;
         }
         return NULL;
+    }
+
+    // called right before an entity is deleted: drop every reference to it,
+    // otherwise getEntity()/putEntity() hand out freed pointers later
+    void entityRemoved(Entity* e) {
+        super::entityRemoved(e);
+        EntityIdMap::iterator it = entitiesById.find(e->entityId);
+        if (it != entitiesById.end() && it->second == e) entitiesById.erase(it);
+        else {
+            for (it = entitiesById.begin(); it != entitiesById.end(); ++it)
+                if (it->second == e) { entitiesById.erase(it); break; }
+        }
+        forced.erase(e);
+        reEntries.erase(e);
     }
 
     bool setDataNoUpdate(int x, int y, int z, int data) {
@@ -215,17 +229,6 @@ protected:
         }
     }
 
-    void entityRemoved(Entity* e) {
-        super::entityRemoved(e);
-		EntitySet::iterator it = forced.find(e);
-		if (it != forced.end()) {
-			if (e->isAlive()) {
-				reEntries.insert(e);
-			} else {
-				forced.erase(it);
-			}
-        }
-    }
 
 //     void tickWeather() {
 //         if (dimension.hasCeiling) return;
