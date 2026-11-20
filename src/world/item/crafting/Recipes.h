@@ -16,6 +16,8 @@ class Recipes
 {
 public:
     static Recipes* getInstance();
+    /** Result of the items in a crafting grid (empty if nothing matches). */
+    ItemInstance getItemFor(CraftingContainer* craftSlots);
 	const RecipeList& getRecipes();
 	static void		teardownRecipes();
 
@@ -53,7 +55,7 @@ private:
     Recipes();
 	~Recipes();
 
-    ItemInstance getItemFor(CraftingContainer* craftSlots);
+
 private:
 	static Recipes* instance;
 	RecipeList recipes;

@@ -32,6 +32,8 @@
 #include "gui/Font.h"
 #include "gui/screens/RenameMPLevelScreen.h"
 #include "gui/screens/EaglerJoinScreen.h"
+#include "gui/screens/JavaInventoryScreen.h"
+#include "../world/inventory/FillingContainer.h"
 #include "gui/screens/crafting/WorkbenchScreen.h"
 #include "../world/item/crafting/Recipe.h"
 #include "gui/screens/DisconnectionScreen.h"
@@ -553,6 +555,9 @@ void Minecraft::tick(int nTick, int maxTick) {
 		}
 		TIMER_POP();
 	}
+	FillingContainer::preferHotbar = options.pcUi || eagler != NULL;
+	if ((options.pcUi || eagler) && player && !isCreativeMode())
+		JavaInventoryScreen::fixHotbarLinks(player->inventory);
 #if defined(PLATFORM_DESKTOP)
 	// hold C to zoom (like the zoom mod)
 	zoomHeld = level && !screen && Keyboard::isKeyDown(Keyboard::KEY_C);
@@ -1657,7 +1662,7 @@ bool Minecraft::allowLocalCrafting()
 	if (!eagler) return true;
 #ifndef STANDALONE_SERVER
 	setScreen(NULL);
-	gui.addMessage("Crafting on Eaglercraft servers isn't supported yet.");
+	gui.addMessage("To craft on servers, turn on Options -> Controls -> Enable PC UI.");
 #endif
 	return false;
 }

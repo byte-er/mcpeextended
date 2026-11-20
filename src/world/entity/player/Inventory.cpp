@@ -33,7 +33,11 @@ void Inventory::selectSlot( int slot ) {
 		selected = slot;
 }
 
+bool (*Inventory::swapIntoHotbarHook)(Inventory* inv, int hotbarSlot, int inventorySlot) = NULL;
+
 bool Inventory::moveToSelectedSlot( int inventorySlot, bool propagate ) {
+	if (swapIntoHotbarHook && !_isCreative && swapIntoHotbarHook(this, selected, inventorySlot))
+		return true;
 	return linkSlot(selected, inventorySlot, propagate);
 }
 

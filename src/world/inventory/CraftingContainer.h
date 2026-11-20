@@ -26,16 +26,18 @@ public:
 	}
 
     ItemInstance* getItem(int slot) {
-        if (slot >= getContainerSize()) {
+        if (slot < 0 || slot >= getContainerSize()) {
             return NULL;
         }
-        return &items[slot];
+        // empty slots are NULL, like Java (the recipe matchers rely on it)
+        return (items[slot].isNull() || items[slot].count <= 0) ? NULL : &items[slot];
     }
 
     ItemInstance* getItem(int x, int y) {
         if (x < 0 || x >= width) {
             return NULL;
         }
+        if (y < 0 || y * width >= size) return NULL;
         int pos = x + y * width;
         return getItem(pos);
     }
@@ -44,6 +46,10 @@ public:
     void setItem(int slot, const ItemInstance& item) {
         items[slot] = item;
         //menu->slotsChanged(this);
+    }
+    void setItem(int slot, ItemInstance* item) {
+        if (slot < 0 || slot >= size) return;
+        items[slot] = item ? *item : ItemInstance();
     }
 
     ItemInstance removeItem(int slot, int count) {

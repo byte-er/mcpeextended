@@ -1,13 +1,35 @@
-## MCPE Extended 0.9.3
+## MCPE Extended 0.9.4
 
 ### Downloads
 | Platform | File |
 |---|---|
-| Android (most phones) | `mcpeextended-0.9.3-arm64-v8a.apk` (or `-universal.apk` if unsure, `-armeabi-v7a.apk` for old 32-bit phones) |
+| Android (most phones) | `mcpeextended-0.9.4-arm64-v8a.apk` (or `-universal.apk` if unsure, `-armeabi-v7a.apk` for old 32-bit phones) |
 | Any computer, no setup | `mcpeextended.html`: one self-contained file (about 15 MB). Download it and open it in Chrome, Edge, Firefox or Safari; it works offline and saves worlds in the browser. |
 | PC (Windows / macOS / Linux), **iOS**, other devices | `mcpeextended-web.zip`: the browser build. Host the files on any web server (HTTPS to install it as an app). On PC it uses mouse + keyboard (click to capture the mouse, Esc pauses); on phones and tablets it uses touch controls. On iPhone/iPad open it in Safari → Share → **Add to Home Screen** to install it as a fullscreen app. |
 
 If installing the APK over an older build fails, uninstall the old one first; builds can be signed with different keys. Old worlds in `/sdcard/games/com.mojang` are copied over automatically when Android lets the app read them.
+
+### New: PC UI (Java-style inventory)
+- **Options → Controls → Enable PC UI** swaps the Pocket Edition inventory for a Java-style one: armour slots, a player preview that follows your mouse, a 2×2 **Crafting** grid, 27 inventory slots and the hotbar. There's no hunger bar, offhand slot or recipe book.
+- Java controls: left click picks up, places, merges or swaps a stack; right click takes half or places one; shift-click moves items between the hotbar and inventory (and crafts as many as fit from the result slot). Hover a slot and press 1–9 to swap with that hotbar slot. Click outside the window to throw the held item. Esc or E closes it.
+- Crafting tables open a Java-style 3×3 crafting screen.
+- With PC UI on, items you pick up go to the hotbar first, like Java.
+- **On Eaglercraft servers** the PC UI sends real Java inventory clicks, so **crafting works on servers** (2×2 and crafting tables). Without PC UI, crafting on a server tells you to turn it on.
+
+### New: PC keys
+- **Hold C to zoom** (like the zoom mod; mouse slows down while zoomed).
+- **/** opens chat with the slash already typed.
+- **F5** cycles first person → third person behind → third person in front. The browser no longer reloads the page when you press F5.
+
+### Fixes
+- **Eaglercraft crashes while walking**: entities the game removed on its own (mobs despawning as you walked away, items expiring) stayed referenced and were later used after being freed. Those references are now cleaned up, and mobs on servers only disappear when the server says so.
+- **Eaglercraft rubber-banding**: walking into terrain the server hadn't sent yet teleported you back to where you joined. Now you just stop at the edge of loaded terrain until it arrives.
+- On servers the hotbar matches Java's (slots 36–44); picking an item into the hotbar in the Pocket Edition inventory swaps it there on the server too.
+- **Phones and tablets in the browser (including the single-file HTML)**: tapping a text box now always offers a **"Tap here to type"** bar that opens the keyboard. Phones only open the keyboard from a direct tap.
+- **Distant Terrain (LOD) is now off by default.** Turn it on under Options → Graphics.
+- The username screen fits on short phone screens.
+
+---
 
 ### New: join Eaglercraft 1.8.9 servers
 - **Join Game → Eaglercraft Server**: enter the address (e.g. `wss://eagarchy.wackify.dev`). Works in the Android app and the browser build, on phones and PCs.

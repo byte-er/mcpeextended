@@ -8,6 +8,7 @@ const char* OptionStrings::Multiplayer_ServerVisible   = "mp_server_visible_defa
 const char* OptionStrings::Graphics_Fancy              = "gfx_fancygraphics";
 const char* OptionStrings::Graphics_LowQuality         = "gfx_lowquality";
 const char* OptionStrings::Graphics_Vsync              = "gfx_vsync";
+const char* OptionStrings::Controls_PcUi               = "ctrl_pcui";
 const char* OptionStrings::Graphics_Lod                = "gfx_lod2"; // new key: old saves defaulted to on
 const char* OptionStrings::Graphics_GUIScale            = "gfx_guiscale";
 

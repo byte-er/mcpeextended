@@ -466,8 +466,14 @@ int FillingContainer::addResource( const ItemInstance& itemInstance )
 	return count;
 }
 
+bool FillingContainer::preferHotbar = false;
+
 int FillingContainer::getFreeSlot() const
 {
+	if (preferHotbar && items.size() >= 45) {
+		for (unsigned int i = 36; i < 45; i++)
+			if (items[i] == NULL || items[i]->isNull()) return i;
+	}
 	for (unsigned int i = numLinkedSlots; i < items.size(); i++) {
 		if (items[i] == NULL || items[i]->isNull()) return i;
 	}

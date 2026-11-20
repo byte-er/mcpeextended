@@ -30,6 +30,7 @@
 #include "../../util/Mth.h"
 #include "../../client/skin/PlayerSkin.h"
 #include "../../world/level/BiomeTint.h"
+#include "../../client/gui/screens/JavaInventoryScreen.h"
 
 #include <cmath>
 #include <cstdlib>
@@ -41,6 +42,8 @@ static const int WINDOW_CHUNKS = 32;
 static const int WINDOW_HALF = WINDOW_CHUNKS * 16 / 2;   // 256
 static const int RECENTRE_DIST = 128;
 static const int HEIGHT = 128;
+
+EaglerClient* EaglerClient::s_active = NULL;
 
 // ---------------------------------------------------------------------------
 // 1.8 block ids -> blocks this engine has
@@ -160,6 +163,8 @@ EaglerClient::EaglerClient(Minecraft* mc, const std::string& address_, const std
 	lastSelected(-1),
 	lastHeldId(-1), lastHeldData(-1),
 	digging(false),
+	openWindowId(-1),
+	actionCounter(0),
 	borderX(0), borderZ(0)
 {
 	initIdMap();
@@ -172,6 +177,7 @@ EaglerClient::EaglerClient(Minecraft* mc, const std::string& address_, const std
 EaglerClient::~EaglerClient()
 {
 	BiomeTint::setExternalSource(NULL, NULL);
+	if (s_active == this) { s_active = NULL; Inventory::swapIntoHotbarHook = NULL; }
 	if (mc->platform()) mc->platform()->wsClose(0);
 	for (std::map<long long, CachedChunk*>::iterator it = cache.begin(); it != cache.end(); ++it)
 		delete it->second;
@@ -221,6 +227,8 @@ void EaglerClient::tick()
 	if (level && !levelReady && mc->level == (Level*)level && mc->isLevelGenerated() && mc->player) {
 		levelReady = true;
 		BiomeTint::setExternalSource(&EaglerClient::biomeAt, this);
+		s_active = this;
+		Inventory::swapIntoHotbarHook = &EaglerClient::swapIntoHotbar;
 		applyCachedWindow();
 		while (!pendingPlay.empty() && state == PLAY) {
 			handlePlay(pendingPlay.front());
@@ -456,6 +464,13 @@ void EaglerClient::handlePlay(const std::vector<unsigned char>& msg)
 	case 0x2B: { // game state
 		int reason = in.u8(); float v = in.f32();
 		if (reason == 3) { gameMode = (int)v; mc->setIsCreativeMode(gameMode == 1 || gameMode == 3); }
+		break;
+	}
+	case 0x2D: onOpenWindow(in); break;
+	case 0x2E: { int w = in.u8(); if (JavaInventoryScreen::active && JavaInventoryScreen::active->getWindowId() == w && w != 0) mc->setScreen(NULL); break; }
+	case 0x32: { // confirm transaction: answer rejected clicks so the server resyncs
+		int w = in.i8(); int action = in.i16(); bool ok = in.boolean();
+		if (!ok) { PacketOut o(0x0F); o.u8(w); o.u16(action); o.boolean(true); send(o); }
 		break;
 	}
 	case 0x2F: onSetSlot(in); break;
@@ -1064,19 +1079,36 @@ void EaglerClient::writeSlot(PacketOut& o, const ItemInstance* item)
 	o.u8(0); // no NBT
 }
 
+void EaglerClient::applyWindowSlot(int window, int slot, const ItemInstance& it, bool has)
+{
+	if (!mc->player || mc->isCreativeMode()) return;
+	JavaInventoryScreen* js = JavaInventoryScreen::active;
+	if (window == -1 && slot == -1) { if (js) js->serverSetSlot(-1, has ? it : ItemInstance()); return; }
+	Inventory* inv = mc->player->inventory;
+	int peSlot = -1;
+	if (window == 0) {
+		if (slot >= 0 && slot <= 4) { if (js && js->getWindowId() == 0) js->serverSetSlot(slot, has ? it : ItemInstance()); return; }
+		if (slot >= 5 && slot <= 8) { mc->player->setArmor(slot - 5, has ? &it : NULL); return; }
+		if (slot >= 9 && slot <= 44) peSlot = slot;
+	} else if (window == openWindowId && window != 0) {
+		// crafting table: result 0, grid 1-9, storage 10-36, hotbar 37-45
+		if (slot >= 0 && slot <= 9) { if (js && js->getWindowId() == window) js->serverSetSlot(slot, has ? it : ItemInstance()); return; }
+		if (slot >= 10 && slot <= 45) peSlot = slot - 1;
+	}
+	if (peSlot < 9 || peSlot > 44) return;
+	if (has) { ItemInstance copy(it); inv->replaceSlot(peSlot, &copy); } else inv->clearSlot(peSlot);
+	JavaInventoryScreen::fixHotbarLinks(inv);
+}
+
 void EaglerClient::onWindowItems(PacketIn& in)
 {
 	int window = in.u8();
 	int n = in.i16();
-	if (window != 0 || !mc->player || mc->isCreativeMode()) return;
-	Inventory* inv = mc->player->inventory;
 	for (int s = 0; s < n && in.ok(); ++s) {
 		ItemInstance it;
 		bool has = readSlot(in, it);
-		if (s < 9 || s > 44) continue; // crafting grid / armour
-		if (has) inv->replaceSlot(s, &it); else inv->clearSlot(s);
+		applyWindowSlot(window, s, it, has);
 	}
-	for (int h = 0; h < 9; ++h) inv->linkSlot(h, 36 + h, false);
 }
 
 void EaglerClient::onSetSlot(PacketIn& in)
@@ -1085,10 +1117,43 @@ void EaglerClient::onSetSlot(PacketIn& in)
 	int slot = in.i16();
 	ItemInstance it;
 	bool has = readSlot(in, it);
-	if (window != 0 || slot < 9 || slot > 44 || !mc->player || mc->isCreativeMode()) return;
-	Inventory* inv = mc->player->inventory;
-	if (has) inv->replaceSlot(slot, &it); else inv->clearSlot(slot);
-	if (slot >= 36) inv->linkSlot(slot - 36, slot, false);
+	applyWindowSlot(window, slot, it, has);
+}
+
+void EaglerClient::onOpenWindow(PacketIn& in)
+{
+	int id = in.u8();
+	std::string type = in.str();
+	in.str(); in.u8();
+	if (type == "minecraft:crafting_table") {
+		openWindowId = id;
+		mc->setScreen(new JavaInventoryScreen(true, id));
+	} else {
+		// chests, furnaces, ... aren't supported yet: close it again so the
+		// server doesn't think it's still open
+		PacketOut o(0x0D); o.u8(id); send(o);
+		mc->gui.addMessage("This container isn't supported on servers yet.");
+	}
+}
+
+void EaglerClient::sendWindowClick(int window, int slot, int button, int mode, const ItemInstance& clicked)
+{
+	if (!isPlaying()) return;
+	PacketOut o(0x0E);
+	o.u8(window);
+	o.u16(slot);
+	o.u8(button);
+	o.u16(++actionCounter & 0x7FFF);
+	o.u8(mode);
+	writeSlot(o, clicked.isNull() ? 0 : &clicked);
+	send(o);
+}
+
+void EaglerClient::sendCloseWindow(int window)
+{
+	if (!isPlaying()) return;
+	PacketOut o(0x0D); o.u8(window); send(o);
+	if (window == openWindowId) openWindowId = -1;
 }
 
 // ---------------------------------------------------------------------------
@@ -1466,4 +1531,22 @@ Entity* EaglerClient::live(int id)
 	if (!level) return 0;
 	Entity* e = level->getEntity(id);
 	return (e && !e->removed) ? e : 0;
+}
+
+bool EaglerClient::swapIntoHotbar(Inventory* inv, int hotbarSlot, int inventorySlot)
+{
+	EaglerClient* self = s_active;
+	if (!self || !self->mc->player || inv != self->mc->player->inventory) return false;
+	if (hotbarSlot < 0 || hotbarSlot > 8 || inventorySlot < 9 || inventorySlot > 44) return true;
+	const int hot = 36 + hotbarSlot;
+	if (inventorySlot == hot) return true;
+	// Java "number key" swap of the storage slot with the hotbar slot
+	ItemInstance* a = inv->getItem(inventorySlot);
+	ItemInstance* b = inv->getItem(hot);
+	ItemInstance ia = a ? *a : ItemInstance(), ib = b ? *b : ItemInstance();
+	self->sendWindowClick(0, inventorySlot, hotbarSlot, 2, ia);
+	if (ib.isNull() || ib.count <= 0) inv->clearSlot(inventorySlot); else inv->replaceSlot(inventorySlot, &ib);
+	if (ia.isNull() || ia.count <= 0) inv->clearSlot(hot); else inv->replaceSlot(hot, &ia);
+	JavaInventoryScreen::fixHotbarLinks(inv);
+	return true;
 }

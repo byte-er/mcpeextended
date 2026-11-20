@@ -255,7 +255,8 @@ void OptionsScreen::generateOptionScreens() {
 
 	// Controls Pane
 	optionPanes[2]->createOptionsGroup("options.group.controls")
-		.addOptionItem(&Options::Option::INVERT_MOUSE, minecraft);
+		.addOptionItem(&Options::Option::INVERT_MOUSE, minecraft)
+		.addOptionItem(&Options::Option::PC_UI, minecraft);
 
 	// Graphics Pane
 	optionPanes[3]->createOptionsGroup("options.group.graphics")

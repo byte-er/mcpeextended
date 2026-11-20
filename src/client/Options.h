@@ -38,6 +38,7 @@ public:
 		static const Option GRAPHICS;
 		static const Option AMBIENT_OCCLUSION;
 		static const Option LOD_TERRAIN;
+		static const Option PC_UI;
 		static const Option GUI_SCALE;
         
 		static const Option THIRD_PERSON;
@@ -119,6 +120,7 @@ public:
     bool fancyGraphics;
     bool ambientOcclusion;
     bool lodTerrain; // distant low detail terrain beyond the render distance
+    bool pcUi;       // Java-style inventory / crafting screens
 	bool useMouseForDigging;
 	bool isLeftHanded;
 	bool destroyVibration;
@@ -249,6 +251,7 @@ public:
             //minecraft->levelRenderer.allChanged();
         }
         if (option == &Option::LOD_TERRAIN) lodTerrain = !lodTerrain;
+        if (option == &Option::PC_UI) pcUi = !pcUi;
         if (option == &Option::AMBIENT_OCCLUSION) {
             ambientOcclusion = !ambientOcclusion;
             //minecraft->levelRenderer.allChanged();
@@ -284,6 +287,8 @@ public:
             return vsync;
         if (item == &Option::LOD_TERRAIN)
             return lodTerrain;
+        if (item == &Option::PC_UI)
+            return pcUi;
         if (item == &Option::AMBIENT_OCCLUSION)
             return ambientOcclusion;
         if (item == &Option::THIRD_PERSON)

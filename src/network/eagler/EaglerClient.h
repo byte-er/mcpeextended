@@ -45,6 +45,8 @@ public:
 	/** Placed by the server and the chunks around the player have arrived. */
 	bool isTerrainReady() const;
 	static int biomeAt(int x, int z, void* ctx);
+	static bool swapIntoHotbar(class Inventory* inv, int hotbarSlot, int inventorySlot);
+	static EaglerClient* s_active;
 	/** Normalises user input like "eagarchy.wackify.dev" to "wss://eagarchy.wackify.dev/". */
 	static std::string normaliseAddress(const std::string& in);
 	static std::string sanitiseUsername(const std::string& in);
@@ -59,6 +61,8 @@ public:
 	void onInteract(Entity* target);
 	void onSwing();
 	void sendChat(const std::string& message);
+	void sendWindowClick(int window, int slot, int button, int mode, const ItemInstance& clicked);
+	void sendCloseWindow(int window);
 	void requestRespawn();
 
 private:
@@ -108,6 +112,8 @@ private:
 	void onExplosion(PacketIn& in);
 	void onEquipment(PacketIn& in);
 	void onPluginMessage(PacketIn& in);
+	void onOpenWindow(PacketIn& in);
+	void applyWindowSlot(int window, int slot, const ItemInstance& it, bool has);
 
 	void createLevel();
 	void applyCachedWindow();
@@ -154,6 +160,8 @@ private:
 	int lastSelected;
 	int lastHeldId, lastHeldData;
 	bool digging;
+	int openWindowId;
+	int actionCounter;
 
 	// world border (server coordinates)
 	double borderX, borderZ;

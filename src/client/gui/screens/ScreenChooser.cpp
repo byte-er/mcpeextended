@@ -1,4 +1,5 @@
 #include "ScreenChooser.h"
+#include "JavaInventoryScreen.h"
 #include "StartMenuScreen.h"
 #include "SelectWorldScreen.h"
 #include "JoinGameScreen.h"
@@ -23,7 +24,10 @@ Screen* ScreenChooser::createScreen( ScreenId id )
 		case SCREEN_JOINGAME:	screen = new Touch::JoinGameScreen();	break;
 		case SCREEN_PAUSE:	    screen = new PauseScreen(false); break;
 		case SCREEN_PAUSEPREV:	screen = new PauseScreen(true);	 break;
-		case SCREEN_BLOCKSELECTION:	screen = new Touch::IngameBlockSelectionScreen();	break;
+		case SCREEN_BLOCKSELECTION:
+			if (_mc->options.pcUi && !_mc->isCreativeMode()) screen = new JavaInventoryScreen(false);
+			else screen = new Touch::IngameBlockSelectionScreen();
+			break;
 
 		case SCREEN_NONE:
 		default:
@@ -37,7 +41,10 @@ Screen* ScreenChooser::createScreen( ScreenId id )
 		case SCREEN_JOINGAME:	screen = new JoinGameScreen();   break;
 		case SCREEN_PAUSE:	    screen = new PauseScreen(false); break;
 		case SCREEN_PAUSEPREV:	screen = new PauseScreen(true);	 break;
-		case SCREEN_BLOCKSELECTION:	screen = new IngameBlockSelectionScreen();	break;
+		case SCREEN_BLOCKSELECTION:
+			if (_mc->options.pcUi && !_mc->isCreativeMode()) screen = new JavaInventoryScreen(false);
+			else screen = new IngameBlockSelectionScreen();
+			break;
 
 		case SCREEN_NONE:
 		default:

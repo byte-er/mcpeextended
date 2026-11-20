@@ -16,6 +16,8 @@ protected:
 	typedef std::vector<ItemInstance*> ItemList;
 public:
 	static const int MAX_INVENTORY_STACK_SIZE = 254;
+	/** PC UI: new items go to the hotbar slots (36-44) before the rest. */
+	static bool preferHotbar;
 
 	FillingContainer(int numTotalSlots, int numLinkedSlots, int containerType, bool isCreative);
 	~FillingContainer();

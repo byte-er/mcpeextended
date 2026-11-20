@@ -1,4 +1,6 @@
 #include "LocalPlayer.h"
+#include "../gui/screens/JavaInventoryScreen.h"
+#include "../../world/item/crafting/Recipe.h"
 #include "../skin/PlayerSkin.h"
 #include "../Minecraft.h"
 #include "../../ErrorCodes.h"
@@ -450,7 +452,13 @@ void LocalPlayer::_init() {
 
 void LocalPlayer::startCrafting(int x, int y, int z, int tableSize) {
 #ifndef STANDALONE_SERVER
-	if (!minecraft->isCreativeMode() && minecraft->allowLocalCrafting())
+	if (minecraft->isCreativeMode()) return;
+	if (minecraft->options.pcUi) {
+		// on a server the crafting table window is opened by the server
+		if (!minecraft->eagler) minecraft->setScreen(new JavaInventoryScreen(tableSize == Recipe::SIZE_3X3));
+		return;
+	}
+	if (minecraft->allowLocalCrafting())
 		minecraft->setScreen( new WorkbenchScreen(tableSize) );
 #endif
 }

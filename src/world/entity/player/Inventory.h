@@ -34,6 +34,8 @@ public:
 	// Special for this "selection based" inventory
 	bool			moveToSelectionSlot(int selectionSlot, int inventorySlot, bool propagate);
 	bool			moveToSelectedSlot(int inventorySlot, bool propagate);
+	/** Servers with a fixed hotbar: put the item into the selected hotbar slot instead of re-linking. */
+	static bool (*swapIntoHotbarHook)(Inventory* inv, int hotbarSlot, int inventorySlot);
 	bool			moveToEmptySelectionSlot(int inventorySlot);
 
 	bool			removeItem(const ItemInstance* samePtr);

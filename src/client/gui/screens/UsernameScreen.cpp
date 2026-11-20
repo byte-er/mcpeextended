@@ -31,7 +31,7 @@ void UsernameScreen::setupPositions()
     _btnDone.width  = 120;
     _btnDone.height = 20;
     _btnDone.x = (width - _btnDone.width) / 2;
-    _btnDone.y = height / 2 + 52;
+    _btnDone.y = height >= 160 ? height / 2 + 52 : height / 2 + 30;
 }
 
 void UsernameScreen::tick()
@@ -97,13 +97,15 @@ void UsernameScreen::render(int xm, int ym, float a)
     int cx = width / 2;
     int cy = height / 2;
 
-    // Title
-    drawCenteredString(font, "Enter your username", cx, cy - 70, 0xffffffff);
-
-    // Subtitle
-    drawCenteredString(font, "Please choose a username so others can easily", cx, cy - 52, 0xffaaaaaa);
-    drawCenteredString(font, "identify you in chat. Don't worry, you can", cx, cy - 40, 0xffaaaaaa);
-    drawCenteredString(font, "change it anytime.", cx, cy - 28, 0xffaaaaaa);
+    // Title + subtitle (short phone screens: title only)
+    if (height >= 160) {
+        drawCenteredString(font, "Enter your username", cx, cy - 70, 0xffffffff);
+        drawCenteredString(font, "Please choose a username so others can easily", cx, cy - 52, 0xffaaaaaa);
+        drawCenteredString(font, "identify you in chat. Don't worry, you can", cx, cy - 40, 0xffaaaaaa);
+        drawCenteredString(font, "change it anytime.", cx, cy - 28, 0xffaaaaaa);
+    } else {
+        drawCenteredString(font, "Enter your username", cx, cy - 24, 0xffffffff);
+    }
 
     // Input box background
     int boxW = 160;
