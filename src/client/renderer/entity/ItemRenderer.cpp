@@ -234,7 +234,9 @@ void ItemRenderer::renderGuiItem(Font* font, Textures* textures, const ItemInsta
 
 void ItemRenderer::renderGuiItemDecorations(const ItemInstance* item, float x, float y) {
 	if (!item) return;
-	if (item->count > 0 && item->isDamaged()) {
+	// blocks never have durability (plain block items default to maxDamage 32 here,
+	// so a block with data, e.g. andesite from a server, used to get a bar)
+	if (item->count > 0 && item->id >= 256 && item->isDamaged()) {
 		float p = std::floor(13.5f - (float) item->getDamageValue() * 13.0f / (float) item->getMaxDamage());
 		int cc = (int) std::floor(255.5f - (float) item->getDamageValue() * 255.0f / (float) item->getMaxDamage());
 		//glDisable(GL_LIGHTING);

@@ -44,7 +44,7 @@ public:
     }
 
 	ItemInstance* use(ItemInstance* instance, Level* level, Player* player) {
-		if (!player->abilities.invulnerable && player->isHurt()) {
+		if (level->isClientSide || (!player->abilities.invulnerable && player->isHurt())) {
 			player->startUsingItem(*instance, getUseDuration(instance));
 		}
 		return instance;

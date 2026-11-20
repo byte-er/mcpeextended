@@ -428,12 +428,13 @@ void GameRenderer::tickFov() {
 /*private*/
 float GameRenderer::getFov(float a, bool applyEffects) {
     Mob* player = mc->cameraTargetPlayer;
-    float fov = 70;
+    float fov = mc->options.fov; // FOV slider (default 90)
+    if (fov < 30 || fov > 110) fov = 90;
 
 	if (applyEffects)
 		fov *= this->oFov + (this->fov - this->oFov) * a;
 
-    if (player->isUnderLiquid(Material::water)) fov = 60;
+    if (player->isUnderLiquid(Material::water)) fov *= 60.0f / 70.0f;
     fov /= 1.0f + 3.0f * zoomAmount; // C zoom: up to 4x
     if (player->health <= 0) {
         float duration = player->deathTime + a;
@@ -923,7 +924,7 @@ void GameRenderer::renderItemInHand(float a, int eye) {
 
     if (!mc->options.thirdPersonView && (mc->cameraTargetPlayer->isPlayer() && !((Player*)mc->cameraTargetPlayer)->isSleeping())) {
         if (!mc->options.hideGui) {
-			float fov = getFov(a, false);
+			float fov = 70.0f; // hand keeps Java's fixed 70 whatever the FOV slider says
 			if (fov != _setupCameraFov) {
 				glMatrixMode(GL_PROJECTION);
 				glLoadIdentity();

@@ -260,6 +260,7 @@ void OptionsScreen::generateOptionScreens() {
 
 	// Graphics Pane
 	optionPanes[3]->createOptionsGroup("options.group.graphics")
+		.addOptionItem(&Options::Option::FOV, minecraft)
 		.addOptionItem(&Options::Option::GRAPHICS, minecraft)
 		.addOptionItem(&Options::Option::VIEW_BOBBING, minecraft)
 		.addOptionItem(&Options::Option::AMBIENT_OCCLUSION, minecraft)

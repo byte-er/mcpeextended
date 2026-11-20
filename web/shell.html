@@ -21,8 +21,6 @@
              justify-content: center; gap: 12px; color: #ddd; font: 16px sans-serif; background: #1a1410; }
   #bar { width: min(320px, 70vw); height: 6px; background: #333; }
   #bar > div { height: 100%; width: 0; background: #6c3; transition: width .2s; }
-  #fs { position: fixed; left: 50%; transform: translateX(-50%); top: 8px; z-index: 2; padding: 6px 10px; font: 13px sans-serif;
-        color: #fff; background: rgba(0,0,0,.45); border: 1px solid rgba(255,255,255,.3); border-radius: 4px; }
   #kbd { position: fixed; left: 0; top: 0; width: 1px; height: 1px; opacity: 0; border: 0; padding: 0; font-size: 16px; }
   #skinpick { position: fixed; left: 50%; top: 40%; transform: translateX(-50%); z-index: 3; font: 16px sans-serif; display: flex; gap: 10px; }
   #skinpick[hidden] { display: none; }
@@ -35,7 +33,6 @@
 <body>
 <canvas id="canvas" tabindex="0" oncontextmenu="event.preventDefault()"></canvas>
 <div id="loading"><div id="status">Loading…</div><div id="bar"><div></div></div></div>
-<button id="fs" hidden>Fullscreen</button>
 <input id="kbd" type="text" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" enterkeyhint="send" aria-hidden="true" tabindex="-1">
 <button id="kbdhint" hidden>&#9000; Tap here to type</button>
 <div id="skinpick" hidden><label>Choose skin PNG (64&times;64)<input id="skinfile" type="file" accept="image/png"></label><button id="skincancel">Cancel</button></div>
@@ -73,19 +70,6 @@
   // flush saves when the page is hidden / closed (phones kill background tabs)
   document.addEventListener('visibilitychange', function () { if (document.hidden) syncSaves(); });
   window.addEventListener('pagehide', syncSaves);
-
-  // ---- fullscreen + landscape lock where the browser allows it ----
-  var fsBtn = document.getElementById('fs');
-  if (document.fullscreenEnabled && !matchMedia('(display-mode: fullscreen), (display-mode: standalone)').matches) {
-    fsBtn.hidden = false;
-    fsBtn.onclick = function () {
-      document.documentElement.requestFullscreen().then(function () {
-        fsBtn.hidden = true;
-        if (screen.orientation && screen.orientation.lock) screen.orientation.lock('landscape').catch(function () {});
-      }).catch(function () {});
-    };
-    document.addEventListener('fullscreenchange', function () { fsBtn.hidden = !!document.fullscreenElement; });
-  }
 
   // ---- soft keyboard for touch browsers ----
   // The game asks for the keyboard (chat, world name...) via mcpeKeyboard(true).

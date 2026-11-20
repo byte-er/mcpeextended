@@ -59,6 +59,8 @@ public:
 
 	void renderBubbles();
 	void renderHearts();
+	void renderJavaHud(float a, int screenWidth, int screenHeight); // "Enable PC UI": Java hotbar, hearts, armour
+	std::string selectedItemName();
 	void renderDebugInfo();
 
 	void renderProgressIndicator( const bool isTouchInterface, const int screenWidth, const int screenHeight, float a );

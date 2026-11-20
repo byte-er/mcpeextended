@@ -166,6 +166,7 @@ options.limitFramerate=Limit Framerate
 options.vsync=VSync
 options.lod=Distant Terrain (LOD)
 options.pcui=Enable PC UI
+options.fov=FOV
 options.difficulty=Difficulty
 options.difficulty.peaceful=Peaceful
 options.difficulty.easy=Easy

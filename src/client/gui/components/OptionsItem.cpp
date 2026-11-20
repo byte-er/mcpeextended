@@ -1,9 +1,11 @@
 #include "OptionsItem.h"
 #include "../../Minecraft.h"
 #include "../../../util/Mth.h"
-OptionsItem::OptionsItem( std::string label, GuiElement* element )
+#include <cstdio>
+OptionsItem::OptionsItem( std::string label, GuiElement* element, const Options::Option* valueOption )
 : GuiElementContainer(false, true, 0, 0, 24, 12),
-  label(label) {
+  label(label),
+  valueOption(valueOption) {
 	  addChild(element);
 }
 
@@ -19,6 +21,12 @@ void OptionsItem::setupPositions() {
 
 void OptionsItem::render( Minecraft* minecraft, int xm, int ym ) {
 	int yOffset = (height - 8) / 2;
-	minecraft->font->draw(label, (float)x, (float)y + yOffset, 0x909090, false);
+	std::string text = label;
+	if (valueOption) {
+		char buf[32];
+		sprintf(buf, ": %d", (int)(minecraft->options.getProgressValue(valueOption) + 0.5f));
+		text += buf;
+	}
+	minecraft->font->draw(text, (float)x, (float)y + yOffset, 0x909090, false);
 	super::render(minecraft, xm, ym);
 }

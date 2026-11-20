@@ -39,6 +39,7 @@ public:
 		static const Option AMBIENT_OCCLUSION;
 		static const Option LOD_TERRAIN;
 		static const Option PC_UI;
+		static const Option FOV;
 		static const Option GUI_SCALE;
         
 		static const Option THIRD_PERSON;
@@ -121,6 +122,7 @@ public:
     bool ambientOcclusion;
     bool lodTerrain; // distant low detail terrain beyond the render distance
     bool pcUi;       // Java-style inventory / crafting screens
+    float fov;       // field of view in degrees (30..110)
 	bool useMouseForDigging;
 	bool isLeftHanded;
 	bool destroyVibration;
@@ -215,6 +217,8 @@ public:
             sensitivity = value;
 		} else if (item == &Option::PIXELS_PER_MILLIMETER) {
 			 pixelsPerMillimeter = value;
+		} else if (item == &Option::FOV) {
+			fov = (float)(int)(value + 0.5f);
 		}
 		notifyOptionUpdate(item, value);		save();    }
 	void set(const Option* item, int value) {
@@ -271,6 +275,7 @@ public:
         if (item == &Option::SOUND) return sound;
         if (item == &Option::SENSITIVITY) return sensitivity;
 		if (item == &Option::PIXELS_PER_MILLIMETER) return pixelsPerMillimeter;
+		if (item == &Option::FOV) return fov;
         return 0;
     }
 
@@ -315,6 +320,7 @@ public:
 		if (item == &Option::SOUND) return SOUND_MIN_VALUE;
 		if (item == &Option::SENSITIVITY) return SENSITIVITY_MIN_VALUE;
 		if (item == &Option::PIXELS_PER_MILLIMETER) return PIXELS_PER_MILLIMETER_MIN_VALUE;
+		if (item == &Option::FOV) return 30.0f;
 		return 0;
 	}
 
@@ -323,6 +329,7 @@ public:
 		if (item == &Option::SOUND) return SOUND_MAX_VALUE;
 		if (item == &Option::SENSITIVITY) return SENSITIVITY_MAX_VALUE;
 		if (item == &Option::PIXELS_PER_MILLIMETER) return PIXELS_PER_MILLIMETER_MAX_VALUE;
+		if (item == &Option::FOV) return 110.0f;
 		return 1.0f;
 	} 
 

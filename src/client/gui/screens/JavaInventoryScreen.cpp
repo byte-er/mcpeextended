@@ -11,6 +11,9 @@
 #include "../../../world/item/Item.h"
 #include "../../../world/item/ArmorItem.h"
 #include "../../../world/item/crafting/Recipes.h"
+#include "../../../world/item/crafting/FurnaceRecipes.h"
+#include "../../../world/level/Level.h"
+#include "../../../world/level/tile/entity/FurnaceTileEntity.h"
 #include "../../../platform/input/Keyboard.h"
 #include "../../../platform/input/Mouse.h"
 #include "../../../network/eagler/EaglerClient.h"
@@ -34,6 +37,9 @@ void JavaInventoryScreen::fixHotbarLinks(Inventory* inv)
 
 JavaInventoryScreen::JavaInventoryScreen(bool table, int windowId)
 :	table(table),
+	furnaceMode(false),
+	furnace(NULL),
+	furnaceX(0), furnaceY(0), furnaceZ(0),
 	windowId(windowId),
 	gridW(table ? 3 : 2),
 	craftSlots(new CraftingContainer(table ? 3 : 2, table ? 3 : 2)),
@@ -42,6 +48,36 @@ JavaInventoryScreen::JavaInventoryScreen(bool table, int windowId)
 	lastMouseX(0), lastMouseY(0)
 {
 	passEvents = false;
+	props[0] = props[1] = props[2] = props[3] = 0;
+}
+
+JavaInventoryScreen::JavaInventoryScreen(FurnaceTileEntity* f, int windowId)
+:	table(false),
+	furnaceMode(true),
+	furnace(f),
+	furnaceX(f ? f->x : 0), furnaceY(f ? f->y : 0), furnaceZ(f ? f->z : 0),
+	windowId(windowId),
+	gridW(2),
+	craftSlots(new CraftingContainer(2, 2)),
+	ui(1), left(0), top(0),
+	hovered(-1),
+	lastMouseX(0), lastMouseY(0)
+{
+	passEvents = false;
+	props[0] = props[1] = props[2] = props[3] = 0;
+}
+
+FurnaceTileEntity* JavaInventoryScreen::liveFurnace()
+{
+	// the block may have been broken: only trust the pointer while the level still has it
+	if (!furnace || !minecraft || !minecraft->level) return NULL;
+	if ((void*)minecraft->level->getTileEntity(furnaceX, furnaceY, furnaceZ) != (void*)furnace) return NULL;
+	return furnace;
+}
+
+void JavaInventoryScreen::serverSetProperty(int prop, int value)
+{
+	if (prop >= 0 && prop < 4) props[prop] = value;
 }
 
 JavaInventoryScreen::~JavaInventoryScreen()
@@ -58,7 +94,11 @@ void JavaInventoryScreen::init()
 	Slot s;
 	const int base = table ? 1 : 1;                 // grid starts at window slot 1
 	// result + grid
-	if (table) {
+	if (furnaceMode) {
+		s.kind = FURNACE; s.index = 0; s.windowSlot = 0; s.x = 56; s.y = 17; slots.push_back(s);
+		s.kind = FURNACE; s.index = 1; s.windowSlot = 1; s.x = 56; s.y = 53; slots.push_back(s);
+		s.kind = FURNACE; s.index = 2; s.windowSlot = 2; s.x = 116; s.y = 35; slots.push_back(s);
+	} else if (table) {
 		s.kind = RESULT; s.index = 0; s.windowSlot = 0; s.x = 124; s.y = 35; slots.push_back(s);
 		for (int i = 0; i < 9; ++i) { s.kind = GRID; s.index = i; s.windowSlot = base + i; s.x = 30 + (i % 3) * 18; s.y = 17 + (i / 3) * 18; slots.push_back(s); }
 	} else {
@@ -67,7 +107,7 @@ void JavaInventoryScreen::init()
 		for (int i = 0; i < 4; ++i) { s.kind = ARMOR; s.index = i; s.windowSlot = 5 + i; s.x = 8; s.y = 8 + i * 18; slots.push_back(s); }
 	}
 	// storage + hotbar (window numbering continues after grid / armour)
-	const int firstStorageWindow = table ? 10 : 9;
+	const int firstStorageWindow = furnaceMode ? 3 : table ? 10 : 9;
 	for (int i = 0; i < 27; ++i) { s.kind = STORAGE; s.index = STORAGE_FIRST + i; s.windowSlot = firstStorageWindow + i; s.x = 8 + (i % 9) * 18; s.y = 84 + (i / 9) * 18; slots.push_back(s); }
 	for (int i = 0; i < 9; ++i) { s.kind = STORAGE; s.index = HOTBAR_FIRST + i; s.windowSlot = firstStorageWindow + 27 + i; s.x = 8 + i * 18; s.y = 142; slots.push_back(s); }
 	setupPositions();
@@ -117,6 +157,12 @@ ItemInstance JavaInventoryScreen::get(const Slot& s)
 	case GRID:    { ItemInstance* i = craftSlots->getItem(s.index); return (i && !i->isNull() && i->count > 0) ? *i : ItemInstance(); }
 	case RESULT:  return resultItem;
 	case ARMOR:   { ItemInstance* i = minecraft->player->getArmor(s.index); return (i && !i->isNull()) ? *i : ItemInstance(); }
+	case FURNACE: {
+		if (minecraft->eagler) return furnaceItems[s.index];
+		FurnaceTileEntity* f = liveFurnace();
+		ItemInstance* i = f ? f->getItem(s.index) : NULL;
+		return (i && !i->isNull() && i->count > 0) ? *i : ItemInstance();
+	}
 	}
 	return ItemInstance();
 }
@@ -141,6 +187,14 @@ void JavaInventoryScreen::set(const Slot& s, const ItemInstance& item)
 		break;
 	case ARMOR:
 		minecraft->player->setArmor(s.index, empty ? NULL : &item);
+		break;
+	case FURNACE:
+		if (minecraft->eagler) furnaceItems[s.index] = empty ? ItemInstance() : item;
+		else if (FurnaceTileEntity* f = liveFurnace()) {
+			ItemInstance copy = empty ? ItemInstance() : item;
+			f->setItem(s.index, &copy);
+			f->setChanged();
+		}
 		break;
 	}
 }
@@ -232,6 +286,19 @@ void JavaInventoryScreen::quickMove(int index)
 		}
 		return;
 	}
+	if (s.kind == STORAGE && furnaceMode) {
+		// Java: smeltables to the input, fuel to the fuel slot, else storage <-> hotbar
+		ItemInstance moving = item;
+		bool moved = false;
+		if (FurnaceRecipes::getInstance()->isFurnaceItem(moving.id)) moved = moveIntoFurnace(moving, 0);
+		else if (FurnaceTileEntity::isFuel(moving)) moved = moveIntoFurnace(moving, 1);
+		if (!moved) {
+			if (s.index >= HOTBAR_FIRST) addToRange(moving, STORAGE_FIRST, HOTBAR_FIRST - 1);
+			else addToRange(moving, HOTBAR_FIRST, HOTBAR_FIRST + 8);
+		}
+		set(s, moving.count > 0 ? moving : ItemInstance());
+		return;
+	}
 	if (s.kind == STORAGE) {
 		// armour from storage goes onto the body first
 		if (!table && Item::items[item.id] && Item::items[item.id]->isArmor()) {
@@ -252,10 +319,23 @@ void JavaInventoryScreen::quickMove(int index)
 		set(s, moving.count > 0 ? moving : ItemInstance());
 		return;
 	}
-	// grid / armour -> inventory
+	// grid / armour / furnace -> inventory (furnace output: hotbar end first, like Java)
 	ItemInstance moving = item;
-	addToRange(moving, STORAGE_FIRST, HOTBAR_FIRST + 8);
+	if (s.kind == FURNACE && s.index == 2) addToRange(moving, HOTBAR_FIRST + 8, STORAGE_FIRST);
+	else addToRange(moving, STORAGE_FIRST, HOTBAR_FIRST + 8);
 	set(s, moving.count > 0 ? moving : ItemInstance());
+}
+
+bool JavaInventoryScreen::moveIntoFurnace(ItemInstance& item, int furnaceSlot)
+{
+	Slot fs = slots[furnaceSlot]; // furnace slots are the first three
+	ItemInstance cur = get(fs);
+	if (cur.isNull()) { set(fs, item); item.count = 0; return true; }
+	if (!same(cur, item) || cur.count >= maxStack(cur)) return false;
+	const int n = Mth::Min(item.count, maxStack(cur) - cur.count);
+	cur.count += n; item.count -= n;
+	set(fs, cur);
+	return true;
 }
 
 void JavaInventoryScreen::click(int index, int button, bool shift)
@@ -276,6 +356,22 @@ void JavaInventoryScreen::click(int index, int button, bool shift)
 		craft(false);
 		return;
 	}
+	if (s.kind == FURNACE && s.index == 2) {
+		// output slot: take only (right click with an empty hand takes half)
+		if (inSlot.isNull()) return;
+		if (carried.isNull()) {
+			const int take = button == 0 ? inSlot.count : (inSlot.count + 1) / 2;
+			carried = inSlot; carried.count = take;
+			inSlot.count -= take;
+			set(s, inSlot.count > 0 ? inSlot : ItemInstance());
+		} else if (same(carried, inSlot) && carried.count + inSlot.count <= maxStack(inSlot)) {
+			carried.count += inSlot.count;
+			set(s, ItemInstance());
+		}
+		return;
+	}
+	if (s.kind == FURNACE && s.index == 1 && !carried.isNull() && !FurnaceTileEntity::isFuel(carried) && !same(carried, inSlot))
+		return; // only fuel goes in the fuel slot
 	if (s.kind == ARMOR && !carried.isNull()) {
 		Item* it = Item::items[carried.id];
 		if (!it || !it->isArmor() || ((ArmorItem*)it)->slot != s.index) return; // only matching armour
@@ -351,7 +447,7 @@ void JavaInventoryScreen::keyPressed(int eventKey)
 	if (eventKey >= '1' && eventKey <= '9' && hovered >= 0) {
 		Slot& s = slots[hovered];
 		const int h = eventKey - '1';
-		if (s.kind == RESULT) return;
+		if (s.kind == RESULT || (s.kind == FURNACE && s.index == 2 && get(s).isNull())) return;
 		Slot hs; hs.kind = STORAGE; hs.index = HOTBAR_FIRST + h; hs.windowSlot = 0;
 		if (s.kind == STORAGE && s.index == hs.index) return;
 		sendClick(s.windowSlot, h, 2, get(s));
@@ -369,6 +465,8 @@ bool JavaInventoryScreen::handleBackEvent(bool isDown)
 void JavaInventoryScreen::tick()
 {
 	if (minecraft->player) fixHotbarLinks(minecraft->player->inventory);
+	// furnace broken (single player): close like Java does
+	if (furnaceMode && !minecraft->eagler && !liveFurnace()) { minecraft->setScreen(NULL); return; }
 }
 
 void JavaInventoryScreen::removed()
@@ -404,6 +502,7 @@ void JavaInventoryScreen::serverSetSlot(int windowSlot, const ItemInstance& item
 		if (s.windowSlot != windowSlot) continue;
 		if (s.kind == GRID) craftSlots->setItem(s.index, item.isNull() ? ItemInstance() : item);
 		else if (s.kind == RESULT) resultItem = item;
+		else if (s.kind == FURNACE) furnaceItems[s.index] = item;
 		// storage / armour slots are written by EaglerClient directly
 		return;
 	}
@@ -448,6 +547,26 @@ void JavaInventoryScreen::drawCount(const ItemInstance& item, int x, int y)
 	minecraft->font->drawShadow(str, (float)(x + 17 - minecraft->font->width(str)), (float)(y + 9), 0xffffffff);
 }
 
+void JavaInventoryScreen::renderFurnaceProgress()
+{
+	// flame (fuel left) and arrow (cooking), drawn from furnace.png's right side
+	bool lit = false;
+	int flame = 0, arrow = 0;
+	if (minecraft->eagler) {
+		lit = props[0] > 0;
+		flame = props[0] * 13 / (props[1] > 0 ? props[1] : 200);
+		arrow = props[2] * 24 / (props[3] > 0 ? props[3] : 200);
+	} else if (FurnaceTileEntity* f = liveFurnace()) {
+		lit = f->isLit();
+		flame = f->getLitProgress(13);
+		arrow = f->getBurnProgress(24);
+	}
+	flame = Mth::clamp(flame, 0, 13);
+	arrow = Mth::clamp(arrow, 0, 24);
+	if (lit) blit(56, 36 + 12 - flame, 176, 12 - flame, 14, flame + 1);
+	if (arrow > 0) blit(79, 34, 176, 14, arrow + 1, 16);
+}
+
 void JavaInventoryScreen::render(int xm, int ym, float a)
 {
 	lastMouseX = xm; lastMouseY = ym;
@@ -460,11 +579,16 @@ void JavaInventoryScreen::render(int xm, int ym, float a)
 	glScalef(ui, ui, 1);
 
 	glColor4f2(1, 1, 1, 1);
-	minecraft->textures->loadAndBindTexture(table ? "gui/java_crafting.png" : "gui/java_inventory.png");
+	minecraft->textures->loadAndBindTexture(furnaceMode ? "gui/java_furnace.png" : table ? "gui/java_crafting.png" : "gui/java_inventory.png");
 	blit(0, 0, 0, 0, PANEL_W, PANEL_H);
 
 	const int textCol = 0xff404040;
-	if (table) {
+	if (furnaceMode) {
+		renderFurnaceProgress();
+		const std::string title = "Furnace";
+		minecraft->font->draw(title, (float)(PANEL_W / 2 - minecraft->font->width(title) / 2), 6.0f, textCol, false);
+		minecraft->font->draw("Inventory", 8.0f, (float)(PANEL_H - 96 + 2), textCol, false);
+	} else if (table) {
 		minecraft->font->draw("Crafting", 28.0f, 6.0f, textCol, false);
 		minecraft->font->draw("Inventory", 8.0f, (float)(PANEL_H - 96 + 2), textCol, false);
 	} else {
@@ -472,12 +596,14 @@ void JavaInventoryScreen::render(int xm, int ym, float a)
 	}
 	glPopMatrix();
 
-	if (!table) {
+	if (!table && !furnaceMode) {
 		// the model needs depth testing; the GUI below never wrote useful depth
+		const bool depthWas = glIsEnabled(GL_DEPTH_TEST) != 0;
 		glClear(GL_DEPTH_BUFFER_BIT);
 		glEnable2(GL_DEPTH_TEST);
 		renderPlayer(left + 51 * ui, top + 75 * ui, (float)xm, (float)ym);
-		glDisable2(GL_DEPTH_TEST);
+		// leaving it off made the world render without depth (x-ray)
+		if (!depthWas) glDisable2(GL_DEPTH_TEST);
 	}
 
 	glPushMatrix();
@@ -511,6 +637,8 @@ void JavaInventoryScreen::render(int xm, int ym, float a)
 		ItemInstance item = get(slots[hovered]);
 		if (!item.isNull()) {
 			std::string name = item.getName();
+			if (slots[hovered].kind == STORAGE && minecraft->eagler)
+				if (const std::string* n = minecraft->eagler->slotName(slots[hovered].index, item)) name = *n;
 			const int w = minecraft->font->width(name);
 			int tx = xm + 8, ty = ym - 12;
 			if (tx + w + 6 > width) tx = width - w - 6;

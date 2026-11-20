@@ -77,7 +77,7 @@ static void initIdMap()
 		{ 130, 54 }, { 146, 54 },           // ender / trapped chest
 		{ 123, 89 }, { 124, 89 }, { 169, 89 }, // lamps, sea lantern -> glowstone
 		{ 138, 20 },                        // beacon
-		{ 179, 24 }, { 180, 128 }, { 181, 44 }, { 182, 44 }, // red sandstone
+		{ 179, 24 }, { 181, 44 }, { 182, 44 }, // red sandstone
 		{ 151, 44 }, { 178, 44 },           // daylight sensors
 		{ 84, 5 }, { 25, 5 },               // jukebox, note block
 	};
@@ -85,6 +85,11 @@ static void initIdMap()
 		int to = m[i].to;
 		if (to != 0 && to < 256 && !Tile::tiles[to]) to = 1;
 		s_idMap[m[i].from] = (unsigned char)to;
+	}
+	{
+		static const int stairs[] = { 53, 67, 108, 109, 114, 128, 134, 135, 136, 156, 163, 164, 180 };
+		for (unsigned int i = 0; i < sizeof(stairs) / sizeof(stairs[0]); ++i)
+			if (!Tile::tiles[stairs[i]]) s_idMap[stairs[i]] = 53; // unsupported stairs -> oak stairs
 	}
 	if (!Tile::tiles[141]) s_idMap[141] = Tile::tiles[59] ? 59 : 0; // carrots
 	if (!Tile::tiles[142]) s_idMap[142] = Tile::tiles[59] ? 59 : 0; // potatoes
@@ -164,6 +169,7 @@ EaglerClient::EaglerClient(Minecraft* mc, const std::string& address_, const std
 	lastHeldId(-1), lastHeldData(-1),
 	digging(false),
 	openWindowId(-1),
+	openWindowFirstStorage(10),
 	actionCounter(0),
 	borderX(0), borderZ(0)
 {
@@ -452,7 +458,10 @@ void EaglerClient::handlePlay(const std::vector<unsigned char>& msg)
 	case 0x18: onEntityTeleport(in); break;
 	case 0x1A: { // entity status
 		int eid = in.i32(); int st = in.i8();
-		if (Entity* e = live(eid)) e->handleEntityEvent((char)st);
+		if (eid == playerEid && mc->player) {
+			if (st == 9) mc->player->stopUsingItem(); // server finished eating / drinking
+			else if (st == 2) mc->player->hurtTime = mc->player->hurtDuration = 10;
+		} else if (Entity* e = live(eid)) e->handleEntityEvent((char)st);
 		break;
 	}
 	case 0x1C: onMetadata(in); break;
@@ -474,6 +483,12 @@ void EaglerClient::handlePlay(const std::vector<unsigned char>& msg)
 		break;
 	}
 	case 0x2F: onSetSlot(in); break;
+	case 0x31: { // window property (furnace progress)
+		int w = in.u8(); int prop = in.i16(); int value = in.i16();
+		if (JavaInventoryScreen::active && JavaInventoryScreen::active->getWindowId() == w && w != 0)
+			JavaInventoryScreen::active->serverSetProperty(prop, value);
+		break;
+	}
 	case 0x30: onWindowItems(in); break;
 	case 0x38: onPlayerList(in); break;
 	case 0x39: { // abilities
@@ -1048,24 +1063,138 @@ static void skipNbtPayload(PacketIn& in, int type, int depth)
 	}
 }
 
+
+// ---------------------------------------------------------------------------
+// Display names for server items this engine shows as something else
+// ---------------------------------------------------------------------------
+static const char* COLOR_NAMES[16] = { "White", "Orange", "Magenta", "Light Blue", "Yellow", "Lime", "Pink", "Gray",
+	"Light Gray", "Cyan", "Purple", "Blue", "Brown", "Green", "Red", "Black" };
+
+static std::string variantName(int id, int data)
+{
+	switch (id) {
+	case 1: { static const char* n[7] = { 0, "Granite", "Polished Granite", "Diorite", "Polished Diorite", "Andesite", "Polished Andesite" };
+		return (data >= 1 && data <= 6) ? n[data] : std::string(); }
+	case 3: return data == 1 ? "Coarse Dirt" : std::string();
+	case 95: return std::string(COLOR_NAMES[data & 15]) + " Stained Glass";
+	case 160: return std::string(COLOR_NAMES[data & 15]) + " Stained Glass Pane";
+	case 171: return std::string(COLOR_NAMES[data & 15]) + " Carpet";
+	case 176: case 177: return "Banner";
+	case 425: return std::string(COLOR_NAMES[15 - (data & 15)]) + " Banner";
+	}
+	struct N { int id; const char* name; };
+	static const N table[] = {
+		{ 23, "Dispenser" }, { 25, "Note Block" }, { 27, "Powered Rail" }, { 28, "Detector Rail" }, { 29, "Sticky Piston" },
+		{ 33, "Piston" }, { 34, "Piston Head" }, { 55, "Redstone Wire" }, { 69, "Lever" }, { 70, "Stone Pressure Plate" },
+		{ 72, "Wooden Pressure Plate" }, { 75, "Redstone Torch" }, { 76, "Redstone Torch" }, { 77, "Stone Button" },
+		{ 84, "Jukebox" }, { 90, "Portal" }, { 93, "Redstone Repeater" }, { 97, "Monster Egg" }, { 113, "Nether Brick Fence" },
+		{ 116, "Enchantment Table" }, { 117, "Brewing Stand" }, { 118, "Cauldron" }, { 120, "End Portal Frame" },
+		{ 121, "End Stone" }, { 122, "Dragon Egg" }, { 123, "Redstone Lamp" }, { 125, "Wooden Double Slab" },
+		{ 126, "Wooden Slab" }, { 130, "Ender Chest" }, { 131, "Tripwire Hook" }, { 137, "Command Block" }, { 138, "Beacon" },
+		{ 139, "Cobblestone Wall" }, { 140, "Flower Pot" }, { 143, "Wooden Button" }, { 144, "Head" }, { 145, "Anvil" },
+		{ 146, "Trapped Chest" }, { 147, "Gold Pressure Plate" }, { 148, "Iron Pressure Plate" }, { 151, "Daylight Sensor" },
+		{ 152, "Block of Redstone" }, { 153, "Nether Quartz Ore" }, { 154, "Hopper" }, { 158, "Dropper" }, { 165, "Slime Block" },
+		{ 166, "Barrier" }, { 167, "Iron Trapdoor" }, { 168, "Prismarine" }, { 169, "Sea Lantern" }, { 170, "Hay Bale" },
+		{ 175, "Double Plant" }, { 179, "Red Sandstone" }, { 180, "Red Sandstone Stairs" }, { 181, "Red Sandstone Slab" },
+		{ 182, "Red Sandstone Slab" }, { 183, "Spruce Fence Gate" }, { 184, "Birch Fence Gate" }, { 185, "Jungle Fence Gate" },
+		{ 186, "Dark Oak Fence Gate" }, { 187, "Acacia Fence Gate" }, { 188, "Spruce Fence" }, { 189, "Birch Fence" },
+		{ 190, "Jungle Fence" }, { 191, "Dark Oak Fence" }, { 192, "Acacia Fence" }, { 134, "Spruce Stairs" },
+		{ 135, "Birch Stairs" }, { 136, "Jungle Stairs" }, { 163, "Acacia Stairs" }, { 164, "Dark Oak Stairs" },
+		{ 114, "Nether Brick Stairs" }, { 156, "Quartz Stairs" },
+		{ 331, "Redstone" }, { 346, "Fishing Rod" }, { 356, "Redstone Repeater" }, { 368, "Ender Pearl" }, { 369, "Blaze Rod" },
+		{ 370, "Ghast Tear" }, { 371, "Gold Nugget" }, { 372, "Nether Wart" }, { 373, "Potion" }, { 374, "Glass Bottle" },
+		{ 375, "Spider Eye" }, { 376, "Fermented Spider Eye" }, { 377, "Blaze Powder" }, { 378, "Magma Cream" },
+		{ 379, "Brewing Stand" }, { 380, "Cauldron" }, { 381, "Eye of Ender" }, { 382, "Glistering Melon" },
+		{ 383, "Spawn Egg" }, { 384, "Bottle o' Enchanting" }, { 385, "Fire Charge" }, { 386, "Book and Quill" },
+		{ 387, "Written Book" }, { 388, "Emerald" }, { 389, "Item Frame" }, { 390, "Flower Pot" }, { 391, "Carrot" },
+		{ 392, "Potato" }, { 393, "Baked Potato" }, { 394, "Poisonous Potato" }, { 395, "Empty Map" }, { 396, "Golden Carrot" },
+		{ 397, "Head" }, { 398, "Carrot on a Stick" }, { 399, "Nether Star" }, { 400, "Pumpkin Pie" }, { 401, "Firework Rocket" },
+		{ 402, "Firework Star" }, { 403, "Enchanted Book" }, { 404, "Redstone Comparator" }, { 405, "Nether Brick" },
+		{ 406, "Nether Quartz" }, { 407, "Minecart with TNT" }, { 408, "Minecart with Hopper" }, { 409, "Prismarine Shard" },
+		{ 410, "Prismarine Crystals" }, { 411, "Raw Rabbit" }, { 412, "Cooked Rabbit" }, { 413, "Rabbit Stew" },
+		{ 414, "Rabbit's Foot" }, { 415, "Rabbit Hide" }, { 416, "Armor Stand" }, { 417, "Iron Horse Armor" },
+		{ 418, "Gold Horse Armor" }, { 419, "Diamond Horse Armor" }, { 420, "Lead" }, { 421, "Name Tag" },
+		{ 422, "Minecart with Command Block" }, { 423, "Raw Mutton" }, { 424, "Cooked Mutton" },
+		{ 427, "Spruce Door" }, { 428, "Birch Door" }, { 429, "Jungle Door" }, { 430, "Acacia Door" }, { 431, "Dark Oak Door" },
+	};
+	for (unsigned int i = 0; i < sizeof(table) / sizeof(table[0]); ++i)
+		if (table[i].id == id) return table[i].name;
+	if (id >= 2256 && id <= 2267) return "Music Disc";
+	return std::string();
+}
+
+// Reads an NBT payload; returns display.Name (anvil names) if present.
+static void readNbtName(PacketIn& in, int type, int depth, bool inDisplay, std::string& name)
+{
+	if (depth > 32 || !in.ok()) { in.skip(in.remaining()); return; }
+	switch (type) {
+	case 1: in.skip(1); break;
+	case 2: in.skip(2); break;
+	case 3: case 5: in.skip(4); break;
+	case 4: case 6: in.skip(8); break;
+	case 7: { int n = in.i32(); if (n > 0) in.skip(n); break; }
+	case 8: { int n = in.u16(); in.skip(n); break; }
+	case 9: { int t = in.u8(); int n = in.i32(); for (int i = 0; i < n && in.ok(); ++i) readNbtName(in, t, depth + 1, false, name); break; }
+	case 10:
+		for (;;) {
+			int t = in.u8();
+			if (t == 0 || !in.ok()) break;
+			int nl = in.u16();
+			std::string tag((const char*)in.cur(), nl > (int)in.remaining() ? in.remaining() : nl);
+			in.skip(nl);
+			if (t == 8 && inDisplay && tag == "Name") {
+				int sl = in.u16();
+				name.assign((const char*)in.cur(), sl > (int)in.remaining() ? in.remaining() : sl);
+				in.skip(sl);
+			} else {
+				readNbtName(in, t, depth + 1, depth == 0 && t == 10 && tag == "display", name);
+			}
+		}
+		break;
+	case 11: { int n = in.i32(); if (n > 0) in.skip((size_t)n * 4); break; }
+	default: in.skip(in.remaining()); break;
+	}
+}
+
 bool EaglerClient::readSlot(PacketIn& in, ItemInstance& out)
 {
+	lastSlotInfo = SlotInfo();
 	int id = in.i16();
 	if (id < 0) { out = ItemInstance(); return false; }
 	int count = in.i8();
 	int damage = in.i16();
 	int nbt = in.u8();
-	if (nbt != 0) { int nl = in.u16(); in.skip(nl); skipNbtPayload(in, nbt, 0); }
+	std::string customName;
+	if (nbt != 0) { int nl = in.u16(); in.skip(nl); readNbtName(in, nbt, 0, false, customName); }
+	lastSlotInfo.id = id;
+	lastSlotInfo.data = damage;
+	lastSlotInfo.name = customName.empty() ? variantName(id, damage) : stripCodes(customName);
 	if (id < 256) {
 		int mid, mdata;
 		mapBlock((id << 4) | (damage & 15), mid, mdata);
-		if (mid == 0) { out = ItemInstance(); return false; }
-		if (id != 17 && id != 162 && id != 18 && id != 161 && id != 3) mdata = damage;
+		// blocks: use the mapped data (andesite = stone:0, not a "damaged" stone)
+		if (mid == 0) { mid = 1; mdata = 0; } // no counterpart (carpet, lever, ...): stand-in, real name kept
 		id = mid; damage = mdata;
 	}
-	if (id >= 512 || !Item::items[id]) { out = ItemInstance(); return false; }
+	if (id >= 512 || !Item::items[id]) {
+		// item this engine doesn't have: show paper with the real name
+		if (lastSlotInfo.name.empty()) lastSlotInfo.name = "Unknown item";
+		id = Item::paper ? Item::paper->id : 339;
+		damage = 0;
+	}
+	lastSlotInfo.mappedId = id;
+	lastSlotInfo.mappedData = damage;
 	out = ItemInstance(id, count, damage);
 	return true;
+}
+
+const std::string* EaglerClient::slotName(int peSlot, const ItemInstance& shown) const
+{
+	if (peSlot < 0 || peSlot >= 45 || slotInfo[peSlot].name.empty()) return 0;
+	const SlotInfo& s = slotInfo[peSlot];
+	// only while the slot still holds that item (local moves aren't tracked)
+	if (shown.isNull() || shown.id != s.mappedId || shown.getAuxValue() != s.mappedData) return 0;
+	return &s.name;
 }
 
 void EaglerClient::writeSlot(PacketOut& o, const ItemInstance* item)
@@ -1091,11 +1220,12 @@ void EaglerClient::applyWindowSlot(int window, int slot, const ItemInstance& it,
 		if (slot >= 5 && slot <= 8) { mc->player->setArmor(slot - 5, has ? &it : NULL); return; }
 		if (slot >= 9 && slot <= 44) peSlot = slot;
 	} else if (window == openWindowId && window != 0) {
-		// crafting table: result 0, grid 1-9, storage 10-36, hotbar 37-45
-		if (slot >= 0 && slot <= 9) { if (js && js->getWindowId() == window) js->serverSetSlot(slot, has ? it : ItemInstance()); return; }
-		if (slot >= 10 && slot <= 45) peSlot = slot - 1;
+		// crafting table: result 0, grid 1-9, storage 10-36; furnace: 0-2, storage 3-29
+		if (slot >= 0 && slot < openWindowFirstStorage) { if (js && js->getWindowId() == window) js->serverSetSlot(slot, has ? it : ItemInstance()); return; }
+		if (slot >= openWindowFirstStorage && slot < openWindowFirstStorage + 36) peSlot = 9 + (slot - openWindowFirstStorage);
 	}
 	if (peSlot < 9 || peSlot > 44) return;
+	slotInfo[peSlot] = has ? lastSlotInfo : SlotInfo();
 	if (has) { ItemInstance copy(it); inv->replaceSlot(peSlot, &copy); } else inv->clearSlot(peSlot);
 	JavaInventoryScreen::fixHotbarLinks(inv);
 }
@@ -1127,7 +1257,12 @@ void EaglerClient::onOpenWindow(PacketIn& in)
 	in.str(); in.u8();
 	if (type == "minecraft:crafting_table") {
 		openWindowId = id;
+		openWindowFirstStorage = 10;
 		mc->setScreen(new JavaInventoryScreen(true, id));
+	} else if (type == "minecraft:furnace") {
+		openWindowId = id;
+		openWindowFirstStorage = 3;
+		mc->setScreen(new JavaInventoryScreen((FurnaceTileEntity*)0, id));
 	} else {
 		// chests, furnaces, ... aren't supported yet: close it again so the
 		// server doesn't think it's still open
@@ -1145,7 +1280,16 @@ void EaglerClient::sendWindowClick(int window, int slot, int button, int mode, c
 	o.u8(button);
 	o.u16(++actionCounter & 0x7FFF);
 	o.u8(mode);
-	writeSlot(o, clicked.isNull() ? 0 : &clicked);
+	// the server compares the clicked item with its own: send its real id/data
+	int peSlot = -1;
+	if (window == 0 && slot >= 9 && slot <= 44) peSlot = slot;
+	else if (window != 0 && window == openWindowId && slot >= openWindowFirstStorage && slot < openWindowFirstStorage + 36) peSlot = 9 + (slot - openWindowFirstStorage);
+	const SlotInfo* info = peSlot >= 0 ? &slotInfo[peSlot] : 0;
+	if (info && info->id > 0 && !clicked.isNull() && clicked.id == info->mappedId && clicked.getAuxValue() == info->mappedData) {
+		o.u16(info->id); o.u8(clicked.count); o.u16(info->data); o.u8(0);
+	} else {
+		writeSlot(o, clicked.isNull() ? 0 : &clicked);
+	}
 	send(o);
 }
 
@@ -1549,4 +1693,10 @@ bool EaglerClient::swapIntoHotbar(Inventory* inv, int hotbarSlot, int inventoryS
 	if (ia.isNull() || ia.count <= 0) inv->clearSlot(hot); else inv->replaceSlot(hot, &ia);
 	JavaInventoryScreen::fixHotbarLinks(inv);
 	return true;
+}
+
+void EaglerClient::onReleaseUseItem()
+{
+	if (!isPlaying()) return;
+	PacketOut o(0x07); o.u8(5); o.position(0, 0, 0); o.u8(0); send(o);
 }

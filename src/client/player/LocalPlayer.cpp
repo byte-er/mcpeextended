@@ -1,5 +1,6 @@
 #include "LocalPlayer.h"
 #include "../gui/screens/JavaInventoryScreen.h"
+#include "../../world/level/tile/entity/FurnaceTileEntity.h"
 #include "../../world/item/crafting/Recipe.h"
 #include "../skin/PlayerSkin.h"
 #include "../Minecraft.h"
@@ -108,7 +109,8 @@ void LocalPlayer::tick() {
 			if (useItemDuration <= 25 && useItemDuration % 4 == 0) {
 				spawnEatParticles(item, 5);
 			}
-			if(--useItemDuration == 0) {
+			if (minecraft->eagler && useItemDuration < -40) stopUsingItem(); // server never confirmed
+			else if(--useItemDuration == 0) {
 				if(!level->isClientSide) {
 					completeUsingItem();
 				} else {
@@ -472,8 +474,12 @@ void LocalPlayer::startStonecutting(int x, int y, int z) {
 
 void LocalPlayer::openFurnace( FurnaceTileEntity* e ) {
 #ifndef STANDALONE_SERVER
-	if (!minecraft->isCreativeMode())
-		minecraft->setScreen( new FurnaceScreen(this, e) );
+	if (!minecraft->isCreativeMode()) {
+		if (minecraft->options.pcUi && !e->clientSideOnly && !minecraft->eagler)
+			minecraft->setScreen( new JavaInventoryScreen(e, 0) );   // "Enable PC UI": Java furnace
+		else
+			minecraft->setScreen( new FurnaceScreen(this, e) );
+	}
 #endif
 }
 

@@ -164,7 +164,7 @@ void GameMode::initPlayer( Player* player ) {
 
 void GameMode::releaseUsingItem(Player* player){
 	if (minecraft->eagler) {
-		// release use item (bow, eating): digging status 5
+		minecraft->eagler->onReleaseUseItem(); // bows shoot, eating stops
 	} else if(minecraft->level->isClientSide) {
 		PlayerActionPacket packet(PlayerActionPacket::RELEASE_USE_ITEM,  0, 0, 0, 0, player->entityId);
 		minecraft->raknetInstance->send(packet);

@@ -38,6 +38,7 @@ void Options::initDefaultValues() {
 	vsync = true;
 	fancyGraphics = true;//false;
 	ambientOcclusion = true; // 0.9.0 shipped with smooth lighting on
+	fov = 90.0f;
 	lodTerrain = false; // Distant Terrain is opt-in (Options -> Graphics)
 	pcUi = false;
 	if(minecraft->supportNonTouchScreen())
@@ -154,7 +155,8 @@ const Options::Option
 	Options::Option::PIXELS_PER_MILLIMETER(19, "options.pixelspermilimeter", true, false),
 	Options::Option::VSYNC               (20, "options.vsync",             false, true),
 	Options::Option::LOD_TERRAIN         (21, "options.lod",               false, true),
-	Options::Option::PC_UI               (22, "options.pcui",              false, true);
+	Options::Option::PC_UI               (22, "options.pcui",              false, true),
+	Options::Option::FOV                 (23, "options.fov",               true, false);
 
 /* private */
 const float Options::SOUND_MIN_VALUE = 0.0f;
@@ -255,6 +257,10 @@ void Options::update()
 			readBool(value, lodTerrain);
 		if (key == OptionStrings::Controls_PcUi)
 			readBool(value, pcUi);
+		if (key == OptionStrings::Graphics_Fov) {
+			float f;
+			if (readFloat(value, f) && f >= 30 && f <= 110) fov = f;
+		}
 		if (key == OptionStrings::Graphics_GUIScale) {
 			int v;
 			if (readInt(value, v)) guiScale = v % 5;
@@ -336,6 +342,7 @@ void Options::save()
 	addOptionToSaveOutput(stringVec, OptionStrings::Graphics_Vsync, vsync);
 	addOptionToSaveOutput(stringVec, OptionStrings::Graphics_Lod, lodTerrain);
 	addOptionToSaveOutput(stringVec, OptionStrings::Controls_PcUi, pcUi);
+	addOptionToSaveOutput(stringVec, OptionStrings::Graphics_Fov, fov);
 	addOptionToSaveOutput(stringVec, OptionStrings::Graphics_GUIScale, guiScale);
 // 
 // 	static const Option MUSIC;

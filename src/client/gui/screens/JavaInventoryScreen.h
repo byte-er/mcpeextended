@@ -6,6 +6,7 @@
 #include <vector>
 
 class CraftingContainer;
+class FurnaceTileEntity;
 
 /**
  * Java Edition style inventory ("Enable PC UI"): armour slots, player
@@ -15,7 +16,8 @@ class CraftingContainer;
  *
  * Slots use Java's window numbering (inventory: result 0, grid 1-4,
  * armour 5-8, storage 9-35, hotbar 36-44; table: result 0, grid 1-9,
- * storage 10-36, hotbar 37-45), so on Eaglercraft servers clicks are sent
+ * storage 10-36, hotbar 37-45; furnace: input 0, fuel 1, result 2,
+ * storage 3-29, hotbar 30-38), so on Eaglercraft servers clicks are sent
  * as standard window clicks and the server does the crafting.
  */
 class JavaInventoryScreen : public Screen
@@ -23,6 +25,8 @@ class JavaInventoryScreen : public Screen
 	typedef Screen super;
 public:
 	JavaInventoryScreen(bool table, int windowId = 0);
+	/** Furnace screen: furnace = the block's tile entity (single player), or NULL on servers. */
+	JavaInventoryScreen(FurnaceTileEntity* furnace, int windowId);
 	~JavaInventoryScreen();
 
 	void init();
@@ -40,6 +44,9 @@ public:
 	void serverSetSlot(int windowSlot, const ItemInstance& item);
 	int getWindowId() const { return windowId; }
 	bool isTable() const { return table; }
+	bool isFurnace() const { return furnaceMode; }
+	/** Eaglercraft: window property (furnace burn / cook progress). */
+	void serverSetProperty(int prop, int value);
 
 	/** Keeps the hotbar on inventory slots 36-44 (Java layout). */
 	static void fixHotbarLinks(class Inventory* inv);
@@ -47,7 +54,7 @@ public:
 	static JavaInventoryScreen* active;
 
 private:
-	enum Kind { STORAGE, GRID, RESULT, ARMOR };
+	enum Kind { STORAGE, GRID, RESULT, ARMOR, FURNACE };
 	struct Slot { int x, y; Kind kind; int index; int windowSlot; };
 
 	ItemInstance get(const Slot& s);
@@ -64,8 +71,16 @@ private:
 	void drawCount(const ItemInstance& item, int x, int y);
 	static int maxStack(const ItemInstance& i);
 	static bool same(const ItemInstance& a, const ItemInstance& b);
+	FurnaceTileEntity* liveFurnace();
+	bool moveIntoFurnace(ItemInstance& item, int furnaceSlot);
+	void renderFurnaceProgress();
 
 	bool table;
+	bool furnaceMode;
+	FurnaceTileEntity* furnace;      // single player; checked against the level before use
+	int furnaceX, furnaceY, furnaceZ;
+	ItemInstance furnaceItems[3];    // servers: what the server says is in the furnace
+	int props[4];                    // servers: burn time, fuel burn time, cook time, total cook time
 	int windowId;
 	int gridW;
 	CraftingContainer* craftSlots;

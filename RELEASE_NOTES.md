@@ -1,13 +1,36 @@
-## MCPE Extended 0.9.4
+## MCPE Extended 0.9.5
 
 ### Downloads
 | Platform | File |
 |---|---|
-| Android (most phones) | `mcpeextended-0.9.4-arm64-v8a.apk` (or `-universal.apk` if unsure, `-armeabi-v7a.apk` for old 32-bit phones) |
+| Android (most phones) | `mcpeextended-0.9.5-arm64-v8a.apk` (or `-universal.apk` if unsure, `-armeabi-v7a.apk` for old 32-bit phones) |
 | Any computer, no setup | `mcpeextended.html`: one self-contained file (about 15 MB). Download it and open it in Chrome, Edge, Firefox or Safari; it works offline and saves worlds in the browser. |
 | PC (Windows / macOS / Linux), **iOS**, other devices | `mcpeextended-web.zip`: the browser build. Host the files on any web server (HTTPS to install it as an app). On PC it uses mouse + keyboard (click to capture the mouse, Esc pauses); on phones and tablets it uses touch controls. On iPhone/iPad open it in Safari → Share → **Add to Home Screen** to install it as a fullscreen app. |
 
 If installing the APK over an older build fails, uninstall the old one first; builds can be signed with different keys. Old worlds in `/sdcard/games/com.mojang` are copied over automatically when Android lets the app read them.
+
+### New: Java HUD and furnace (PC UI)
+- With **Enable PC UI** on (and mouse + keyboard), the in-game HUD is Java-style: the Java hotbar and selection frame, hearts above it and the **armour bar** above the hearts, air bubbles on the right. No hunger or XP bar.
+- **Furnaces** open a Java-style furnace screen with input, fuel and output slots, the burning flame and the progress arrow. Shift-click sends smeltable items to the input and fuel to the fuel slot. Works in single player and **on Eaglercraft servers**.
+
+### New: FOV slider
+- **Options → Graphics → FOV**, from 30 to 110, **default 90**. Your hand stays at its normal size whatever the FOV.
+
+### Eaglercraft server fixes
+- **Item names**: items this game shows as something else keep their real name: Andesite, Granite, Diorite, Coarse Dirt, stained glass colours, carpets, fence gates and so on. Renamed (anvil) items show their name too. You see them in the hotbar name popup and the PC UI tooltips. Server items this game doesn't have at all show as paper with the right name instead of disappearing.
+- **No more fake durability bars**: blocks with a data value (andesite, stained glass...) were drawn as damaged items. Blocks never show a durability bar now.
+- **Unsupported stairs** (acacia, dark oak, red sandstone, ...) show as **oak stairs** facing the right way instead of stone blocks.
+- **Bows work on servers**: releasing the right mouse button now tells the server to shoot.
+- **Eating on servers** no longer glitches: the server decides when you can eat, and the client stops the eating animation when the server finishes it.
+- Inventory clicks send the server's real item ids, so moving andesite or other stand-in items no longer gets rejected.
+
+### Fixes
+- **X-ray with the PC UI inventory open**: drawing the player preview left depth testing off, so the world behind the inventory was drawn see-through. Fixed.
+- The browser build's **Fullscreen button is gone**.
+
+---
+
+## Earlier: MCPE Extended 0.9.4
 
 ### New: PC UI (Java-style inventory)
 - **Options → Controls → Enable PC UI** swaps the Pocket Edition inventory for a Java-style one: armour slots, a player preview that follows your mouse, a 2×2 **Crafting** grid, 27 inventory slots and the hotbar. There's no hunger bar, offhand slot or recipe book.

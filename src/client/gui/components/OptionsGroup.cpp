@@ -62,7 +62,7 @@ void OptionsGroup::createProgressSlider( const Options::Option* option, Minecraf
 	element->width = 100;
 	element->height = 20;
 	std::string itemLabel = I18n::get(option->getCaptionId());
-	OptionsItem* item = new OptionsItem(itemLabel, element);
+	OptionsItem* item = new OptionsItem(itemLabel, element, option == &Options::Option::FOV ? option : 0);
 	addChild(item);
 	setupPositions();
 }

@@ -45,6 +45,8 @@ public:
 	/** Placed by the server and the chunks around the player have arrived. */
 	bool isTerrainReady() const;
 	static int biomeAt(int x, int z, void* ctx);
+	/** Server display name of an inventory slot (9..44), if it differs from ours. */
+	const std::string* slotName(int peSlot, const ItemInstance& shown) const;
 	static bool swapIntoHotbar(class Inventory* inv, int hotbarSlot, int inventorySlot);
 	static EaglerClient* s_active;
 	/** Normalises user input like "eagarchy.wackify.dev" to "wss://eagarchy.wackify.dev/". */
@@ -60,6 +62,7 @@ public:
 	void onAttack(Entity* target);
 	void onInteract(Entity* target);
 	void onSwing();
+	void onReleaseUseItem();
 	void sendChat(const std::string& message);
 	void sendWindowClick(int window, int slot, int button, int mode, const ItemInstance& clicked);
 	void sendCloseWindow(int window);
@@ -161,6 +164,7 @@ private:
 	int lastHeldId, lastHeldData;
 	bool digging;
 	int openWindowId;
+	int openWindowFirstStorage; // window slot of the first storage slot (table 10, furnace 3)
 	int actionCounter;
 
 	// world border (server coordinates)
@@ -169,6 +173,14 @@ private:
 	std::map<int, TrackedEntity> entities;
 	std::map<std::string, std::string> playerNames; // uuid bytes -> name
 	std::set<std::string> requestedSkins;
+	struct SlotInfo {                  // what the server really has in a slot
+		int id, data;                  // 1.8 id / data
+		int mappedId, mappedData;      // what this engine shows
+		std::string name;              // display name if it differs (anvil name, Andesite, ...)
+		SlotInfo() : id(0), data(0), mappedId(0), mappedData(0) {}
+	};
+	SlotInfo slotInfo[45];             // by inventory slot (9..44)
+	SlotInfo lastSlotInfo;             // filled by readSlot
 };
 
 #endif /*NET_MINECRAFT_NETWORK_EAGLER__EaglerClient_H__*/

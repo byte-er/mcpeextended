@@ -22,7 +22,9 @@
 #include "../../world/level/Level.h"
 #include "../../world/PosTranslator.h"
 #include "../../platform/time.h"
+#include "../../network/eagler/EaglerClient.h"
 #include <cmath>
+#include <cstdio>
 
 float Gui::InvGuiScale = 1.0f / 3.0f;
 float Gui::GuiScale = 1.0f / Gui::InvGuiScale;
@@ -97,7 +99,13 @@ void Gui::render(float a, bool mouseFree, int xMouse, int yMouse) {
     // L: 6
     // F: 3
 	int ySlot = screenHeight - 16 - 3;
+	const bool javaHud = minecraft->options.pcUi && !isTouchInterface;
 
+	if (javaHud) {
+		renderJavaHud(a, screenWidth, screenHeight);
+		ySlot = screenHeight - 41; // item name goes above hearts and armour (Java: h - 59 + 22)
+		if (!minecraft->gameMode->canHurtPlayer()) ySlot += 14;
+	} else
 	if (minecraft->gameMode->canHurtPlayer()) {
 		minecraft->textures->loadAndBindTexture("gui/icons.png");
 		Tesselator& t = Tesselator::instance;
@@ -118,7 +126,7 @@ void Gui::render(float a, bool mouseFree, int xMouse, int yMouse) {
 		glEnable(GL_DEPTH_TEST);
 	}
 
-	renderToolBar(a, ySlot, screenWidth);
+	if (!javaHud) renderToolBar(a, ySlot, screenWidth);
 
 	glEnable(GL_BLEND);
 	unsigned int max = 10;
@@ -648,6 +656,108 @@ void Gui::renderHearts() {
 	}
 }
 
+std::string Gui::selectedItemName() {
+	Inventory* inv = minecraft->player->inventory;
+	ItemInstance* item = inv->getSelected();
+	if (!item) return std::string();
+	// on servers, show the server's name (Andesite, anvil names...) instead of the stand-in's
+	if (minecraft->eagler && inv->selected >= 0 && inv->selected < 9) {
+		const int slot = inv->linkedSlots[inv->selected].inventorySlot;
+		if (const std::string* n = minecraft->eagler->slotName(slot, *item)) return *n;
+	}
+	return item->getName();
+}
+
+// Java Edition HUD: 182x22 hotbar, hearts above its left half, armour above
+// the hearts, air on the right. No hunger or XP (this engine has neither).
+void Gui::renderJavaHud(float a, int screenWidth, int screenHeight) {
+	Inventory* inventory = minecraft->player->inventory;
+	LocalPlayer* player = minecraft->player;
+	Tesselator& t = Tesselator::instance;
+	const int left = screenWidth / 2 - 91;
+	const int barY = screenHeight - 22;
+
+	glEnable2(GL_BLEND);
+	glBlendFunc2(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+	glColor4f2(1, 1, 1, 1);
+	minecraft->textures->loadAndBindTexture("gui/java_widgets.png");
+	blit(left, barY, 0, 0, 182, 22);
+	int sel = inventory->selected;
+	if (sel < 0 || sel > 8) sel = 0;
+	blit(left - 1 + sel * 20, barY - 1, 0, 22, 24, 24);
+
+	if (minecraft->gameMode->canHurtPlayer()) {
+		minecraft->textures->loadAndBindTexture("gui/java_icons.png");
+		t.beginOverride();
+		t.colorABGR(0xffffffff);
+		bool blink = (player->invulnerableTime / 3) % 2 == 1;
+		if (player->invulnerableTime < 10) blink = false;
+		const int h = player->health, oh = player->lastHealth;
+		const int heartsY = screenHeight - 32;
+		random.setSeed(tickCount * 312871);
+		const int armor = player->getArmorValue();
+		for (int i = 0; i < 10; i++) {
+			const int ip2 = i * 2 + 1;
+			const int x = left + i * 8;
+			if (armor > 0) {
+				const int ay = heartsY - 10;
+				if (ip2 < armor) blit(x, ay, 34, 9, 9, 9);
+				else if (ip2 == armor) blit(x, ay, 25, 9, 9, 9);
+				else blit(x, ay, 16, 9, 9, 9);
+			}
+			int y = heartsY;
+			if (h <= 4) y += random.nextInt(2);
+			blit(x, y, 16 + (blink ? 9 : 0), 0, 9, 9);
+			if (blink) {
+				if (ip2 < oh) blit(x, y, 70, 0, 9, 9);
+				else if (ip2 == oh) blit(x, y, 79, 0, 9, 9);
+			}
+			if (ip2 < h) blit(x, y, 52, 0, 9, 9);
+			else if (ip2 == h) blit(x, y, 61, 0, 9, 9);
+		}
+		if (player->isUnderLiquid(Material::water)) {
+			const int count = (int) std::ceil((player->airSupply - 2) * 10.0f / Player::TOTAL_AIR_SUPPLY);
+			const int extra = (int) std::ceil((player->airSupply) * 10.0f / Player::TOTAL_AIR_SUPPLY) - count;
+			for (int i = 0; i < count + extra; i++)
+				blit(screenWidth / 2 + 91 - i * 8 - 9, heartsY, i < count ? 16 : 25, 18, 9, 9);
+		}
+		t.endOverrideAndDraw();
+	}
+
+	// items
+	const int itemY = screenHeight - 19;
+	t.beginOverride();
+	for (int i = 0; i < 9; i++)
+		renderSlot(i, left + 3 + i * 20, itemY, a);
+	minecraft->textures->loadAndBindTexture("gui/gui_blocks.png");
+	t.endOverrideAndDraw();
+
+	glDisable2(GL_DEPTH_TEST);
+	glDisable2(GL_TEXTURE_2D);
+	t.beginOverride();
+	for (int i = 0; i < 9; i++)
+		ItemRenderer::renderGuiItemDecorations(inventory->getItem(i), (float)(left + 3 + i * 20), (float)itemY);
+	t.endOverrideAndDraw();
+	glEnable(GL_DEPTH_TEST);
+	glEnable(GL_TEXTURE_2D);
+
+	if (minecraft->gameMode->isSurvivalType()) {
+		glDisable2(GL_DEPTH_TEST);
+		for (int i = 0; i < 9; i++) {
+			ItemInstance* item = inventory->getItem(i);
+			if (item && item->count > 1) {
+				// Java: full-size count in the slot's bottom right corner
+				char buf[8];
+				sprintf(buf, "%d", item->count);
+				const std::string str(buf);
+				minecraft->font->drawShadow(str, (float)(left + 3 + i * 20 + 17 - minecraft->font->width(str)), (float)(itemY + 9), 0xffffffff);
+			}
+		}
+		glEnable2(GL_DEPTH_TEST);
+	}
+	glColor4f2(1, 1, 1, 1);
+}
+
 void Gui::renderBubbles() {
 	if (minecraft->player->isUnderLiquid(Material::water)) {
 		int yo = 12;
@@ -770,7 +880,8 @@ void Gui::renderOnSelectItemNameText( const int screenWidth, Font* font, int ySl
 	if(itemNameOverlayTime < 1.0f) {
 		ItemInstance* item = minecraft->player->inventory->getSelected();
 		if(item != NULL) {
-			float x = float(screenWidth / 2 - font->width(item->getName()) / 2);
+			const std::string name = selectedItemName();
+			float x = float(screenWidth / 2 - font->width(name) / 2);
 			float y = float(ySlot - 22);
 			int alpha = 255;
 			if(itemNameOverlayTime > 0.75) {
@@ -779,7 +890,7 @@ void Gui::renderOnSelectItemNameText( const int screenWidth, Font* font, int ySl
 				alpha = int(percentage * 255);
 			}
 			if(alpha != 0)
-				font->drawShadow(item->getName(), x, y, 0x00ffffff + (alpha << 24));
+				font->drawShadow(name, x, y, 0x00ffffff + (alpha << 24));
 		}
 	}
 }
