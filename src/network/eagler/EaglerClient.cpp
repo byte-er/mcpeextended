@@ -1176,6 +1176,14 @@ bool EaglerClient::readSlot(PacketIn& in, ItemInstance& out)
 		if (mid == 0) { mid = 1; mdata = 0; } // no counterpart (carpet, lever, ...): stand-in, real name kept
 		id = mid; damage = mdata;
 	}
+	if (id == 383) {
+		// spawn egg: Java entity id -> this engine's mob type (icon + name)
+		switch (damage) {
+		case 50: damage = 33; break; case 51: damage = 34; break; case 52: damage = 35; break;
+		case 54: damage = 32; break; case 57: damage = 36; break; case 90: damage = 12; break;
+		case 91: damage = 13; break; case 92: damage = 11; break; case 93: damage = 10; break;
+		}
+	}
 	if (id >= 512 || !Item::items[id]) {
 		// item this engine doesn't have: show paper with the real name
 		if (lastSlotInfo.name.empty()) lastSlotInfo.name = "Unknown item";

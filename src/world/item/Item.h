@@ -111,6 +111,7 @@ public:
     static Item* hoe_gold;
 
     static Item* seeds_wheat;
+    static Item* spawnEgg;
     static Item* wheat;
     static Item* bread;
 

@@ -1,3 +1,4 @@
+#include "SpawnEggItem.h"
 #include "ItemInclude.h"
 #include "ItemCategory.h"
 #include "../level/tile/Tile.h"
@@ -155,6 +156,7 @@ Item* Item::netherQuartz = NULL;
 //Item* Item::record_02 = NULL;
 
 Item* Item::camera = NULL;
+Item* Item::spawnEgg = NULL;
 
 /*static*/
 void Item::initItems() {
@@ -286,6 +288,7 @@ void Item::initItems() {
 	//Item::record_01 = (new RecordingItem(2000, "13"))->setIcon(0, 15)->setCategory(ItemCategory::Decorations)->setDescriptionId("record");
 	//Item::record_02 = (new RecordingItem(2001, "cat"))->setIcon(1, 15)->setCategory(ItemCategory::Decorations)->setDescriptionId("record");
 	Item::camera = (new CameraItem(200))->setIcon(2, 15)->setCategory(ItemCategory::Decorations)->setDescriptionId("camera");
+	Item::spawnEgg = (new SpawnEggItem(127))->setIcon(0, 12)->setCategory(ItemCategory::Tools)->setDescriptionId("monsterPlacer"); // id 383
 
 	for (int i = 256; i < MAX_ITEMS; ++i) {
 		if (items[i] && items[i]->category == -1)

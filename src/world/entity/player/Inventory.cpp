@@ -7,6 +7,7 @@
 #include "../../item/DyePowderItem.h"
 #include "../../item/crafting/Recipe.h"
 #include "../../item/CoalItem.h"
+#include "../../item/SpawnEggItem.h"
 #include "../../level/tile/SandStoneTile.h"
 
 Inventory::Inventory( Player* player, bool creativeMode )
@@ -272,6 +273,30 @@ void Inventory::setupDefault() {
 #endif
 		addItem(new ItemInstance(Item::bow));
 		addItem(new ItemInstance(Item::sign));
+
+		// 0.9.0 creative extras: tools tab, spawn eggs, plants
+		addItem(new ItemInstance(Item::pickAxe_iron));
+		addItem(new ItemInstance(Item::flintAndSteel));
+		addItem(new ItemInstance((Item*)Item::shears));
+		addItem(new ItemInstance(Item::clock));
+		addItem(new ItemInstance(Item::compass));
+		{
+			int n; const SpawnEggItem::Egg* eggs = SpawnEggItem::eggs(n);
+			for (int i = 0; i < n; ++i) addItem(new ItemInstance(Item::spawnEgg, 1, eggs[i].mob));
+		}
+		addItem(new ItemInstance(Tile::tallgrass, 1, 1));
+		addItem(new ItemInstance(Tile::tallgrass, 1, 2));
+		for (int d = 0; d < 16; ++d)
+			if (d != DyePowderItem::WHITE) addItem(new ItemInstance(Item::dye_powder, 1, d));
+		// everything else this game has (materials, food, armour, other tools): items tab
+		for (int id = 256; id < 512; ++id) {
+			Item* it = Item::items[id];
+			if (!it || it == Item::camera || it == Item::dye_powder || it == Item::spawnEgg) continue;
+			bool have = false;
+			for (unsigned int k = 0; k < items.size() && !have; ++k)
+				if (items[k] && items[k]->id == id) have = true;
+			if (!have) addItem(new ItemInstance(it));
+		}
 	} else {
 #if defined(WIN32)
 		// Survival
