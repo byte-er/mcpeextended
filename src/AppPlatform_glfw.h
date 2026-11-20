@@ -13,6 +13,9 @@
 #include <GLFW/glfw3.h>
 #ifdef __EMSCRIPTEN__
 #include <emscripten.h>
+#endif
+#ifdef __EMSCRIPTEN__
+#include <emscripten.h>
 #include <emscripten/websocket.h>
 #include <deque>
 #endif
@@ -242,6 +245,10 @@ public:
 	virtual int getScreenHeight() { return 480; };
 
 	virtual float getPixelsPerMillimeter();
+#ifdef __EMSCRIPTEN__
+	// phones: buzz when a block breaks (Options -> Feedback vibration)
+	virtual void vibrate(int ms) { EM_ASM({ if (navigator.vibrate) navigator.vibrate($0); }, ms); }
+#endif
 
 	virtual bool supportsTouchscreen() { return true; }
 	virtual bool hasBuyButtonWhenInvalidLicense() { return false; }

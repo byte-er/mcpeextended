@@ -1,13 +1,34 @@
-## MCPE Extended 0.9.5
+## MCPE Extended 0.9.6
 
 ### Downloads
 | Platform | File |
 |---|---|
-| Android (most phones) | `mcpeextended-0.9.5-arm64-v8a.apk` (or `-universal.apk` if unsure, `-armeabi-v7a.apk` for old 32-bit phones) |
+| Android (most phones) | `mcpeextended-0.9.6-arm64-v8a.apk` (or `-universal.apk` if unsure, `-armeabi-v7a.apk` for old 32-bit phones) |
 | Any computer, no setup | `mcpeextended.html`: one self-contained file (about 15 MB). Download it and open it in Chrome, Edge, Firefox or Safari; it works offline and saves worlds in the browser. |
 | PC (Windows / macOS / Linux), **iOS**, other devices | `mcpeextended-web.zip`: the browser build. Host the files on any web server (HTTPS to install it as an app). On PC it uses mouse + keyboard (click to capture the mouse, Esc pauses); on phones and tablets it uses touch controls. On iPhone/iPad open it in Safari → Share → **Add to Home Screen** to install it as a fullscreen app. |
 
 If installing the APK over an older build fails, uninstall the old one first; builds can be signed with different keys. Old worlds in `/sdcard/games/com.mojang` are copied over automatically when Android lets the app read them.
+
+### New: the 0.9.0 mobile look
+Rebuilt from screenshots of Pocket Edition 0.9.0, using the textures from the 0.9.0 APK.
+- **Title screen**: the logo with a yellow **splash text** (all 296 splashes from 0.9.0, plus the Christmas, New Year and Halloween ones), one wide **Play** button, and the **tools** button in the bottom right corner for Options. The version and copyright are in the bottom left. **Join Game** moved to the world list (top bar), where 0.9.0 listed LAN games.
+- **Creative inventory**: the 0.9.0 tabbed screen. It has an X button, four tabs (items, tools, decoration and blocks) and an 8-column grid that you scroll with your finger, with a scroll bar. Tapping an item puts it in your hotbar, and the screen stays open until you tap X. The decoration and tools tabs use 0.9.0's order. Wide phones get more columns instead of huge cells.
+- **Spawn eggs** (chicken, cow, pig, sheep, creeper, skeleton, spider, zombie, zombie pigman) with 0.9.0's egg icons, in the creative tools tab. On Eaglercraft servers, spawn eggs show the right mob.
+- The creative inventory now also has flint and steel, shears, clock, compass, an iron pickaxe, tall grass, fern, every dye, and all other items the game has.
+- **Options**: a **Back** button in the title bar and square icon tabs (Game, Controls, Graphics, Sound, Account). Graphics starts with 0.9.0's **View Distance**, **Fancy Graphics**, **Beautiful skies** (sky and clouds) and **Animated water**, and these are now saved. Long lists scroll with your finger. Username, Skin and Credits are on the Account tab.
+- **Touch HUD**: the D-pad and the chat/pause buttons are lightly see-through, like 0.9.0. Buttons use 0.9.0's flat style and scale cleanly at any size.
+
+### Phones and tablets in the browser (HTML builds)
+- The **touch UI is now the same as in the app**: the hotbar's "..." button opens the inventory, and you tap blocks where your finger is, like 0.9.0.
+- **Sizes fit the phone**: the GUI scale follows the screen's short side, the D-pad stays in proportion on 2:1 and wider phones, and the browser now reports a realistic screen density.
+- Holding a phone upright shows **"Turn your phone sideways"** (you can choose to play anyway). The installed app locks to landscape where the browser allows it.
+- The phone's **Back** button or gesture now works as the game's back button (pause, close menus) instead of leaving the page.
+- The screen stays on while you play, and phones buzz when a block breaks (Options -> feedback vibration).
+- Tall grass and fern icons are green.
+
+---
+
+## Earlier: MCPE Extended 0.9.5
 
 ### New: Java HUD and furnace (PC UI)
 - With **Enable PC UI** on (and mouse + keyboard), the in-game HUD is Java-style: the Java hotbar and selection frame, hearts above it and the **armour bar** above the hearts, air bubbles on the right. No hunger or XP bar.

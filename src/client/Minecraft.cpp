@@ -1247,7 +1247,7 @@ void Minecraft::setSize(int w, int h) {
 	} else if (touchUi()) {
 		// touch (phones, tablets): from the height, so the hotbar and buttons are
 		// about as big as in 0.9.0 whatever the aspect ratio
-		int s = (int)(height / 200.0f + 0.5f);
+		int s = (int)((width < height ? width : height) / 200.0f + 0.5f); // shorter side (portrait too)
 		Gui::GuiScale = (float)(s < 1 ? 1 : s > 8 ? 8 : s);
 	} else {
 		// auto compute from resolution

@@ -43,6 +43,15 @@ private:
 	OptionsPane* currentOptionPane;
 
 	int selectedCategory;
+
+	// finger-drag scrolling of the current pane (long lists on phones)
+	float paneScroll;
+	bool scrollTouch, scrolling;
+	int scrollDownX, scrollDownY;
+	float scrollStart;
+	int paneTop() const;
+	float maxPaneScroll();
+	void layoutPanes();
 };
 
 #endif /*NET_MINECRAFT_CLIENT_GUI_SCREENS__OptionsScreen_H__*/

@@ -14,6 +14,9 @@
 
 #include "../../renderer/Textures.h"
 #include "../../renderer/gles.h"
+#include "../Gui.h"
+#include "../../../platform/input/Mouse.h"
+#include <cstdlib>
 
 namespace {
 // Square tab with an icon from touchgui2.png, drawn with 0.9.0's flat
@@ -44,7 +47,10 @@ OptionsScreen::OptionsScreen()
 	btnChangeUsername(NULL),
 	btnCredits(NULL),
 	btnSkin(NULL),
-	selectedCategory(0) {
+	currentOptionPane(NULL),
+	selectedCategory(0),
+	paneScroll(0), scrollTouch(false), scrolling(false),
+	scrollDownX(0), scrollDownY(0), scrollStart(0) {
 }
 
 OptionsScreen::~OptionsScreen() {
@@ -179,21 +185,34 @@ void OptionsScreen::setupPositions() {
 		btnSkin->y = btnCredits->y;
 	}
 
-	for (std::vector<OptionsPane*>::iterator it = optionPanes.begin(); it != optionPanes.end(); ++it) {
-
-		if (categoryButtons.size() > 0 && categoryButtons[0] != NULL) {
-
-			(*it)->x = categoryButtons[0]->x + categoryButtons[0]->width + 4;
-			(*it)->y = bHeader->height;
-			(*it)->width = width - (*it)->x;
-
-			(*it)->setupPositions();
-		}
-	}
+	layoutPanes();
 
 	// don't override user selection on resize
 }
 
+
+int OptionsScreen::paneTop() const {
+	return bHeader ? bHeader->height : 0;
+}
+
+void OptionsScreen::layoutPanes() {
+	for (std::vector<OptionsPane*>::iterator it = optionPanes.begin(); it != optionPanes.end(); ++it) {
+		if (categoryButtons.size() > 0 && categoryButtons[0] != NULL) {
+			(*it)->x = categoryButtons[0]->x + categoryButtons[0]->width + 4;
+			(*it)->y = paneTop() - (*it == currentOptionPane ? (int)paneScroll : 0);
+			(*it)->width = width - (*it)->x;
+			(*it)->setupPositions();
+		}
+	}
+}
+
+float OptionsScreen::maxPaneScroll() {
+	if (!currentOptionPane) return 0;
+	// the pane's height is its bottom edge (see OptionsPane::setupPositions)
+	const float contentH = (float)(currentOptionPane->height - currentOptionPane->y);
+	const float viewH = (float)(height - paneTop() - 12); // a little room after the last item
+	return contentH > viewH ? contentH - viewH : 0.0f;
+}
 
 void OptionsScreen::render(int xm, int ym, float a) {
 
@@ -212,8 +231,34 @@ void OptionsScreen::render(int xm, int ym, float a) {
 	int xmm = xm * width / minecraft->width;
 	int ymm = ym * height / minecraft->height - 1;
 
-	if (currentOptionPane != NULL)
+	// drag to scroll once the finger has clearly moved vertically
+	if (scrollTouch && Mouse::isButtonDown(MouseAction::ACTION_LEFT)) {
+		int mx = Mouse::getX(), my = Mouse::getY();
+		toGUICoordinate(mx, my);
+		if (!scrolling && std::abs(my - scrollDownY) > 8 && std::abs(my - scrollDownY) > std::abs(mx - scrollDownX)) {
+			scrolling = maxPaneScroll() > 0;
+			// cancel what the press started (a slider drag)
+			if (scrolling && currentOptionPane) currentOptionPane->mouseReleased(minecraft, -1000, -1000, 0);
+		}
+		if (scrolling) {
+			paneScroll = scrollStart - (my - scrollDownY);
+			const float m = maxPaneScroll();
+			if (paneScroll < 0) paneScroll = 0;
+			if (paneScroll > m) paneScroll = m;
+			layoutPanes();
+		}
+	} else {
+		scrollTouch = scrolling = false;
+	}
+
+	if (currentOptionPane != NULL) {
+		// keep the pane below the title bar while scrolled
+		const float gs = Gui::GuiScale;
+		glEnable2(GL_SCISSOR_TEST);
+		glScissor(0, 0, minecraft->width, (int)(minecraft->height - paneTop() * gs));
 		currentOptionPane->render(minecraft, xmm, ymm);
+		glDisable2(GL_SCISSOR_TEST);
+	}
 }
 
 void OptionsScreen::removed() {
@@ -268,6 +313,8 @@ void OptionsScreen::selectCategory(int index) {
 	if (index < (int)optionPanes.size())
 		currentOptionPane = optionPanes[index];
 	selectedCategory = index;
+	paneScroll = 0;
+	if (bHeader) layoutPanes();
 	// account buttons live on the last (person) tab
 	const bool account = index == (int)categoryButtons.size() - 1;
 	Button* accountButtons[3] = { btnChangeUsername, btnSkin, btnCredits };
@@ -316,6 +363,12 @@ void OptionsScreen::generateOptionScreens() {
 }
 
 void OptionsScreen::mouseClicked(int x, int y, int buttonNum) {
+	if (y > paneTop() && currentOptionPane && x >= currentOptionPane->x) {
+		scrollTouch = true;
+		scrolling = false;
+		scrollDownX = x; scrollDownY = y;
+		scrollStart = paneScroll;
+	}
 
 	if (currentOptionPane != NULL)
 		currentOptionPane->mouseClicked(minecraft, x, y, buttonNum);
@@ -324,6 +377,8 @@ void OptionsScreen::mouseClicked(int x, int y, int buttonNum) {
 }
 
 void OptionsScreen::mouseReleased(int x, int y, int buttonNum) {
+	if (scrolling) { scrollTouch = scrolling = false; return; } // a scroll, not a tap
+	scrollTouch = false;
 
 	if (currentOptionPane != NULL)
 		currentOptionPane->mouseReleased(minecraft, x, y, buttonNum);
