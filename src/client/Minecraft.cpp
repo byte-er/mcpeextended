@@ -32,6 +32,8 @@
 #include "gui/Font.h"
 #include "gui/screens/RenameMPLevelScreen.h"
 #include "gui/screens/EaglerJoinScreen.h"
+#include "gui/screens/crafting/WorkbenchScreen.h"
+#include "../world/item/crafting/Recipe.h"
 #include "gui/screens/DisconnectionScreen.h"
 #include "../network/eagler/EaglerClient.h"
 #include "skin/PlayerSkin.h"
@@ -759,6 +761,10 @@ void Minecraft::tickInput() {
 			#if defined(PLATFORM_DESKTOP)
 				if (key == Keyboard::KEY_E) {
 					screenChooser.setScreen(SCREEN_BLOCKSELECTION);
+				}
+				// C: crafting (survival)
+				if (!screen && key == Keyboard::KEY_C && level && player && !isCreativeMode() && allowLocalCrafting()) {
+					setScreen(new WorkbenchScreen(Recipe::SIZE_2X2));
 				}
 				if (!screen && key == Keyboard::KEY_T && level) {
 					setScreen(new ConsoleScreen());

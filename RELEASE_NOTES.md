@@ -20,7 +20,7 @@ If installing the APK over an older build fails, uninstall the old one first; bu
 - On Eaglercraft servers your skin is sent to other players, and you see theirs (custom and preset skins).
 
 ### Fixes (PC)
-- **Crafting**: the PC inventory (keyboard and mouse) had no way to open crafting. It now has a **Craft** button next to Armor.
+- **Crafting**: the PC inventory (keyboard and mouse) had no way to open crafting. It now has a **Craft** button next to Armor. The Armor and Craft buttons also no longer disappear when your hand is empty. Press **C** to open crafting directly; **Esc** or **E** closes the inventory.
 - **GUI scale**: the pause menu now has **Options**, so GUI scale (and everything else) can be changed in game, and closing Options returns you to the game. Screens such as Create World no longer stretch or split at small GUI scales.
 - Icons for acacia and dark oak planks were missing in the crafting list. Missing block descriptions are filled in.
 - `/give <id> [count] [data]` in single player.

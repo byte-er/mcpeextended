@@ -1,4 +1,5 @@
 #include "IngameBlockSelectionScreen.h"
+#include "../../../platform/input/Keyboard.h"
 #include "../../renderer/TileRenderer.h"
 #include "../../player/LocalPlayer.h"
 #include "../../renderer/gles.h"
@@ -45,6 +46,14 @@ void IngameBlockSelectionScreen::init()
 							(float)getSlotPosX(InventoryCols) + 4, 
 							(float)getSlotPosY(InventoryRows) + 4);
 
+	// Armor / Craft (survival). Added before the early return below: with an
+	// empty hand the buttons used to be skipped entirely.
+	if (!minecraft->isCreativeMode()) {
+		buttons.push_back(&bArmor);
+		buttons.push_back(&bCraft);
+	}
+	setupPositions();
+
 	ItemInstance* selected = inventory->getSelected();
 	if (!selected || selected->isNull()) {
 		selectedItem = 0;
@@ -61,17 +70,8 @@ void IngameBlockSelectionScreen::init()
 	if (!isAllowed(selectedItem))
 		selectedItem = 0;
 
-	if (!minecraft->isCreativeMode()) {
-		bArmor.width = 42;
-		bArmor.x = 0;
-		bArmor.y = height - bArmor.height;
-		buttons.push_back(&bArmor);
-		bCraft.width = 42;
-		bCraft.x = bArmor.x + bArmor.width + 2;
-		bCraft.y = bArmor.y;
-		buttons.push_back(&bCraft);
-	}
 }
+
 
 void IngameBlockSelectionScreen::removed()
 {
@@ -204,7 +204,10 @@ void IngameBlockSelectionScreen::keyPressed(int eventKey)
 		||	eventKey == Keyboard::KEY_ESCAPE)
 		minecraft->setScreen(NULL);
 #else
-	if (eventKey == o.keyMenuCancel.key)
+	// Esc or E (the inventory key) closes it, like Java
+	if (eventKey == o.keyMenuCancel.key
+		||	eventKey == Keyboard::KEY_ESCAPE
+		||	eventKey == Keyboard::KEY_E)
 		minecraft->setScreen(NULL);
 #endif
 }
@@ -333,4 +336,13 @@ void IngameBlockSelectionScreen::buttonClicked( Button* button )
 		return;
 	}
 	super::buttonClicked(button);
+}
+
+void IngameBlockSelectionScreen::setupPositions()
+{
+	bArmor.width = bCraft.width = 42;
+	bArmor.x = 0;
+	bArmor.y = height - bArmor.height;
+	bCraft.x = bArmor.x + bArmor.width + 2;
+	bCraft.y = bArmor.y;
 }
