@@ -328,7 +328,8 @@ void IngameBlockSelectionScreen::buttonClicked( Button* button )
 		return;
 	}
 	if (button == &bCraft) {
-		minecraft->setScreen(new WorkbenchScreen(Recipe::SIZE_2X2));
+		if (minecraft->allowLocalCrafting())
+			minecraft->setScreen(new WorkbenchScreen(Recipe::SIZE_2X2));
 		return;
 	}
 	super::buttonClicked(button);

@@ -234,7 +234,8 @@ void IngameBlockSelectionScreen::buttonClicked(Button* button) {
         minecraft->screenChooser.setScreen(SCREEN_PAUSE);
 
 	if (button->id == bCraft.id)
-		minecraft->setScreen(new WorkbenchScreen(Recipe::SIZE_2X2));
+		if (minecraft->allowLocalCrafting())
+			minecraft->setScreen(new WorkbenchScreen(Recipe::SIZE_2X2));
 
 	if (button == &bArmor)
 		minecraft->setScreen(new ArmorScreen());

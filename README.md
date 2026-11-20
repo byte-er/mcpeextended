@@ -64,6 +64,16 @@ C:\apkbuild\build.ps1 -NoJava
 C:\apkbuild\build.ps1 -NoBuild
 ```
 
+### Eaglercraft servers and skins
+- Join Game → **Eaglercraft Server** connects to Eaglercraft 1.8.9 servers
+  (EaglerXServer/EaglerXBungee) over WebSockets: `src/network/eagler/`. The
+  browser build uses the browser's WebSocket; Android uses
+  `EaglerWebSocket.java` (no extra libraries). Overworld only; the server
+  world is shown through a 512x512x128 window that follows the player.
+- Skins: Options → Skin (Steve / Alex / Custom PNG): `src/client/skin/`.
+- Dev shortcuts for the desktop/web builds: `MCPE_EAGLER=<address>` joins a
+  server at startup (`MCPE_USER=<name>` sets the name).
+
 ### Browser / PWA (PC, iOS and other devices)
 Needs the Emscripten SDK (tested with 3.1.74):
 ```

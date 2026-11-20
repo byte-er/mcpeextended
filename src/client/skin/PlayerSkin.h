@@ -40,6 +40,10 @@ namespace PlayerSkin
 	bool localIsSlim();
 	bool localIsCustom();
 
+	/** Steps Steve -> Alex -> Custom; choosing Custom opens the file picker. */
+	void cycle(Minecraft* mc);
+	const char* label(int choice);
+
 	/** Loads a PNG (asset name or file path) as 64x64 RGBA. */
 	bool loadImage64(Minecraft* mc, const std::string& name, bool asset, std::vector<unsigned char>& out);
 }

@@ -450,14 +450,14 @@ void LocalPlayer::_init() {
 
 void LocalPlayer::startCrafting(int x, int y, int z, int tableSize) {
 #ifndef STANDALONE_SERVER
-	if (!minecraft->isCreativeMode())
+	if (!minecraft->isCreativeMode() && minecraft->allowLocalCrafting())
 		minecraft->setScreen( new WorkbenchScreen(tableSize) );
 #endif
 }
 
 void LocalPlayer::startStonecutting(int x, int y, int z) {
 #ifndef STANDALONE_SERVER
-	if (!minecraft->isCreativeMode())
+	if (!minecraft->isCreativeMode() && minecraft->allowLocalCrafting())
 		minecraft->setScreen( new StonecutterScreen() );
 #endif
 }

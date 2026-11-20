@@ -685,7 +685,10 @@ void EaglerClient::onPositionLook(PacketIn& in)
 	if (flags & 2) y += curY;
 	if (flags & 4) z += curZ;
 	if (pl) { if (flags & 8) yaw += pl->yRot; if (flags & 16) pitch += pl->xRot; }
-	if (getenv("MCPE_LOOKDOWN")) pitch = 80; // dev/testing: face the ground
+	// dev/testing: force the view direction
+	if (getenv("MCPE_LOOKDOWN")) pitch = 80;
+	if (const char* v = getenv("MCPE_YAW")) yaw = (float)atof(v);
+	if (const char* v = getenv("MCPE_PITCH")) pitch = (float)atof(v);
 
 	if (!haveOffset) {
 		offX = (((int)floor(x) >> 4) - WINDOW_CHUNKS / 2) * 16;
@@ -1141,6 +1144,7 @@ void EaglerClient::onSpawnPlayer(PacketIn& in)
 	level->putEntity(eid, p);
 	entities[eid] = t;
 
+	LOGI("Eaglercraft: player %s appeared\n", p->name.c_str());
 	// skin: ask the server for it (Eaglercraft skin channel)
 	std::string skinName = "skin:eag:" + std::string(uuid, 16);
 	p->setTextureName(skinName);
@@ -1181,6 +1185,7 @@ void EaglerClient::onPluginMessage(PacketIn& in)
 		}
 	} else return;
 	PlayerSkin::set(mc, name, &rgba[0], slim);
+	LOGI("Eaglercraft: received %s skin (%s)\n", type == 0x04 ? "preset" : "custom", slim ? "slim" : "classic");
 }
 
 static int mobTypeFor18(int t)

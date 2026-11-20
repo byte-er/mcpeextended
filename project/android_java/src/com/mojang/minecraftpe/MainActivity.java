@@ -333,6 +333,16 @@ public class MainActivity extends Activity {
         	return null;
         }
 
+        if (filename.startsWith("/")) { // a file on the device (custom skin), not an asset
+            Bitmap fbm = BitmapFactory.decodeFile(filename);
+            if (fbm == null) return null;
+            int fw = fbm.getWidth(), fh = fbm.getHeight();
+            int[] fpx = new int[fw * fh + 2];
+            fpx[0] = fw; fpx[1] = fh;
+            fbm.getPixels(fpx, 2, fw, 0, 0, fw, fh);
+            return fpx;
+        }
+
         InputStream inputStream = null;
         try {
         	inputStream = assets.open(filename);
@@ -415,6 +425,7 @@ public class MainActivity extends Activity {
     	if (requestCode == DialogDefinitions.DIALOG_MAINMENU_OPTIONS) {
     		_userInputStatus = 1;
     	}
+    	if (requestCode == REQUEST_SKIN) onSkinPicked(resultCode, data);
     }
     
     public void quit() {
@@ -721,6 +732,57 @@ public class MainActivity extends Activity {
 
 		clearPendingEvents();
 	}
+
+    static native void nativeSkinChanged();
+
+    // ---- custom skin: system file picker, copied to the game folder ----
+    private static final int REQUEST_SKIN = 4242;
+    private String pendingSkinPath;
+
+    public void pickSkinFile(final String destPath) {
+        runOnUiThread(new Runnable() {
+            public void run() {
+                pendingSkinPath = destPath;
+                Intent i = new Intent(Intent.ACTION_GET_CONTENT);
+                i.setType("image/*");
+                i.addCategory(Intent.CATEGORY_OPENABLE);
+                try {
+                    startActivityForResult(Intent.createChooser(i, "Choose a skin (64x64 PNG)"), REQUEST_SKIN);
+                } catch (Exception e) {
+                    android.widget.Toast.makeText(MainActivity.this, "No file picker available", android.widget.Toast.LENGTH_LONG).show();
+                }
+            }
+        });
+    }
+
+    private void onSkinPicked(int resultCode, Intent data) {
+        if (resultCode != RESULT_OK || data == null || data.getData() == null || pendingSkinPath == null)
+            return;
+        try {
+            InputStream in = getContentResolver().openInputStream(data.getData());
+            ByteArrayOutputStream buf = new ByteArrayOutputStream();
+            byte[] tmp = new byte[8192];
+            int n;
+            while ((n = in.read(tmp)) > 0) buf.write(tmp, 0, n);
+            in.close();
+            byte[] png = buf.toByteArray();
+            Bitmap bm = BitmapFactory.decodeByteArray(png, 0, png.length);
+            if (bm == null || bm.getWidth() != 64 || (bm.getHeight() != 64 && bm.getHeight() != 32)) {
+                android.widget.Toast.makeText(this, "Skins must be 64x64 or 64x32 PNG images", android.widget.Toast.LENGTH_LONG).show();
+                return;
+            }
+            java.io.File f = new java.io.File(pendingSkinPath);
+            if (f.getParentFile() != null) f.getParentFile().mkdirs();
+            FileOutputStream out = new FileOutputStream(f);
+            out.write(png);
+            out.close();
+            nativeSkinChanged();
+            android.widget.Toast.makeText(this, "Skin changed", android.widget.Toast.LENGTH_SHORT).show();
+        } catch (Exception e) {
+            android.widget.Toast.makeText(this, "Could not load that image", android.widget.Toast.LENGTH_LONG).show();
+        }
+    }
+
 }
 
 // see client/gui/screens/DialogDefinitions.h

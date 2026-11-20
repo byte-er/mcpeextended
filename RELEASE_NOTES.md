@@ -1,3 +1,32 @@
+## MCPE Extended 0.9.3
+
+### Downloads
+| Platform | File |
+|---|---|
+| Android (most phones) | `mcpeextended-0.9.3-arm64-v8a.apk` (or `-universal.apk` if unsure, `-armeabi-v7a.apk` for old 32-bit phones) |
+| Any computer, no setup | `mcpeextended.html`: one self-contained file (about 15 MB). Download it and open it in Chrome, Edge, Firefox or Safari; it works offline and saves worlds in the browser. |
+| PC (Windows / macOS / Linux), **iOS**, other devices | `mcpeextended-web.zip`: the browser build. Host the files on any web server (HTTPS to install it as an app). On PC it uses mouse + keyboard (click to capture the mouse, Esc pauses); on phones and tablets it uses touch controls. On iPhone/iPad open it in Safari → Share → **Add to Home Screen** to install it as a fullscreen app. |
+
+If installing the APK over an older build fails, uninstall the old one first; builds can be signed with different keys. Old worlds in `/sdcard/games/com.mojang` are copied over automatically when Android lets the app read them.
+
+### New: join Eaglercraft 1.8.9 servers
+- **Join Game → Eaglercraft Server**: enter the address (e.g. `wss://eagarchy.wackify.dev`). Works in the Android app and the browser build, on phones and PCs.
+- Core gameplay: the server's world and lighting, walking and flying, breaking and placing blocks, other players and mobs, dropped items, chat and server `/commands` (e.g. `/register` and `/login` on servers with a login plugin), health, death and respawn, survival inventory, creative mode, the world border, and grass/leaf colours from the server's biomes.
+- Limits: overworld only (no Nether or End). Blocks above height 127 aren't shown. Blocks this game doesn't have are replaced with similar ones. Crafting, chests and furnaces on servers aren't supported yet.
+- Server kick messages (rate limits, login timeouts) are shown in full.
+
+### New: skins
+- **Options → Skin**: Steve, Alex, or **Custom**. Choosing Custom opens a file picker for a 64×64 (or old 64×32) skin PNG. It works in the browser and on Android. You'll see the skin in third person and on your first-person hand.
+- On Eaglercraft servers your skin is sent to other players, and you see theirs (custom and preset skins).
+
+### Fixes (PC)
+- **Crafting**: the PC inventory (keyboard and mouse) had no way to open crafting. It now has a **Craft** button next to Armor.
+- **GUI scale**: the pause menu now has **Options**, so GUI scale (and everything else) can be changed in game, and closing Options returns you to the game. Screens such as Create World no longer stretch or split at small GUI scales.
+- Icons for acacia and dark oak planks were missing in the crafting list. Missing block descriptions are filled in.
+- `/give <id> [count] [data]` in single player.
+
+---
+
 ## MCPE Extended 0.9.2
 
 ### Downloads

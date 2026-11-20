@@ -6,7 +6,6 @@
 #include "../../../network/eagler/EaglerClient.h"
 #include "../../skin/PlayerSkin.h"
 
-static const char* SKIN_NAMES[] = { "Skin: Steve", "Skin: Alex", "Skin: Custom (skin.png)" };
 
 EaglerJoinScreen::EaglerJoinScreen()
 :	_btnJoin(1, "Join Server"),
@@ -43,8 +42,7 @@ void EaglerJoinScreen::setupPositions()
 	_btnSkin.height = 20;
 	_btnSkin.x = _boxX;
 	_btnSkin.y = _boxY + 32;
-	int s = minecraft->options.skin;
-	_btnSkin.msg = SKIN_NAMES[(s >= 0 && s <= 2) ? s : 0];
+	_btnSkin.msg = PlayerSkin::label(minecraft->options.skin);
 	_btnJoin.active = !_input.empty();
 }
 
@@ -102,9 +100,7 @@ void EaglerJoinScreen::buttonClicked(Button* button)
 	if (button == &_btnJoin) join();
 	else if (button == &_btnBack) minecraft->screenChooser.setScreen(SCREEN_JOINGAME);
 	else if (button == &_btnSkin) {
-		minecraft->options.skin = (minecraft->options.skin + 1) % 3;
-		minecraft->options.save();
-		PlayerSkin::reload(minecraft);
+		PlayerSkin::cycle(minecraft);
 		setupPositions();
 	}
 }

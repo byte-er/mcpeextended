@@ -169,6 +169,8 @@ public:
 	EaglerClient* eagler;
 	/** Starts connecting; the screen shows progress and errors. */
 	void joinEaglerServer(const std::string& address);
+	/** Local crafting would desync on a server (it owns the inventory); explains and returns false there. */
+	bool allowLocalCrafting();
 
 	int lastTime;
 	int lastTickTime;

@@ -66,7 +66,7 @@ public:
 class AppPlatform
 {
 public:
-	AppPlatform() : keyboardVisible(false) {}
+	AppPlatform() : keyboardVisible(false), skinChangedFlag(false) {}
     virtual ~AppPlatform() {}
 
 	virtual void saveScreenshot(const std::string& filename, int glWidth, int glHeight) {}
@@ -147,12 +147,21 @@ public:
 	virtual int  wsState(int handle) { return WS_CLOSED; }
 	virtual std::string wsError(int handle) { return "WebSockets are not supported on this platform"; }
 	virtual void wsClose(int handle) {}
+
+	// ---- custom skin file -------------------------------------------------
+	/** Lets the user pick a PNG that is copied to destPath; false if unsupported. */
+	virtual bool pickSkinFile(const std::string& destPath) { return false; }
+	/** Called when a picked skin was saved (any thread). */
+	void notifySkinChanged() { skinChangedFlag = true; }
+	/** True once after a new skin file was saved. */
+	bool skinFileChanged() { bool f = skinChangedFlag; skinChangedFlag = false; return f; }
 	virtual void hideKeyboard() {
 		keyboardVisible = false;
 	}
 	virtual bool isKeyboardVisible() {return keyboardVisible;}
 protected:
 	bool keyboardVisible;
+	volatile bool skinChangedFlag;
 };
 
 #endif /*APPPLATFORM_H__*/

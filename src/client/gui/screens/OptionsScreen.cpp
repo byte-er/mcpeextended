@@ -1,4 +1,5 @@
 #include "OptionsScreen.h"
+#include "../../skin/PlayerSkin.h"
 
 #include "StartMenuScreen.h"
 #include "UsernameScreen.h"
@@ -16,6 +17,7 @@ OptionsScreen::OptionsScreen()
 	bHeader(NULL),
 	btnChangeUsername(NULL),
 	btnCredits(NULL),
+	btnSkin(NULL),
 	selectedCategory(0) {
 }
 
@@ -36,6 +38,8 @@ OptionsScreen::~OptionsScreen() {
 		btnChangeUsername = NULL;
 	}
 
+	delete btnSkin;
+	btnSkin = NULL;
 	if (btnCredits != NULL) {
 		delete btnCredits;
 		btnCredits = NULL;
@@ -79,11 +83,13 @@ void OptionsScreen::init() {
 
 	btnChangeUsername = new Button(10, "Username");
 	btnCredits = new Button(11, "Credits");
+	btnSkin = new Button(12, PlayerSkin::label(minecraft->options.skin));
 
 	buttons.push_back(bHeader);
 	buttons.push_back(btnClose);
 	buttons.push_back(btnChangeUsername);
 	buttons.push_back(btnCredits);
+	buttons.push_back(btnSkin);
 
 	for (std::vector<Touch::TButton*>::iterator it = categoryButtons.begin(); it != categoryButtons.end(); ++it) {
 		buttons.push_back(*it);
@@ -128,6 +134,7 @@ void OptionsScreen::setupPositions() {
 		btnChangeUsername->y = height - btnChangeUsername->height;
 	}
 
+
 	// Credits button (bottom-right)
 	if (btnCredits != NULL) {
 
@@ -136,6 +143,14 @@ void OptionsScreen::setupPositions() {
 
 		btnCredits->x = width - btnCredits->width;
 		btnCredits->y = height - btnCredits->height;
+	}
+
+	// Skin button (left of Credits)
+	if (btnSkin != NULL && btnCredits != NULL) {
+		btnSkin->width = btnCredits->width;
+		btnSkin->height = btnCredits->height;
+		btnSkin->x = btnCredits->x - btnSkin->width - 4;
+		btnSkin->y = btnCredits->y;
 	}
 
 	for (std::vector<OptionsPane*>::iterator it = optionPanes.begin(); it != optionPanes.end(); ++it) {
@@ -190,6 +205,10 @@ void OptionsScreen::buttonClicked(Button* button) {
 		int categoryButton = button->id - categoryButtons[0]->id;
 		selectCategory(categoryButton);
 
+	}
+	else if (button == btnSkin) {
+		PlayerSkin::cycle(minecraft);
+		btnSkin->msg = PlayerSkin::label(minecraft->options.skin);
 	}
 	else if (button == btnCredits) {
 

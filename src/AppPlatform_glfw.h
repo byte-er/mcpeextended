@@ -106,6 +106,11 @@ public:
 		_sock = NULL;
 	}
 
+	virtual bool pickSkinFile(const std::string& destPath) {
+		EM_ASM({ if (window.mcpePickSkin) window.mcpePickSkin(UTF8ToString($0)); }, destPath.c_str());
+		return true;
+	}
+
 	// Touch browsers have no physical keyboard: web/shell.html focuses a
 	// hidden <input> (or shows a "tap to type" bar on iOS) and feeds the
 	// typed text back through web_kbd_char / web_kbd_key.

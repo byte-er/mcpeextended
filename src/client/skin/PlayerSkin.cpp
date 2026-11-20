@@ -112,3 +112,21 @@ void PlayerSkin::reload(Minecraft* mc)
 const std::vector<unsigned char>& PlayerSkin::localEaglerPixels() { return g_localEagler; }
 bool PlayerSkin::localIsSlim() { return g_localSlim; }
 bool PlayerSkin::localIsCustom() { return g_localCustom; }
+
+void PlayerSkin::cycle(Minecraft* mc)
+{
+	mc->options.skin = (mc->options.skin + 1) % 3;
+	mc->options.save();
+	if (mc->options.skin == 2 && mc->platform())
+		mc->platform()->pickSkinFile(customSkinPath(mc));
+	reload(mc);
+}
+
+const char* PlayerSkin::label(int choice)
+{
+	switch (choice) {
+	case 1: return "Skin: Alex";
+	case 2: return "Skin: Custom";
+	default: return "Skin: Steve";
+	}
+}

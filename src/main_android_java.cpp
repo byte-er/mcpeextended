@@ -194,6 +194,12 @@ Java_com_mojang_minecraftpe_GLRenderer_nativeSaveAndPause(JNIEnv* env, jclass cl
         ((MAIN_CLASS*)gApp)->saveForBackground();
 }
 
+// A skin PNG picked with the system file picker was copied into place
+JNIEXPORT void JNICALL
+Java_com_mojang_minecraftpe_MainActivity_nativeSkinChanged(JNIEnv* env, jclass cls) {
+    appPlatform.notifySkinChanged();
+}
+
 //
 // Keyboard events
 //

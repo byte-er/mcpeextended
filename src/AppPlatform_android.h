@@ -80,7 +80,7 @@ public:
         _getScreenHeight(0),
         _methodGetPixelsPerMillimeter(0),
 		_methodGetPlatformStringVar(0),
-		_wsOpen(0), _wsSend(0), _wsPoll(0), _wsState(0), _wsError(0), _wsClose(0),
+		_wsOpen(0), _wsSend(0), _wsPoll(0), _wsState(0), _wsError(0), _wsClose(0), _pickSkin(0),
 
 		_classWindow(0),
 		_classContext(0),
@@ -165,6 +165,7 @@ public:
 		_wsState = env->GetMethodID( _activityClass, "wsState", "(I)I");
 		_wsError = env->GetMethodID( _activityClass, "wsError", "(I)Ljava/lang/String;");
 		_wsClose = env->GetMethodID( _activityClass, "wsClose", "(I)V");
+		_pickSkin = env->GetMethodID( _activityClass, "pickSkinFile", "(Ljava/lang/String;)V");
 		if (env->ExceptionCheck()) env->ExceptionClear();
 
 		_classWindow = (jclass)env->NewGlobalRef(env->FindClass("android/view/Window"));
@@ -521,6 +522,16 @@ public:
 		ta.getEnv()->CallVoidMethod(instance, _wsClose, handle);
 	}
 
+	virtual bool pickSkinFile(const std::string& destPath) {
+		if (!_isInited || !_pickSkin) return false;
+		JVMAttacher ta(_vm);
+		JNIEnv* env = ta.getEnv();
+		jstring js = env->NewStringUTF(destPath.c_str());
+		env->CallVoidMethod(instance, _pickSkin, js);
+		env->DeleteLocalRef(js);
+		return true;
+	}
+
 	std::string getPlatformStringVar(int s) {
 		if (!_isInited) return "";
 		if (!_methodGetPlatformStringVar) return "";
@@ -721,7 +732,7 @@ private:
 	jmethodID _methodIsNetworkEnabled;
 
 	jmethodID _methodGetPlatformStringVar;
-	jmethodID _wsOpen, _wsSend, _wsPoll, _wsState, _wsError, _wsClose;
+	jmethodID _wsOpen, _wsSend, _wsPoll, _wsState, _wsError, _wsClose, _pickSkin;
 
 	jclass _classWindow;
 	jclass _classContext;

@@ -164,6 +164,11 @@ static EM_BOOL web_resize(int, const EmscriptenUiEvent*, void*) { webResize(); r
 // "not locked" change events when a lock request fails or is pending, and
 // pausing on those made "Back to game" bounce straight back to the menu.
 static bool g_webPointerLocked = false;
+// Custom skin picked in the browser (see web/shell.html mcpePickSkin)
+extern "C" EMSCRIPTEN_KEEPALIVE void web_skin_changed() {
+	if (g_app) ((MAIN_CLASS*)g_app)->platform()->notifySkinChanged();
+}
+
 // Soft keyboard bridge for touch browsers (see web/shell.html)
 extern "C" EMSCRIPTEN_KEEPALIVE void web_kbd_char(int c) {
 	if (c >= 32 && c < 127) Keyboard::feedText((char)c);

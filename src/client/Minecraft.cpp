@@ -524,6 +524,13 @@ void Minecraft::tick(int nTick, int maxTick) {
 		}
 	}
 #endif
+#ifndef STANDALONE_SERVER
+	if (platform() && platform()->skinFileChanged()) {
+		options.skin = 2; // custom
+		options.save();
+		PlayerSkin::reload(this);
+	}
+#endif
 	if (eagler) {
 		TIMER_PUSH("eagler");
 		eagler->tick();
@@ -1629,4 +1636,14 @@ void Minecraft::joinEaglerServer(const std::string& address)
 #ifndef STANDALONE_SERVER
 	setScreen(new EaglerStatusScreen());
 #endif
+}
+
+bool Minecraft::allowLocalCrafting()
+{
+	if (!eagler) return true;
+#ifndef STANDALONE_SERVER
+	setScreen(NULL);
+	gui.addMessage("Crafting on Eaglercraft servers isn't supported yet.");
+#endif
+	return false;
 }

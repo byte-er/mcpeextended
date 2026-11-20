@@ -35,6 +35,7 @@ private:
 
 	Button* btnChangeUsername;
 	Button* btnCredits;   // <-- ADD THIS
+	Button* btnSkin;
 
 	std::vector<Touch::TButton*> categoryButtons;
 	std::vector<OptionsPane*> optionPanes;
