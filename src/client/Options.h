@@ -160,6 +160,8 @@ public:
     float cameraSpeed;
     int guiScale;
 	std::string username;
+	std::string eaglerServer; // last Eaglercraft server address
+	int skin;                 // 0 Steve, 1 Alex, 2 custom (skin.png)
 
 	bool serverVisible;
 	bool isJoyTouchArea;

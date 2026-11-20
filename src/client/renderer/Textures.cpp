@@ -1,4 +1,6 @@
 #include "Textures.h"
+#include "../skin/PlayerSkin.h"
+#include <cstring>
 
 #include "TextureData.h"
 #include "ptexture/DynamicTexture.h"
@@ -63,6 +65,19 @@ TextureId Textures::loadTexture( const std::string& resourceName, bool inTexture
 	TextureMap::iterator it = idMap.find(resourceName);
 	if (it != idMap.end())
 		return it->second;
+
+	// player skins live in memory (see PlayerSkin)
+	if (resourceName.compare(0, 5, "skin:") == 0) {
+		std::vector<unsigned char> px;
+		if (!PlayerSkin::textureFor(resourceName, px))
+			return loadTexture("mob/char.png");
+		TextureData td;
+		td.w = 64; td.h = 32;
+		td.data = new unsigned char[px.size()];
+		memcpy(td.data, &px[0], px.size());
+		td.transparent = true;
+		return assignTexture(resourceName, td);
+	}
 
 	TextureData texdata = platform->loadTexture(resourceName, inTextureFolder);
 	if (texdata.data)
@@ -412,3 +427,22 @@ int Textures::crispBlend( int c0, int c1 )
 //      glDeleteTextures(1, (const GLuint*)&id);
 //  }
 
+
+void Textures::releaseTexture(const std::string& resourceName)
+{
+	TextureMap::iterator it = idMap.find(resourceName);
+	if (it == idMap.end()) return;
+	TextureId id = it->second;
+	idMap.erase(it);
+	if (id == Textures::InvalidId) return;
+	// textures shared with another name (fallbacks) must stay alive
+	for (TextureMap::iterator jt = idMap.begin(); jt != idMap.end(); ++jt)
+		if (jt->second == id) return;
+	TextureImageMap::iterator im = loadedImages.find(id);
+	if (im != loadedImages.end()) {
+		if (!im->second.memoryHandledExternally) delete[] im->second.data;
+		loadedImages.erase(im);
+	}
+	glDeleteTextures(1, &id);
+	if (lastBoundTexture == id) lastBoundTexture = Textures::InvalidId;
+}

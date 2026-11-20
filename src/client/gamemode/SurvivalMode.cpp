@@ -1,3 +1,4 @@
+#include "../../network/eagler/EaglerClient.h"
 #include "SurvivalMode.h"
 #include "../Minecraft.h"
 #include "../player/LocalPlayer.h"
@@ -49,6 +50,7 @@ void SurvivalMode::continueDestroyBlock( int x, int y, int z, int face ) {
 			destroyDelay = 5;
 		}
 	} else {
+		if (minecraft->eagler) minecraft->eagler->onStartDestroy(x, y, z, face);
 		destroyProgress = 0;
 		oDestroyProgress = 0;
 		destroyTicks = 0;
@@ -80,6 +82,7 @@ bool SurvivalMode::destroyBlock( int x, int y, int z, int face ) {
 }
 
 void SurvivalMode::stopDestroyBlock() {
+	if (minecraft->eagler) minecraft->eagler->onAbortDestroy();
 	destroyProgress = 0;
 	oDestroyProgress = 0;
 	destroyTicks = 0;

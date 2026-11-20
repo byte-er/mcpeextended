@@ -4,6 +4,8 @@
 class OptionStrings {
 public:
     static const char* Multiplayer_Username;
+    static const char* Multiplayer_EaglerServer;
+    static const char* Multiplayer_Skin;
     static const char* Multiplayer_ServerVisible;
     
     static const char* Graphics_Fancy;

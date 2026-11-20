@@ -66,6 +66,7 @@ private:
 	Button bJoin;
 	TButton bBack;
 	THeader bHeader;
+	TButton bEagler; // Eaglercraft 1.8 servers
 	AvailableGamesList* gamesList;
 };
 

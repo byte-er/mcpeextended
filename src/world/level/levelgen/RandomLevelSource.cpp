@@ -220,8 +220,9 @@ void RandomLevelSource::buildSurfaces(int xOffs, int zOffs, unsigned char* block
 
 /*public*/
 void RandomLevelSource::postProcess(ChunkSource* parent, int xt, int zt) {
-	if (level->getLevelData()->worldType == LevelSettings::WORLD_FLAT)
-		return; // nothing to decorate on a superflat world
+	if (level->getLevelData()->worldType == LevelSettings::WORLD_FLAT
+	 || level->getLevelData()->worldType == LevelSettings::WORLD_EMPTY)
+		return; // nothing to decorate on a superflat / server world
 
 	level->isGeneratingTerrain = true;
 
@@ -535,6 +536,13 @@ LevelChunk* RandomLevelSource::getChunk(int xOffs, int zOffs) {
     unsigned char* blocks = new unsigned char[LevelChunk::ChunkBlockCount];
     LevelChunk* levelChunk = new LevelChunk(level, blocks, xOffs, zOffs);
 	chunkMap.insert(std::make_pair(hashedPos, levelChunk));
+
+	// Server worlds start as air; chunks arrive over the network
+	if (level->getLevelData()->worldType == LevelSettings::WORLD_EMPTY) {
+		memset(blocks, 0, LevelChunk::ChunkBlockCount);
+		levelChunk->recalcHeightmap();
+		return levelChunk;
+	}
 
 	// Superflat ("Flat" world type, PE style): bedrock, 2 dirt, grass
 	if (level->getLevelData()->worldType == LevelSettings::WORLD_FLAT) {

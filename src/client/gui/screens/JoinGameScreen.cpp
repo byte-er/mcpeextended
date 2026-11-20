@@ -1,12 +1,14 @@
 #include "JoinGameScreen.h"
 #include "StartMenuScreen.h"
 #include "ProgressScreen.h"
+#include "EaglerJoinScreen.h"
 #include "../Font.h"
 #include "../../../network/RakNetInstance.h"
 
 JoinGameScreen::JoinGameScreen()
 :	bJoin(  2, "Join Game"),
 	bBack(  3, "Back"),
+	bEagler(4, "Eaglercraft Server"),
 	gamesList(NULL)
 {
 	bJoin.active = false;
@@ -34,6 +36,12 @@ void JoinGameScreen::buttonClicked(Button* button)
 		}
 		//minecraft->locateMultiplayer();
 		//minecraft->setScreen(new JoinGameScreen());
+	}
+	if (button->id == bEagler.id)
+	{
+		minecraft->cancelLocateMultiplayer();
+		minecraft->setScreen(new EaglerJoinScreen());
+		return;
 	}
 	if (button->id == bBack.id)
 	{
@@ -106,6 +114,7 @@ void JoinGameScreen::tick()
 void JoinGameScreen::init()
 {
 	buttons.push_back(&bJoin);
+	buttons.push_back(&bEagler);
 	buttons.push_back(&bBack);
 
 	minecraft->raknetInstance->clearServerList();
@@ -124,12 +133,15 @@ void JoinGameScreen::setupPositions() {
 	bJoin.y =	yBase;
 	bBack.y =   yBase;
 
-	bBack.width = bJoin.width = 120;
+	bEagler.y = yBase;
+	const int bw = (width - 32) / 3 < 110 ? (width - 32) / 3 : 110;
+	bBack.width = bJoin.width = bEagler.width = bw;
 	//#endif
 
-	// Center buttons
-	bJoin.x = width / 2 - 4 - bJoin.width;
-	bBack.x = width / 2 + 4;
+	// Center buttons: Join | Eaglercraft | Back
+	bEagler.x = (width - bw) / 2;
+	bJoin.x = bEagler.x - 6 - bw;
+	bBack.x = bEagler.x + bw + 6;
 }
 
 void JoinGameScreen::render( int xm, int ym, float a )

@@ -13,6 +13,8 @@
 #include <GLFW/glfw3.h>
 #ifdef __EMSCRIPTEN__
 #include <emscripten.h>
+#include <emscripten/websocket.h>
+#include <deque>
 #endif
 #ifdef _WIN32
 #include <windows.h>
@@ -27,10 +29,83 @@ class AppPlatform_glfw: public AppPlatform
 {
 public:
     AppPlatform_glfw()
+#ifdef __EMSCRIPTEN__
+    :   _sock(NULL)
+#endif
     {
     }
 
 #ifdef __EMSCRIPTEN__
+	// ---- WebSocket via the browser (Eaglercraft servers) ----
+	struct WebSock {
+		EMSCRIPTEN_WEBSOCKET_T ws;
+		int state;
+		std::string error;
+		std::deque<std::vector<unsigned char> > inbox;
+		WebSock() : ws(0), state(WS_CONNECTING) {}
+	};
+	WebSock* _sock;
+
+	static EM_BOOL wsOnOpen(int, const EmscriptenWebSocketOpenEvent*, void* u) {
+		((WebSock*)u)->state = WS_OPEN; return EM_TRUE;
+	}
+	static EM_BOOL wsOnMessage(int, const EmscriptenWebSocketMessageEvent* e, void* u) {
+		if (!e->isText && e->numBytes > 0)
+			((WebSock*)u)->inbox.push_back(std::vector<unsigned char>(e->data, e->data + e->numBytes));
+		return EM_TRUE;
+	}
+	static EM_BOOL wsOnError(int, const EmscriptenWebSocketErrorEvent*, void* u) {
+		WebSock* s = (WebSock*)u;
+		if (s->error.empty()) s->error = "Could not connect to the server";
+		return EM_TRUE;
+	}
+	static EM_BOOL wsOnClose(int, const EmscriptenWebSocketCloseEvent* e, void* u) {
+		WebSock* s = (WebSock*)u;
+		s->state = WS_CLOSED;
+		LOGI("WebSocket closed: code %d clean %d reason '%s'\n", (int)e->code, (int)e->wasClean, e->reason);
+		if (s->error.empty() && e->reason[0]) s->error = e->reason;
+		return EM_TRUE;
+	}
+
+	virtual bool wsSupported() { return emscripten_websocket_is_supported() != 0; }
+	virtual int wsOpen(const std::string& url) {
+		wsClose(0);
+		_sock = new WebSock();
+		EmscriptenWebSocketCreateAttributes attr;
+		emscripten_websocket_init_create_attributes(&attr);
+		attr.url = url.c_str();
+		attr.createOnMainThread = EM_TRUE;
+		EMSCRIPTEN_WEBSOCKET_T ws = emscripten_websocket_new(&attr);
+		if (ws <= 0) { _sock->state = WS_CLOSED; _sock->error = "Invalid server address"; return 0; }
+		_sock->ws = ws;
+		emscripten_websocket_set_onopen_callback(ws, _sock, wsOnOpen);
+		emscripten_websocket_set_onmessage_callback(ws, _sock, wsOnMessage);
+		emscripten_websocket_set_onerror_callback(ws, _sock, wsOnError);
+		emscripten_websocket_set_onclose_callback(ws, _sock, wsOnClose);
+		return 0;
+	}
+	virtual void wsSend(int, const unsigned char* data, int len) {
+		if (_sock && _sock->state == WS_OPEN)
+			emscripten_websocket_send_binary(_sock->ws, (void*)data, len);
+	}
+	virtual bool wsPoll(int, std::vector<unsigned char>& out) {
+		if (!_sock || _sock->inbox.empty()) return false;
+		out.swap(_sock->inbox.front());
+		_sock->inbox.pop_front();
+		return true;
+	}
+	virtual int wsState(int) { return _sock ? _sock->state : WS_CLOSED; }
+	virtual std::string wsError(int) { return _sock ? _sock->error : std::string(); }
+	virtual void wsClose(int) {
+		if (!_sock) return;
+		if (_sock->ws > 0) {
+			emscripten_websocket_close(_sock->ws, 1000, "");
+			emscripten_websocket_delete(_sock->ws);
+		}
+		delete _sock;
+		_sock = NULL;
+	}
+
 	// Touch browsers have no physical keyboard: web/shell.html focuses a
 	// hidden <input> (or shows a "tap to type" bar on iOS) and feeds the
 	// typed text back through web_kbd_char / web_kbd_key.

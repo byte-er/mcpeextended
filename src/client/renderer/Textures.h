@@ -48,6 +48,8 @@ public:
 	void tick(bool uploadToGraphicsCard);
 
 	void clear();
+	/** Drops one texture (GL object + cached image) so it is rebuilt on next use. */
+	void releaseTexture(const std::string& resourceName);
 	void reloadAll();
 
 	__inline static bool isTextureIdValid(TextureId t) { return t != Textures::InvalidId; }

@@ -432,7 +432,8 @@ void Level::setInitialSpawn() {
     int xSpawn = CHUNK_CACHE_WIDTH * CHUNK_WIDTH / 2; // (Level.MAX_LEVEL_SIZE - 100) * 0;
     int ySpawn = 64;
     int zSpawn = CHUNK_CACHE_WIDTH * CHUNK_DEPTH / 2; // (Level.MAX_LEVEL_SIZE - 100) * 0;
-    while (!dimension->isValidSpawn(xSpawn, zSpawn)) {
+    // server worlds start empty; the server tells us where to spawn
+    while (levelData.worldType != LevelSettings::WORLD_EMPTY && !dimension->isValidSpawn(xSpawn, zSpawn)) {
         xSpawn += random.nextInt(32) - random.nextInt(32);
         zSpawn += random.nextInt(32) - random.nextInt(32);
 
@@ -447,6 +448,7 @@ void Level::setInitialSpawn() {
 
 /*public*/
 void Level::validateSpawn() {
+    if (levelData.worldType == LevelSettings::WORLD_EMPTY) return; // server decides
     if (levelData.getYSpawn() <= 0) {
         levelData.setYSpawn(64);
     }

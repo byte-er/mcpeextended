@@ -1,4 +1,5 @@
 #include "TouchJoinGameScreen.h"
+#include "../EaglerJoinScreen.h"
 #include "../StartMenuScreen.h"
 #include "../ProgressScreen.h"
 #include "../../Font.h"
@@ -65,6 +66,7 @@ JoinGameScreen::JoinGameScreen()
 :	bJoin(  2, "Join Game"),
 	bBack(  3, "Back"),
 	bHeader(0, ""),
+	bEagler(4, "Eaglercraft"),
 	gamesList(NULL)
 {
 	bJoin.active = false;
@@ -81,6 +83,7 @@ void JoinGameScreen::init()
 	//buttons.push_back(&bJoin);
 	buttons.push_back(&bBack);
 	buttons.push_back(&bHeader);
+	buttons.push_back(&bEagler);
 
 	minecraft->raknetInstance->clearServerList();
 	gamesList = new AvailableGamesList(minecraft, width, height);
@@ -103,12 +106,22 @@ void JoinGameScreen::setupPositions() {
 	// Center buttons
 	//bJoin.x = width / 2 - 4 - bJoin.w;
 	bBack.x = 0;//width / 2 + 4;
+	bEagler.y = 0;
+	bEagler.width = 70;
+	bEagler.height = bBack.height;
+	bEagler.x = width - bEagler.width;
 	bHeader.x = bBack.width;
-	bHeader.width = width - bHeader.x;
+	bHeader.width = bEagler.x - bHeader.x;
 }
 
 void JoinGameScreen::buttonClicked(Button* button)
 {
+	if (button->id == bEagler.id)
+	{
+		minecraft->cancelLocateMultiplayer();
+		minecraft->setScreen(new ::EaglerJoinScreen());
+		return;
+	}
 	if (button->id == bJoin.id)
 	{
 		if (isIndexValid(gamesList->selectedItem))

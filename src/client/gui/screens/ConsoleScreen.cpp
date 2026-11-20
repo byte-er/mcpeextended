@@ -1,4 +1,5 @@
 #include "ConsoleScreen.h"
+#include "../../../network/eagler/EaglerClient.h"
 #include "../Gui.h"
 #include "../../Minecraft.h"
 #include "../../player/LocalPlayer.h"
@@ -73,6 +74,12 @@ void ConsoleScreen::keyboardNewChar(char inputChar)
 void ConsoleScreen::execute()
 {
     if (_input.empty()) {
+        minecraft->setScreen(NULL);
+        return;
+    }
+    if (minecraft->eagler && minecraft->eagler->isPlaying()) {
+        // on an Eaglercraft server: chat and /commands are the server's
+        minecraft->eagler->sendChat(_input);
         minecraft->setScreen(NULL);
         return;
     }

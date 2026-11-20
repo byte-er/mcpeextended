@@ -106,6 +106,8 @@ file(GLOB SOURCES
 
     "src/network/*.cpp"
     "src/network/command/*.cpp"
+    "src/network/eagler/*.cpp"
+    "src/client/skin/*.cpp"
 
     "src/platform/*.cpp"
     "src/platform/audio/SoundSystemAL.cpp"
@@ -212,7 +214,7 @@ if(EMSCRIPTEN)
         "-sUSE_GLFW=3"
         "-sLEGACY_GL_EMULATION=1" "-sGL_ENABLE_GET_PROC_ADDRESS=1" "-sGL_UNSAFE_OPTS=0"
         "-sALLOW_MEMORY_GROWTH=1" "-sINITIAL_MEMORY=268435456" "-sSTACK_SIZE=4194304"
-        "-sFORCE_FILESYSTEM=1" "-lidbfs.js" "-lopenal"
+        "-sFORCE_FILESYSTEM=1" "-lidbfs.js" "-lwebsocket.js" "-lopenal"
         "-sEXPORTED_RUNTIME_METHODS=['FS','addRunDependency','removeRunDependency']"
         "--exclude-file" "${CMAKE_SOURCE_DIR}/data/app"
         "--shell-file" "${CMAKE_SOURCE_DIR}/web/shell.html")

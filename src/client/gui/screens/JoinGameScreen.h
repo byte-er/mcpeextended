@@ -65,6 +65,7 @@ public:
 private:
 	Button bJoin;
 	Button bBack;
+	Button bEagler; // Eaglercraft 1.8 servers
 	AvailableGamesList* gamesList;
 };
 

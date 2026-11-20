@@ -264,6 +264,11 @@ int main(void) {
 		mc->options.anaglyph3d = true;
 		mc->options.onAnaglyphChanged();
 	}
+	if (const char* eaglerAddr = getenv("MCPE_EAGLER")) {
+		MAIN_CLASS* mc = (MAIN_CLASS*)g_app;
+		if (const char* name = getenv("MCPE_USER")) mc->options.username = name;
+		mc->joinEaglerServer(eaglerAddr);
+	}
 	if (const char* autoWorld = getenv("MCPE_AUTOWORLD")) {
 		MAIN_CLASS* mc = (MAIN_CLASS*)g_app;
 		const char* seedStr = getenv("MCPE_SEED");

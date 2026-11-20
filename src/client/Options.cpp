@@ -47,6 +47,8 @@ void Options::initDefaultValues() {
 
 	//skin     = "Default";
 	username = "";
+	eaglerServer = "";
+	skin = 0;
 	serverVisible = true;
 
 	keyUp	 = KeyMapping("key.forward", Keyboard::KEY_W);
@@ -201,6 +203,8 @@ void Options::update()
         
 		// Multiplayer
 		if (key == OptionStrings::Multiplayer_Username) username = value;
+		if (key == OptionStrings::Multiplayer_EaglerServer) eaglerServer = value;
+		if (key == OptionStrings::Multiplayer_Skin) { int v; if (readInt(value, v)) skin = v; }
 		if (key == OptionStrings::Multiplayer_ServerVisible) readBool(value, serverVisible);
 
 		// Controls
@@ -310,6 +314,8 @@ void Options::save()
 	StringVector stringVec;
 	// Login
 	addOptionToSaveOutput(stringVec, OptionStrings::Multiplayer_Username, username);
+	addOptionToSaveOutput(stringVec, OptionStrings::Multiplayer_EaglerServer, eaglerServer);
+	addOptionToSaveOutput(stringVec, OptionStrings::Multiplayer_Skin, skin);
 	// Game
 	addOptionToSaveOutput(stringVec, OptionStrings::Multiplayer_ServerVisible, serverVisible);
 	addOptionToSaveOutput(stringVec, OptionStrings::Game_DifficultyLevel, difficulty);

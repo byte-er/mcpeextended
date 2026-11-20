@@ -1,6 +1,8 @@
 #include "OptionStrings.h"
 
 const char* OptionStrings::Multiplayer_Username        = "mp_username";
+const char* OptionStrings::Multiplayer_EaglerServer     = "mp_eaglerserver";
+const char* OptionStrings::Multiplayer_Skin            = "mp_skin";
 const char* OptionStrings::Multiplayer_ServerVisible   = "mp_server_visible_default";
 
 const char* OptionStrings::Graphics_Fancy              = "gfx_fancygraphics";

@@ -80,6 +80,7 @@ public:
         _getScreenHeight(0),
         _methodGetPixelsPerMillimeter(0),
 		_methodGetPlatformStringVar(0),
+		_wsOpen(0), _wsSend(0), _wsPoll(0), _wsState(0), _wsError(0), _wsClose(0),
 
 		_classWindow(0),
 		_classContext(0),
@@ -158,6 +159,13 @@ public:
 
 		_methodGetPixelsPerMillimeter = env->GetMethodID( _activityClass, "getPixelsPerMillimeter", "()F");
 		_methodGetPlatformStringVar = env->GetMethodID( _activityClass, "getPlatformStringVar", "(I)Ljava/lang/String;");
+		_wsOpen  = env->GetMethodID( _activityClass, "wsOpen",  "(Ljava/lang/String;)I");
+		_wsSend  = env->GetMethodID( _activityClass, "wsSend",  "(I[B)V");
+		_wsPoll  = env->GetMethodID( _activityClass, "wsPoll",  "(I)[B");
+		_wsState = env->GetMethodID( _activityClass, "wsState", "(I)I");
+		_wsError = env->GetMethodID( _activityClass, "wsError", "(I)Ljava/lang/String;");
+		_wsClose = env->GetMethodID( _activityClass, "wsClose", "(I)V");
+		if (env->ExceptionCheck()) env->ExceptionClear();
 
 		_classWindow = (jclass)env->NewGlobalRef(env->FindClass("android/view/Window"));
 		_classContext = (jclass)env->NewGlobalRef(env->FindClass("android/content/Context"));
@@ -457,6 +465,62 @@ public:
         return out;
     }
 
+	// ---- WebSocket (Eaglercraft): implemented in Java, see EaglerWebSocket.java ----
+	virtual bool wsSupported() { return _isInited && _wsOpen != 0; }
+	virtual int wsOpen(const std::string& url) {
+		if (!wsSupported()) return -1;
+		JVMAttacher ta(_vm);
+		JNIEnv* env = ta.getEnv();
+		jstring jurl = env->NewStringUTF(url.c_str());
+		int h = env->CallIntMethod(instance, _wsOpen, jurl);
+		env->DeleteLocalRef(jurl);
+		return h;
+	}
+	virtual void wsSend(int handle, const unsigned char* data, int len) {
+		if (!wsSupported()) return;
+		JVMAttacher ta(_vm);
+		JNIEnv* env = ta.getEnv();
+		jbyteArray arr = env->NewByteArray(len);
+		env->SetByteArrayRegion(arr, 0, len, (const jbyte*)data);
+		env->CallVoidMethod(instance, _wsSend, handle, arr);
+		env->DeleteLocalRef(arr);
+	}
+	virtual bool wsPoll(int handle, std::vector<unsigned char>& out) {
+		if (!wsSupported()) return false;
+		JVMAttacher ta(_vm);
+		JNIEnv* env = ta.getEnv();
+		jbyteArray arr = (jbyteArray)env->CallObjectMethod(instance, _wsPoll, handle);
+		if (!arr) return false;
+		jsize n = env->GetArrayLength(arr);
+		out.resize(n);
+		if (n > 0) env->GetByteArrayRegion(arr, 0, n, (jbyte*)&out[0]);
+		env->DeleteLocalRef(arr);
+		return true;
+	}
+	virtual int wsState(int handle) {
+		if (!wsSupported()) return WS_CLOSED;
+		JVMAttacher ta(_vm);
+		return ta.getEnv()->CallIntMethod(instance, _wsState, handle);
+	}
+	virtual std::string wsError(int handle) {
+		if (!wsSupported()) return "WebSockets are not supported";
+		JVMAttacher ta(_vm);
+		JNIEnv* env = ta.getEnv();
+		jstring js = (jstring)env->CallObjectMethod(instance, _wsError, handle);
+		std::string out;
+		if (js) {
+			const char* c = env->GetStringUTFChars(js, NULL);
+			if (c) { out = c; env->ReleaseStringUTFChars(js, c); }
+			env->DeleteLocalRef(js);
+		}
+		return out;
+	}
+	virtual void wsClose(int handle) {
+		if (!wsSupported()) return;
+		JVMAttacher ta(_vm);
+		ta.getEnv()->CallVoidMethod(instance, _wsClose, handle);
+	}
+
 	std::string getPlatformStringVar(int s) {
 		if (!_isInited) return "";
 		if (!_methodGetPlatformStringVar) return "";
@@ -657,6 +721,7 @@ private:
 	jmethodID _methodIsNetworkEnabled;
 
 	jmethodID _methodGetPlatformStringVar;
+	jmethodID _wsOpen, _wsSend, _wsPoll, _wsState, _wsError, _wsClose;
 
 	jclass _classWindow;
 	jclass _classContext;

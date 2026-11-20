@@ -21,6 +21,16 @@ public:
 	/** Called when the rendered level changes (NULL to clear). */
 	static void setLevel(Level* level);
 
+	/**
+	 * Server worlds: biome ids come from the server (Java 1.8 ids). `fn`
+	 * returns the id at a local block column, or -1 if unknown.
+	 */
+	typedef int (*BiomeIdFn)(int x, int z, void* ctx);
+	static void setExternalSource(BiomeIdFn fn, void* ctx);
+	/** Drops cached colours around 16x16 block (bx, bz) after its biomes changed. */
+	static void invalidateBlock(int bx, int bz);
+	static void clearCache();
+
 	static int grass(int x, int z);
 	static int foliage(int x, int z);
 

@@ -1,3 +1,4 @@
+#include "../../network/eagler/EaglerClient.h"
 #include "GameMode.h"
 #include "../Minecraft.h"
 #include "../../network/packet/UseItemPacket.h"
@@ -32,6 +33,7 @@ Player* GameMode::createPlayer(Level* level) {
 
 /*virtual*/
 void GameMode::interact(Player* player, Entity* entity) {
+	if (minecraft->eagler) { minecraft->eagler->onInteract(entity); return; }
     player->interact(entity);
 }
 
@@ -41,6 +43,7 @@ void GameMode::attack(Player* player, Entity* entity) {
 		return;
 	if (minecraft->level->adventureSettings.noPvM && entity->isMob())
 		return;
+	if (minecraft->eagler) { minecraft->eagler->onAttack(entity); player->swing(); return; }
     player->attack(entity);
 }
 
@@ -79,7 +82,9 @@ bool GameMode::destroyBlock(int x, int y, int z, int face) {
         oldTile->destroy(level, x, y, z, data);
 		if (minecraft->options.destroyVibration) minecraft->platform()->vibrate(24);
 
-		if (minecraft->isOnline()) {
+		if (minecraft->eagler) {
+			minecraft->eagler->onDestroyed(x, y, z, face);
+		} else if (minecraft->isOnline()) {
 			RemoveBlockPacket packet(minecraft->player, x, y, z);
 			minecraft->raknetInstance->send(packet);
 		}
@@ -95,7 +100,9 @@ bool GameMode::useItemOn(Player* player, Level* level, ItemInstance* item, int x
 	// Java: no interaction with blocks outside the world border
 	if (!level->getWorldBorder().isWithinBounds(x, z))
 		return false;
-	if(level->isClientSide) {
+	if (minecraft->eagler) {
+		minecraft->eagler->onUseItemOn(x, y, z, face, clickX, clickY, clickZ);
+	} else if(level->isClientSide) {
 		UseItemPacket packet(x, y, z, face, item, player->entityId, clickX, clickY, clickZ);
 		minecraft->raknetInstance->send(packet);
 	}
@@ -121,7 +128,9 @@ bool GameMode::useItem( Player* player, Level* level, ItemInstance* item ) {
 	int oldCount = item->count;
 
 	ItemInstance* itemInstance = item->use(level, player);
-	if(level->isClientSide) {
+	if (minecraft->eagler) {
+		minecraft->eagler->onUseItem();
+	} else if(level->isClientSide) {
 		UseItemPacket packet(item, player->entityId, player->aimDirection);
 		minecraft->raknetInstance->send(packet);
 	}
@@ -154,7 +163,9 @@ void GameMode::initPlayer( Player* player ) {
 }
 
 void GameMode::releaseUsingItem(Player* player){
-	if(minecraft->level->isClientSide) {
+	if (minecraft->eagler) {
+		// release use item (bow, eating): digging status 5
+	} else if(minecraft->level->isClientSide) {
 		PlayerActionPacket packet(PlayerActionPacket::RELEASE_USE_ITEM,  0, 0, 0, 0, player->entityId);
 		minecraft->raknetInstance->send(packet);
 	}

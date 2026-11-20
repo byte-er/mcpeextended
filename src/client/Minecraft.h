@@ -47,6 +47,8 @@ struct PingedCompatibleServer;
 class AppPlatform;
 class AppPlatform_android;
 
+class EaglerClient;
+
 class Minecraft: public App
 {
 protected:
@@ -163,6 +165,10 @@ public:
 #endif
 	IRakNetInstance*  raknetInstance;
 	NetEventCallback* netCallback;
+	/** Connection to an Eaglercraft 1.8 server, when playing on one. */
+	EaglerClient* eagler;
+	/** Starts connecting; the screen shows progress and errors. */
+	void joinEaglerServer(const std::string& address);
 
 	int lastTime;
 	int lastTickTime;

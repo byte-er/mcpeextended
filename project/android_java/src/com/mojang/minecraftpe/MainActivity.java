@@ -310,6 +310,19 @@ public class MainActivity extends Activity {
         }
     }
 
+    // ---- WebSocket for Eaglercraft servers (called from native code) ----
+    private EaglerWebSocket eaglerSocket;
+    public int wsOpen(String url) {
+        wsClose(0);
+        eaglerSocket = new EaglerWebSocket(url);
+        return 0;
+    }
+    public void wsSend(int handle, byte[] data) { if (eaglerSocket != null) eaglerSocket.send(data); }
+    public byte[] wsPoll(int handle) { return eaglerSocket != null ? eaglerSocket.poll() : null; }
+    public int wsState(int handle) { return eaglerSocket != null ? eaglerSocket.getState() : EaglerWebSocket.CLOSED; }
+    public String wsError(int handle) { return eaglerSocket != null ? eaglerSocket.getError() : ""; }
+    public void wsClose(int handle) { if (eaglerSocket != null) { eaglerSocket.close(); eaglerSocket = null; } }
+
     public int[] getImageData(String filename) {
     	AssetManager assets = getAssets();
 

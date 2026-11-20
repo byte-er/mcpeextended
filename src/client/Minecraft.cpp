@@ -31,6 +31,10 @@
 #include "gui/Screen.h"
 #include "gui/Font.h"
 #include "gui/screens/RenameMPLevelScreen.h"
+#include "gui/screens/EaglerJoinScreen.h"
+#include "gui/screens/DisconnectionScreen.h"
+#include "../network/eagler/EaglerClient.h"
+#include "skin/PlayerSkin.h"
 #include "gui/screens/ConsoleScreen.h"
 #include "sound/SoundEngine.h"
 #endif
@@ -157,6 +161,7 @@ Minecraft::Minecraft()
 	gui(this),
 #endif
 	netCallback(NULL),
+	eagler(NULL),
 #ifndef STANDALONE_SERVER
 	screen(NULL),
 	font(NULL),
@@ -207,6 +212,7 @@ Minecraft::Minecraft()
 
 Minecraft::~Minecraft()
 {
+	delete eagler;
 	delete netCallback;
 	delete raknetInstance;
 #ifndef STANDALONE_SERVER
@@ -323,6 +329,8 @@ void Minecraft::leaveGame(bool renameLevel /*=false*/)
 	bool saveLevel = level && (!level->isClientSide || renameLevel);
 
 	raknetInstance->disconnect();
+	delete eagler;
+	eagler = NULL;
 	if (saveLevel) {
 		// If server or wanting to save level as client, save all unsaved chunks!
 		level->getChunkSource()->saveAll(true);
@@ -516,6 +524,25 @@ void Minecraft::tick(int nTick, int maxTick) {
 		}
 	}
 #endif
+	if (eagler) {
+		TIMER_PUSH("eagler");
+		eagler->tick();
+		if (eagler->getState() == EaglerClient::FAILED) {
+			std::string why = eagler->getError();
+			if (level && !isGeneratingLevel && _hasSignaledGeneratingLevelFinished) {
+				leaveGame();           // deletes eagler
+			} else if (!level) {
+				delete eagler;
+				eagler = NULL;
+			}
+			if (!eagler) {
+#ifndef STANDALONE_SERVER
+				setScreen(new DisconnectionScreen(why));
+#endif
+			}
+		}
+		TIMER_POP();
+	}
 	TIMER_PUSH("gameMode");
 	if (level && !pause) {
 		gameMode->tick();
@@ -1250,6 +1277,9 @@ void Minecraft::reloadOptions() {
 #endif
 
 	LOGI("Reloading-options\n");
+#ifndef STANDALONE_SERVER
+	if (textures) PlayerSkin::reload(this);
+#endif
 
     // @todo @fix Android and iOS behaves a bit differently when leaving
     //            an options screen (Android recreates OpenGL surface)
@@ -1360,6 +1390,9 @@ void Minecraft::generateLevel( const std::string& message, Level* level )
 void Minecraft::_levelGenerated()
 {
 #ifndef STANDALONE_SERVER
+	PlayerSkin::reload(this);
+#endif
+#ifndef STANDALONE_SERVER
 	if (player == NULL) {
 		player = (LocalPlayer*) gameMode->createPlayer(level);
 		gameMode->initPlayer(player);
@@ -1442,6 +1475,13 @@ void Minecraft::respawnPlayer() {
 	//
 	//LOGI("Has entity? %d, %d\n", level->getEntity(player->entityId), slowCheck);
 
+	if (eagler) {
+		// the server respawns us and sends the new position
+		eagler->requestRespawn();
+		player->health = 20;
+		player->deathTime = 0;
+		return;
+	}
 	resetPlayer(player);
 
 	// tell server (or other client) that we re-spawned
@@ -1579,4 +1619,14 @@ void Minecraft::optionUpdated( const Options::Option* option, int value ) {
         // reapply screen scaling using current window size
         setSize(width, height);
     }
+}
+
+void Minecraft::joinEaglerServer(const std::string& address)
+{
+	delete eagler;
+	PlayerSkin::reload(this); // sent to the server during login
+	eagler = new EaglerClient(this, address, options.username.empty() ? user->name : options.username);
+#ifndef STANDALONE_SERVER
+	setScreen(new EaglerStatusScreen());
+#endif
 }

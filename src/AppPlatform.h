@@ -134,6 +134,19 @@ public:
 	virtual void showKeyboard() {
 		keyboardVisible = true;
 	}
+
+	// ---- WebSocket client (Eaglercraft servers) ---------------------------
+	// One binary-message WebSocket at a time. States: 0 connecting, 1 open,
+	// 2 closing, 3 closed. Platforms without support return -1 from wsOpen.
+	enum { WS_CONNECTING = 0, WS_OPEN = 1, WS_CLOSING = 2, WS_CLOSED = 3 };
+	virtual bool wsSupported() { return false; }
+	virtual int  wsOpen(const std::string& url) { return -1; }
+	virtual void wsSend(int handle, const unsigned char* data, int len) {}
+	/** Pops the next received binary message; false when none is queued. */
+	virtual bool wsPoll(int handle, std::vector<unsigned char>& out) { return false; }
+	virtual int  wsState(int handle) { return WS_CLOSED; }
+	virtual std::string wsError(int handle) { return "WebSockets are not supported on this platform"; }
+	virtual void wsClose(int handle) {}
 	virtual void hideKeyboard() {
 		keyboardVisible = false;
 	}

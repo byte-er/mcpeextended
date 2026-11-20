@@ -1,4 +1,5 @@
 #include "LocalPlayer.h"
+#include "../skin/PlayerSkin.h"
 #include "../Minecraft.h"
 #include "../../ErrorCodes.h"
 #include "../../world/entity/EntityEvent.h"
@@ -57,6 +58,7 @@ LocalPlayer::LocalPlayer(Minecraft* minecraft, Level* level, User* user, int dim
 {
 	this->dimension = dimension;
 	_init();
+	setTextureName(PlayerSkin::LOCAL); // chosen skin (Options), see PlayerSkin
 
 	if (user != NULL) {
 		if (user->name.length() > 0)

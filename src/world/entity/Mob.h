@@ -42,6 +42,9 @@ public:
 
 	virtual void spawnAnim();
     virtual std::string getTexture();
+	void setTextureName(const std::string& name) { textureName = name; }
+	/** Moves the network interpolation target (world window re-centring). */
+	void shiftLerpTarget(float dx, float dz) { lx += dx; lz += dz; }
 
 	virtual bool isAlive();
     virtual bool isPickable();
