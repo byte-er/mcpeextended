@@ -157,6 +157,8 @@ void Inventory::setupDefault() {
 		for (int c = 0; c < 16; ++c)
 			addItem(new ItemInstance(Tile::stainedClay, 1, c));
 
+		addItem(new ItemInstance(Tile::wood, 1, PlanksTile::SPRUCE));
+		addItem(new ItemInstance(Tile::wood, 1, PlanksTile::BIRCH));
 		addItem(new ItemInstance(Tile::wood, 1, PlanksTile::ACACIA));
 		addItem(new ItemInstance(Tile::wood, 1, PlanksTile::DARK_OAK));
 		Sel[7] = addItem(new ItemInstance(Tile::treeTrunk, 1, 0));

@@ -192,10 +192,19 @@ Recipes::Recipes()
 
 		definition('#', Item::reeds));
 
-	addShapedRecipe(ItemInstance(Tile::wood, 4), //
+	// each log makes its own planks
+	addShapedRecipe(ItemInstance(Tile::wood, 4, 0), //
 		"#", //
 
-		definition('#', Tile::treeTrunk));
+		definition('#', ItemInstance(Tile::treeTrunk, 1, TreeTile::NORMAL_TRUNK)));
+	addShapedRecipe(ItemInstance(Tile::wood, 4, PlanksTile::SPRUCE), //
+		"#", //
+
+		definition('#', ItemInstance(Tile::treeTrunk, 1, TreeTile::DARK_TRUNK)));
+	addShapedRecipe(ItemInstance(Tile::wood, 4, PlanksTile::BIRCH), //
+		"#", //
+
+		definition('#', ItemInstance(Tile::treeTrunk, 1, TreeTile::BIRCH_TRUNK)));
 
 	// Pocket Edition 0.9.0 woods
 	addShapedRecipe(ItemInstance(Tile::wood, 4, PlanksTile::ACACIA), //

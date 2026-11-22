@@ -311,7 +311,7 @@ void Tile::initTiles() {
 	// @note: Make sure those different items are handled in ItemInHandRenderer::renderItem
 	//
 	Item::items[cloth->id] = (new ClothTileItem(cloth->id - 256))->setCategory(ItemCategory::Structures)->setDescriptionId("cloth");
-	Item::items[treeTrunk->id] = (new AuxDataTileItem(treeTrunk->id - 256, treeTrunk))->setCategory(ItemCategory::Structures)->setDescriptionId("log");
+	// (named below, once the name tables exist)
 	Item::items[stoneBrickSmooth->id] = (new AuxDataTileItem(stoneBrickSmooth->id - 256, stoneBrickSmooth))->setCategory(ItemCategory::Structures)->setDescriptionId("stonebricksmooth");
 	Item::items[stoneSlabHalf->id] = (new StoneSlabTileItem(stoneSlabHalf->id - 256))->setCategory(ItemCategory::Structures)->setDescriptionId("stoneSlab");
 	Item::items[sapling->id] = (new SaplingTileItem(sapling->id - 256))->setCategory(ItemCategory::Structures)->setDescriptionId("sapling");
@@ -319,7 +319,8 @@ void Tile::initTiles() {
 	Item::items[sandStone->id] = (new AuxDataTileItem(sandStone->id - 256, sandStone))->setCategory(ItemCategory::Structures)->setDescriptionId("sandStone");
 
 	Item::items[quartzBlock->id] = (new AuxDataTileItem(quartzBlock->id - 256, quartzBlock))->setCategory(ItemCategory::Structures)->setDescriptionId("quartzBlock");
-	static const char* const PLANK_NAMES[] = { "", "", "", "", "acacia", "big_oak" };
+	static const char* const PLANK_NAMES[] = { "oak", "spruce", "birch", "jungle", "acacia", "big_oak" };
+	static const char* const LOG_NAMES[]   = { "oak", "spruce", "birch" };
 	static const char* const SAND_NAMES[]  = { "", "red" };
 	static const char* const FLOWER_NAMES[] = { "", "blueOrchid", "allium", "houstonia", "tulipRed", "tulipOrange", "tulipWhite", "tulipPink", "oxeyeDaisy" };
 	static const char* const CLAY_NAMES[]  = { "white", "orange", "magenta", "lightBlue", "yellow", "lime", "pink", "gray", "silver", "cyan", "purple", "blue", "brown", "green", "red", "black" };
@@ -329,6 +330,7 @@ void Tile::initTiles() {
 	Item::items[rose->id]        = (new VariantTileItem(rose->id - 256, rose, FLOWER_NAMES, 9))->setCategory(ItemCategory::Decorations)->setDescriptionId("rose");
 	Item::items[stainedClay->id] = (new VariantTileItem(stainedClay->id - 256, stainedClay, CLAY_NAMES, 16))->setCategory(ItemCategory::Structures)->setDescriptionId("stainedClay");
 	Item::items[log2->id]        = (new VariantTileItem(log2->id - 256, log2, LOG2_NAMES, 2))->setCategory(ItemCategory::Structures)->setDescriptionId("log");
+	Item::items[treeTrunk->id]   = (new VariantTileItem(treeTrunk->id - 256, treeTrunk, LOG_NAMES, 3))->setCategory(ItemCategory::Structures)->setDescriptionId("log");
 	Item::items[((Tile*)leaves2)->id] = (new VariantTileItem(((Tile*)leaves2)->id - 256, leaves2, LOG2_NAMES, 2))->setCategory(ItemCategory::Decorations)->setDescriptionId("leaves");
 
     for (int i = 0; i < 256; i++) {

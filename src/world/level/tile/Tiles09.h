@@ -28,6 +28,8 @@ namespace Tex09 {
 	const int DARK_OAK_LOG      = 201;
 	const int DARK_OAK_LOG_TOP  = 202;
 	const int ACACIA_PLANKS     = 203;
+	const int SPRUCE_PLANKS     = 9;   // was the (unused) mob spawner texture
+	const int BIRCH_PLANKS      = 74;  // was the (unused) note block texture
 	const int DARK_OAK_PLANKS   = 215;
 	const int ACACIA_LEAVES     = 216;
 	const int DARK_OAK_LEAVES   = 217;
@@ -109,17 +111,21 @@ protected:
 class PlanksTile : public Tile
 {
 public:
+	static const int SPRUCE   = 1;
+	static const int BIRCH    = 2;
 	static const int ACACIA   = 4;
 	static const int DARK_OAK = 5;
 	PlanksTile(int id) : Tile(id, Tex09::OAK_PLANKS, Material::wood) {}
 
 	int getTexture(int face, int data) {
+		if (data == SPRUCE)   return Tex09::SPRUCE_PLANKS;
+		if (data == BIRCH)    return Tex09::BIRCH_PLANKS;
 		if (data == ACACIA)   return Tex09::ACACIA_PLANKS;
 		if (data == DARK_OAK) return Tex09::DARK_OAK_PLANKS;
 		return tex;
 	}
 protected:
-	int getSpawnResourcesAuxValue(int data) { return (data == ACACIA || data == DARK_OAK) ? data : 0; }
+	int getSpawnResourcesAuxValue(int data) { return (data == SPRUCE || data == BIRCH || data == ACACIA || data == DARK_OAK) ? data : 0; }
 };
 
 /** Acacia (data&3 == 0) and dark oak (1) logs, PE id 162. */
