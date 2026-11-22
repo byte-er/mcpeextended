@@ -11,6 +11,8 @@
 #include "touch/TouchJoinGameScreen.h"
 #include "touch/TouchIngameBlockSelectionScreen.h"
 #include "touch/TouchCreativeScreen.h"
+#include "JavaCreativeScreen.h"
+#include "../../../network/eagler/EaglerClient.h"
 
 #include "../../Minecraft.h"
 
@@ -27,6 +29,7 @@ Screen* ScreenChooser::createScreen( ScreenId id )
 		case SCREEN_PAUSEPREV:	screen = new PauseScreen(true);	 break;
 		case SCREEN_BLOCKSELECTION:
 			if (_mc->options.pcUi && !_mc->isCreativeMode()) screen = new JavaInventoryScreen(false);
+			else if (_mc->isCreativeMode() && !_mc->touchUi() && !_mc->eagler) screen = new JavaCreativeScreen(); // mouse + keyboard
 			else if (_mc->isCreativeMode()) screen = new Touch::CreativeScreen(); // 0.9.0 tabbed creative inventory
 			else screen = new Touch::IngameBlockSelectionScreen();
 			break;
@@ -45,6 +48,7 @@ Screen* ScreenChooser::createScreen( ScreenId id )
 		case SCREEN_PAUSEPREV:	screen = new PauseScreen(true);	 break;
 		case SCREEN_BLOCKSELECTION:
 			if (_mc->options.pcUi && !_mc->isCreativeMode()) screen = new JavaInventoryScreen(false);
+			else if (_mc->isCreativeMode() && !_mc->eagler) screen = new JavaCreativeScreen(); // Java creative inventory
 			else screen = new IngameBlockSelectionScreen();
 			break;
 

@@ -77,7 +77,8 @@ float AppPlatform_glfw::getPixelsPerMillimeter() {
 #ifdef __EMSCRIPTEN__
     // browsers don't report the screen's physical size: a CSS pixel is ~1/160 inch
     // on phones and tablets and ~1/96 inch on computers
-    const double dpr = emscripten_get_device_pixel_ratio();
+    double dpr = emscripten_get_device_pixel_ratio();
+    if (webIsTouchDevice() && dpr > 2.0) dpr = 2.0; // same cap as the canvas (main_glfw.h)
     return (float)(dpr * (webIsTouchDevice() ? 160.0 : 96.0) / 25.4);
 #endif
     GLFWmonitor* monitor = glfwGetPrimaryMonitor();

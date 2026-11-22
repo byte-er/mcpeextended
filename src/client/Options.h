@@ -125,6 +125,7 @@ public:
     bool lodTerrain; // distant low detail terrain beyond the render distance
     bool pcUi;       // Java-style inventory / crafting screens
     float fov;       // field of view in degrees (30..110)
+    std::string savedHotbars; // Java creative saved hotbars: rows ';', slots ',', "id.aux"
     bool beautifulSkies; // sky gradient and clouds (0.9.0)
     bool animatedWater;  // animated water texture (0.9.0)
 	bool useMouseForDigging;

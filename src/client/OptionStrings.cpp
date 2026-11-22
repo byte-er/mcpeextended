@@ -10,6 +10,7 @@ const char* OptionStrings::Graphics_LowQuality         = "gfx_lowquality";
 const char* OptionStrings::Graphics_Vsync              = "gfx_vsync";
 const char* OptionStrings::Controls_PcUi               = "ctrl_pcui";
 const char* OptionStrings::Graphics_Fov                = "gfx_fov";
+const char* OptionStrings::Controls_SavedHotbars       = "ctrl_hotbars";
 const char* OptionStrings::Graphics_Skies              = "gfx_skies";
 const char* OptionStrings::Graphics_AnimWater          = "gfx_animwater";
 const char* OptionStrings::Graphics_ViewDistance       = "gfx_viewdist";

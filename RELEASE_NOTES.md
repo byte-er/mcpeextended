@@ -1,13 +1,33 @@
-## MCPE Extended 0.9.7
+## MCPE Extended 0.9.8
 
 ### Downloads
 | Platform | File |
 |---|---|
-| Android (most phones) | `mcpeextended-0.9.7-arm64-v8a.apk` (or `-universal.apk` if unsure, `-armeabi-v7a.apk` for old 32-bit phones) |
+| Android (most phones) | `mcpeextended-0.9.8-arm64-v8a.apk` (or `-universal.apk` if unsure, `-armeabi-v7a.apk` for old 32-bit phones) |
 | Any computer, no setup | `mcpeextended.html`: one self-contained file (about 15 MB). Download it and open it in Chrome, Edge, Firefox or Safari; it works offline and saves worlds in the browser. |
 | PC (Windows / macOS / Linux), **iOS**, other devices | `mcpeextended-web.zip`: the browser build. Host the files on any web server (HTTPS to install it as an app). On PC it uses mouse + keyboard (click to capture the mouse, Esc pauses); on phones and tablets it uses touch controls. On iPhone/iPad open it in Safari → Share → **Add to Home Screen** to install it as a fullscreen app. |
 
 If installing the APK over an older build fails, uninstall the old one first; builds can be signed with different keys. Old worlds in `/sdcard/games/com.mojang` are copied over automatically when Android lets the app read them.
+
+### Fixes
+- **X-ray line through the middle of the world**: found it. The code that hides block faces nobody can see still thought the world ended at x/z = 256, the old 0.6.1 size. So every face looking at x = 256 or z = 256 was never drawn, leaving a see-through line across the middle of every world, and across Old worlds where their border used to be.
+- **Infinite worlds froze for seconds** after walking a while: the autosave looked for unsaved chunks across the whole loaded area and, in doing so, generated every missing chunk at once. New terrain is now generated a few milliseconds per tick, nearest first, and chunks you leave behind are saved a few at a time. Walking and teleporting no longer freeze the game.
+- **No block placing cooldown on PC**: holding right click placed a block every tick. It now works like Java: once on the click, then every 4 ticks while held.
+- **Furnaces closing right after opening on PC**: one right click used the block twice in the same tick, which opened the furnace twice and broke the first screen. A click now uses the block once, and nothing is used behind an open screen.
+
+### New: Java creative inventory (PC)
+- With mouse and keyboard, the creative inventory is now Java's. It has category tabs (Building Blocks, Decoration Blocks, Tools, Miscellaneous), a 9x5 grid with a scrollbar (drag it or use the mouse wheel), your hotbar underneath, and tooltips.
+- Click an item to pick it up and click a hotbar slot to put it there. Shift-click sends an item straight to the hotbar, and hovering an item and pressing 1-9 puts it in that slot. Click outside to drop what you're holding.
+- **Saved Hotbars** tab (Java's saved toolbars): hold **C** and press **1-9** to save your current hotbar, hold **X** and press **1-9** to load one, or click a row in the tab. Saved hotbars are kept between sessions.
+
+### iPhone and Android browsers: less memory
+- The browser build reserves 160 MB at start instead of 256 MB (a world uses about 115 MB) and grows only if it has to.
+- Phones render at up to 2x pixel density instead of 3x, which more than halves the GPU memory for the screen. Pixel art looks the same.
+- Saves are written to browser storage every 30 seconds instead of every 5, and still whenever the page is hidden or closed. Each save copies the changed world files, which caused stalls and memory spikes on iPhones.
+
+---
+
+## Earlier: MCPE Extended 0.9.7
 
 ### New: Infinite worlds
 - **Create a World -> Infinite** replaces Large. Infinite worlds are **60,000,000 blocks** across, with Java's world border at 30 million blocks in each direction.

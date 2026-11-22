@@ -213,7 +213,9 @@ if(EMSCRIPTEN)
     target_link_options(${PROJECT_NAME} PUBLIC
         "-sUSE_GLFW=3"
         "-sLEGACY_GL_EMULATION=1" "-sGL_ENABLE_GET_PROC_ADDRESS=1" "-sGL_UNSAFE_OPTS=0"
-        "-sALLOW_MEMORY_GROWTH=1" "-sINITIAL_MEMORY=268435456" "-sSTACK_SIZE=4194304"
+        # phones (iOS Safari) kill tabs that use too much: start small (a world needs
+        # ~110 MB), grow only if needed, never past 1 GB
+        "-sALLOW_MEMORY_GROWTH=1" "-sINITIAL_MEMORY=167772160" "-sMAXIMUM_MEMORY=1073741824" "-sMEMORY_GROWTH_GEOMETRIC_STEP=0.25" "-sSTACK_SIZE=4194304"
         "-sFORCE_FILESYSTEM=1" "-lidbfs.js" "-lwebsocket.js" "-lopenal"
         "-sEXPORTED_RUNTIME_METHODS=['FS','addRunDependency','removeRunDependency']"
         "--exclude-file" "${CMAKE_SOURCE_DIR}/data/app"

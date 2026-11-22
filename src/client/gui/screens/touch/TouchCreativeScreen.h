@@ -28,17 +28,19 @@ public:
 	bool handleBackEvent(bool isDown);
 	bool renderGameBehind() { return true; }
 
+	enum { TAB_ITEMS, TAB_TOOLS, TAB_DECORATION, TAB_BLOCKS, NUM_TABS };
+	/** Category tab of a creative item and its position in 0.9.0's order. */
+	static int tabFor(const ItemInstance* item, int* order);
+
 protected:
 	void mouseClicked(int x, int y, int buttonNum);
 	void mouseReleased(int x, int y, int buttonNum);
 	void keyPressed(int eventKey);
 
 private:
-	enum { TAB_ITEMS, TAB_TOOLS, TAB_DECORATION, TAB_BLOCKS, NUM_TABS };
 	struct Entry { int slot; };              // creative inventory slot
 
 	void buildTab();
-	static int tabFor(const ItemInstance* item, int* order);
 	int cellAt(int x, int y);                // entry index or -1
 	float maxScroll() const;
 	void pick(int entry);

@@ -265,6 +265,7 @@ void Options::update()
 		if (key == OptionStrings::Graphics_Skies) readBool(value, beautifulSkies);
 		if (key == OptionStrings::Graphics_AnimWater) readBool(value, animatedWater);
 		if (key == OptionStrings::Graphics_ViewDistance) { int v; if (readInt(value, v)) viewDistance = v & 3; }
+		if (key == OptionStrings::Controls_SavedHotbars) savedHotbars = value;
 		if (key == OptionStrings::Graphics_Fov) {
 			float f;
 			if (readFloat(value, f) && f >= 30 && f <= 110) fov = f;
@@ -352,6 +353,7 @@ void Options::save()
 	addOptionToSaveOutput(stringVec, OptionStrings::Graphics_Lod, lodTerrain);
 	addOptionToSaveOutput(stringVec, OptionStrings::Controls_PcUi, pcUi);
 	addOptionToSaveOutput(stringVec, OptionStrings::Graphics_Fov, fov);
+	addOptionToSaveOutput(stringVec, OptionStrings::Controls_SavedHotbars, savedHotbars);
 	addOptionToSaveOutput(stringVec, OptionStrings::Graphics_Fancy, fancyGraphics);
 	addOptionToSaveOutput(stringVec, OptionStrings::Graphics_Skies, beautifulSkies);
 	addOptionToSaveOutput(stringVec, OptionStrings::Graphics_AnimWater, animatedWater);

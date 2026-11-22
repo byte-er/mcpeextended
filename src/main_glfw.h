@@ -11,6 +11,7 @@
 #ifdef __EMSCRIPTEN__
 #include <emscripten.h>
 #include <emscripten/html5.h>
+#include <malloc.h>
 #endif
 #include <thread>
 #include "platform/input/Keyboard.h"
@@ -123,7 +124,13 @@ void error_callback(int error, const char* desc) {
 // ---------------------------------------------------------------------------
 static GLFWwindow* g_window = 0;
 
-static double webDpr() { return emscripten_get_device_pixel_ratio(); }
+bool webIsTouchDevice(); // platform/WebGLBind.cpp
+// Phones report 3x: a 3x canvas costs ~2.25x the GPU memory of 2x (iOS Safari
+// kills tabs that use too much) for no visible gain on pixel art.
+static double webDpr() {
+	const double d = emscripten_get_device_pixel_ratio();
+	return (webIsTouchDevice() && d > 2.0) ? 2.0 : d;
+}
 
 static EM_BOOL web_touch(int type, const EmscriptenTouchEvent* e, void*) {
 	const double dpr = webDpr();
@@ -167,6 +174,12 @@ static bool g_webPointerLocked = false;
 // Custom skin picked in the browser (see web/shell.html mcpePickSkin)
 extern "C" EMSCRIPTEN_KEEPALIVE void web_skin_changed() {
 	if (g_app) ((MAIN_CLASS*)g_app)->platform()->notifySkinChanged();
+}
+
+// Memory in use (bytes), for tuning the web build's heap size
+extern "C" EMSCRIPTEN_KEEPALIVE int web_mem_used() {
+	struct mallinfo mi = mallinfo();
+	return (int)mi.uordblks;
 }
 
 // Soft keyboard bridge for touch browsers (see web/shell.html)
