@@ -229,6 +229,14 @@ void LevelData::getTagData( const CompoundTag* tag )
 	worldBorder.resetToLevel(LEVEL_WIDTH, LEVEL_DEPTH);
 	worldBorder.load(tag); // keeps the default if the save predates world borders
 	worldType = tag->contains("WorldType") ? tag->getInt("WorldType") : LevelSettings::WORLD_LARGE;
+	// Worlds saved while levels were 256x256 kept that world border (centre 128,
+	// size 256): in today's 512x512 levels it cut through the middle of the world
+	// at x/z 256 (and its force field showed through the terrain there).
+	if (worldType == LevelSettings::WORLD_LARGE || worldType == LevelSettings::WORLD_FLAT) {
+		const WorldBorder& b = worldBorder;
+		if (b.getCenterX() == 128.0 && b.getCenterZ() == 128.0 && b.getSize() == 256.0)
+			worldBorder.resetToLevel(LEVEL_WIDTH, LEVEL_DEPTH);
+	}
 	originX = tag->contains("OriginChunkX") ? tag->getInt("OriginChunkX") : 0;
 	originZ = tag->contains("OriginChunkZ") ? tag->getInt("OriginChunkZ") : 0;
 

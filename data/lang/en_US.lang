@@ -1032,3 +1032,5 @@ tile.wood.jungle.name=Jungle planks
 tile.log.oak.name=Oak wood
 tile.log.spruce.name=Spruce wood
 tile.log.birch.name=Birch wood
+item.monsterPlacer.enderman.name=Spawn Enderman
+entity.Enderman.name=Enderman

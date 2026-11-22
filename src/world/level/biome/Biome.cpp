@@ -38,6 +38,7 @@ Biome::Biome()
     _friendlies.insert(_friendlies.end(), MobSpawnerData(MobTypes::Cow, 8, 2, 3));
 
     _enemies.insert(_enemies.end(), MobSpawnerData(MobTypes::Spider, 8, 2, 3));
+    _enemies.insert(_enemies.end(), MobSpawnerData(MobTypes::Enderman, 1, 1, 2)); // rare, like Java's 10 vs 100
     _enemies.insert(_enemies.end(), MobSpawnerData(MobTypes::Zombie, 12, 2, 4));
     _enemies.insert(_enemies.end(), MobSpawnerData(MobTypes::Skeleton, 6, 1, 3));
     _enemies.insert(_enemies.end(), MobSpawnerData(MobTypes::Creeper, 4, 1, 1));

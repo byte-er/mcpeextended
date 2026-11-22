@@ -9,6 +9,7 @@
 #include "../../../world/level/storage/LevelData.h"
 #include "../../particle/ParticleEngine.h"
 #include <cmath>
+#include "../../../world/entity/MobFactory.h"
 #include "../../../network/RakNetInstance.h"
 #include "../../../network/ServerSideNetworkHandler.h"
 #include "../../../network/packet/ChatPacket.h"
@@ -231,6 +232,29 @@ std::string ConsoleScreen::processCommand(const std::string& raw)
         std::ostringstream out;
         out << "Gave " << given << " of item " << id;
         return out.str();
+    }
+
+    // /summon <mob>   (Java names: zombie, creeper, enderman, pig, ...)
+    if (args[0] == "summon") {
+        if (level->isClientSide) return "Only the host can summon.";
+        if (args.size() < 2) return "Usage: /summon <mob>";
+        std::string n = args[1];
+        if (n.compare(0, 10, "minecraft:") == 0) n = n.substr(10);
+        struct M { const char* name; int type; };
+        static const M mobs[] = { { "chicken", MobTypes::Chicken }, { "cow", MobTypes::Cow }, { "pig", MobTypes::Pig },
+            { "sheep", MobTypes::Sheep }, { "zombie", MobTypes::Zombie }, { "creeper", MobTypes::Creeper },
+            { "skeleton", MobTypes::Skeleton }, { "spider", MobTypes::Spider }, { "zombie_pigman", MobTypes::PigZombie },
+            { "pigzombie", MobTypes::PigZombie }, { "enderman", MobTypes::Enderman } };
+        int type = 0;
+        for (unsigned int i = 0; i < sizeof(mobs) / sizeof(mobs[0]); ++i) if (n == mobs[i].name) type = mobs[i].type;
+        if (!type) return "Unknown mob " + args[1];
+        LocalPlayer* p = minecraft->player;
+        Mob* mob = MobFactory::CreateMob(type, level);
+        if (!mob) return "Can't summon " + args[1];
+        const float yr = p->yRot * Mth::DEGRAD;
+        mob->moveTo(p->x - Mth::sin(yr) * 3, p->y - p->heightOffset, p->z + Mth::cos(yr) * 3, p->yRot + 180, 0);
+        level->addEntity(mob);
+        return "Summoned " + n;
     }
 
     if (args[0] == "tp" || args[0] == "teleport") {

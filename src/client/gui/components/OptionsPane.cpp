@@ -15,10 +15,10 @@ void OptionsPane::setupPositions() {
 		(*it)->width = width;
 		(*it)->y = currentHeight;
 		(*it)->x = x;
+		(*it)->setupPositions(); // lay the group out first: its height is needed below
 		currentHeight += (*it)->height + 1;
 	}
-	height = currentHeight;
-	super::setupPositions();
+	height = currentHeight; // bottom edge (OptionsScreen scrolls by it)
 }
 
 OptionsGroup& OptionsPane::createOptionsGroup( std::string label ) {

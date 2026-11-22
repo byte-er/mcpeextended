@@ -23,6 +23,7 @@ public:
 			{ MobTypes::Chicken, "chicken" }, { MobTypes::Cow, "cow" }, { MobTypes::Pig, "pig" },
 			{ MobTypes::Sheep, "sheep" }, { MobTypes::Creeper, "creeper" }, { MobTypes::Skeleton, "skeleton" },
 			{ MobTypes::Spider, "spider" }, { MobTypes::Zombie, "zombie" }, { MobTypes::PigZombie, "pigzombie" },
+			{ MobTypes::Enderman, "enderman" },
 		};
 		count = (int)(sizeof(list) / sizeof(list[0]));
 		return list;

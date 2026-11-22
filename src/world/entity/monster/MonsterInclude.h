@@ -6,5 +6,6 @@
 #include "Skeleton.h"
 #include "Spider.h"
 #include "Zombie.h"
+#include "Enderman.h"
 #include "PigZombie.h"
 #endif /*NET_MINECRAFT_WORLD_ENTITY_MONSTER__MonsterInclude_H__*/

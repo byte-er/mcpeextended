@@ -827,7 +827,9 @@ void LevelRenderer::renderHit( Player* player, const HitResult& h, int mode, /*I
 			Tile* tile = tileId > 0 ? Tile::tiles[tileId] : NULL;
 			//glDisable2(GL_ALPHA_TEST);
 
-			glPolygonOffset(-3.0f, -3.0f);
+			// small pull towards the camera: enough against z-fighting with blocks on the
+	// border plane; Java's -3 showed the field through terrain on 16-bit depth GPUs
+	glPolygonOffset(-1.0f, -1.0f);
 			glEnable2(GL_POLYGON_OFFSET_FILL);
 			t.begin();
 			t.color(1.0f, 1.0f, 1.0f, 0.5f);

@@ -1182,6 +1182,7 @@ bool EaglerClient::readSlot(PacketIn& in, ItemInstance& out)
 		case 50: damage = 33; break; case 51: damage = 34; break; case 52: damage = 35; break;
 		case 54: damage = 32; break; case 57: damage = 36; break; case 90: damage = 12; break;
 		case 91: damage = 13; break; case 92: damage = 11; break; case 93: damage = 10; break;
+		case 58: damage = 38; break;
 		}
 	}
 	if (id >= 512 || !Item::items[id]) {
@@ -1428,6 +1429,7 @@ static int mobTypeFor18(int t)
 	case 51: return MobTypes::Skeleton;
 	case 52: case 59: return MobTypes::Spider;
 	case 54: return MobTypes::Zombie;
+	case 58: return MobTypes::Enderman;
 	case 57: return MobTypes::PigZombie;
 	case 90: return MobTypes::Pig;
 	case 91: return MobTypes::Sheep;
