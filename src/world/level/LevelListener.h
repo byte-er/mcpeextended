@@ -22,6 +22,8 @@ public:
 	virtual void tileBrightnessChanged(int x, int y, int z) { tileChanged(x, y, z); }
 	virtual void skyColorChanged() {}
 	virtual void allChanged() {}
+	/** Infinite worlds: the window moved, everything in the level moved by (dx, dz) blocks. */
+	virtual void windowShifted(int dx, int dz) { allChanged(); }
 
 	virtual void takePicture(TripodCamera* cam, Entity* entity) {}
 

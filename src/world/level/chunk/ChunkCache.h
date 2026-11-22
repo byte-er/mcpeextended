@@ -91,7 +91,8 @@ public:
                 }
             } else {
 				//return emptyChunk;
-				updateLights = true;
+				// old saves have no light data; infinite worlds always save it
+				updateLights = !level->isInfinite();
             }
             chunks[slot] = newChunk;
             newChunk->lightLava();
@@ -196,6 +197,35 @@ public:
         return "ChunkCache: 1024";
     }
 	
+	/**
+	 * Infinite worlds: the window moved by (dcx, dcz) chunks. Chunks still in
+	 * the window move to their new slot (their local coordinates change);
+	 * the others are saved and freed. Missing ones load lazily as before.
+	 */
+	void shiftWindow(int dcx, int dcz) {
+		LevelChunk* moved[CHUNK_CACHE_WIDTH * CHUNK_CACHE_WIDTH];
+		memset(moved, 0, sizeof(moved));
+		for (int i = 0; i < CHUNK_CACHE_WIDTH * CHUNK_CACHE_WIDTH; ++i) {
+			LevelChunk* c = chunks[i];
+			if (!c || c == emptyChunk) continue;
+			const int nx = c->x - dcx, nz = c->z - dcz;
+			if (fits(nx, nz)) {
+				c->x = nx;
+				c->z = nz;
+				moved[nx + nz * CHUNK_CACHE_WIDTH] = c;
+			} else {
+				c->unload();
+				save(c);
+				c->deleteBlockData();
+				delete c;
+			}
+		}
+		memcpy(chunks, moved, sizeof(chunks));
+		last = NULL;
+		xLast = zLast = -999999999;
+		if (source) source->windowShifted();
+	}
+
 	void saveAll(bool onlyUnsaved) {
 		if (storage != NULL) {
 			std::vector<LevelChunk*> chunks;

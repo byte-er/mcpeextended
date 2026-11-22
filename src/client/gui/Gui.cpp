@@ -821,8 +821,12 @@ void Gui::renderDebugInfo() {
 	sprintf(ln[0], "Minecraft PE 0.9.0 alpha (mcpeextended)");
 	sprintf(ln[1], "%.1f fps", fps);
 	ln[2][0] = '\0'; // blank separator
-	sprintf(ln[3], "XYZ: %.3f / %.3f / %.3f", px, py, pz);
-	sprintf(ln[4], "Block: %d %d %d   Chunk: %d %d", bx, by, bz, cx, cz);
+	// infinite worlds: show world coordinates, not the window's
+	int obx = 0, obz = 0;
+	if (lvl && lvl->isInfinite()) { obx = lvl->getLevelData()->originX * 16; obz = lvl->getLevelData()->originZ * 16; }
+	sprintf(ln[3], "XYZ: %.3f / %.3f / %.3f", (double)px + obx, py, (double)pz + obz);
+	sprintf(ln[4], "Block: %d %d %d   Chunk: %d %d", bx + obx, by, bz + obz, (bx + obx) >> 4, (bz + obz) >> 4);
+	(void)cx; (void)cz;
 	sprintf(ln[5], "Facing: %s (%s)  (%.1f / %.1f)", facing, axis, p->yRot, p->xRot);
 	sprintf(ln[6], "Biome: %s", biomeName);
 	sprintf(ln[7], "Day %ld  Time: %ld  Seed: %ld", day, dayTime, seed);

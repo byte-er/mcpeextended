@@ -16,6 +16,7 @@ class Chunk
 {
     static const int NumLayers = 3;
 public:
+	void shiftPos(int dx, int dz); // infinite worlds: the level moved under the chunk
     Chunk(Level* level_, int x, int y, int z, int size, int lists_, GLuint* ptrBuf = NULL);
 
     void setPos(int x, int y, int z);

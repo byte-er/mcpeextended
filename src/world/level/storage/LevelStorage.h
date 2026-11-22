@@ -30,6 +30,8 @@ public:
     virtual void closeAll() = 0;
 
 	virtual void saveGame(Level* level) {}
+	/** Infinite worlds: write every chunk waiting to be saved (before the window moves). */
+	virtual void flushPendingChunks() {}
 	virtual void loadEntities(Level* level, LevelChunk* levelChunk) {}
 
 	//void checkSession() throws LevelConflictException;

@@ -61,6 +61,24 @@ void Chunk::setPos( int x, int y, int z )
 	setDirty();
 }
 
+// Infinite worlds: the level moved under the chunk. Meshes are relative to the
+// chunk, so moving it keeps them valid - no rebuild.
+void Chunk::shiftPos( int dx, int dz )
+{
+	x += dx;
+	z += dz;
+	xm = x + xs / 2;
+	zm = z + zs / 2;
+	const float xzg = 1.0f;
+	const float yp = 2.0f;
+	const float yn = 0.0f;
+	bb.set(x-xzg, y-yn, z-xzg, x + xs+xzg, y + ys+yp, z + zs+xzg);
+	for (int l = 0; l < NumLayers; ++l) {
+		renderChunk[l].pos.x = (float)x;
+		renderChunk[l].pos.z = (float)z;
+	}
+}
+
 void Chunk::translateToPos()
 {
 	glTranslatef2((float)x, (float)y, (float)z);

@@ -15,7 +15,7 @@ public:
 	
 	void init(Random* random);
 
-    float noise(float _x, float _y, float _z);
+    float noise(double _x, double _y, double _z);
 
     const float lerp(float t, float a, float b);
 
@@ -25,7 +25,7 @@ public:
     float getValue(float x, float y);
     float getValue(float x, float y, float z);
 
-    void add(float* buffer, float _x, float _y, float _z, int xSize, int ySize, int zSize, float xs, float ys, float zs, float pow);
+    void add(float* buffer, double _x, double _y, double _z, int xSize, int ySize, int zSize, double xs, double ys, double zs, float pow);
 
     int hashCode();
 

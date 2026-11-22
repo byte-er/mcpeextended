@@ -38,9 +38,9 @@ public:
 	void crack(int x, int y, int z, int face);
 
 	std::string countParticles();
+	void clear(); // also used when an infinite world's window moves
 
 protected:
-	void clear();
 
 	Level* level;
 	GLuint textureIds[4];

@@ -2,6 +2,8 @@
 #include "Biome.h"
 #include "../Level.h"
 #include "../ChunkPos.h"
+#include "../LevelSettings.h"
+#include "../storage/LevelData.h"
 
 const float BiomeSource::zoom = 2 * 1;
 
@@ -20,7 +22,8 @@ BiomeSource::BiomeSource()
 	temperatures(NULL),
 	downfalls(NULL),
 	noises(NULL),
-	biomes(NULL)
+	biomes(NULL),
+	level(NULL)
 {
 	biomes = new Biome*[16*16];
 }
@@ -36,7 +39,8 @@ BiomeSource::BiomeSource( Level* level )
 	temperatures(NULL),
 	downfalls(NULL),
 	noises(NULL),
-	biomes(NULL)
+	biomes(NULL),
+	level(level)
 {
 	temperatureMap = new PerlinSimplexNoise(&rndTemperature, 4);
 	downfallMap = new PerlinSimplexNoise(&rndDownfall, 4);
@@ -81,8 +85,36 @@ Biome** BiomeSource::getBiomeBlock( int x, int z, int w, int h )
     return biomes;
 }
 
+void BiomeSource::worldPos(int& x, int& z) const
+{
+	if (!level) return;
+	const LevelData* d = level->getLevelData();
+	if (d && d->worldType == LevelSettings::WORLD_INFINITE) { x += d->originX * 16; z += d->originZ * 16; }
+}
+
+// Infinite worlds have Java-sized biomes: 4x the PE 0.6.1 scale in each direction
+static float biomeZoom(Level* level)
+{
+	const LevelData* d = level ? level->getLevelData() : NULL;
+	return (d && d->worldType == LevelSettings::WORLD_INFINITE) ? 0.25f : 1.0f;
+}
+
+static bool flatWorld(Level* level)
+{
+	const LevelData* d = level ? level->getLevelData() : NULL;
+	return d && d->worldType == LevelSettings::WORLD_FLAT;
+}
+
 Biome** BiomeSource::getBiomeBlock( Biome** biomes__, int x, int z, int w, int h )
 {
+	if (flatWorld(level)) {
+		// superflat worlds are all plains
+		if (!temperatures) temperatures = new float[16*16];
+		for (int i = 0; i < w * h && i < 256; ++i) { biomes[i] = Biome::plains; temperatures[i] = 0.8f; }
+		return biomes;
+	}
+	worldPos(x, z);
+	const float zoomK = biomeZoom(level);
 	//for (int i = 0; i < w*h; ++i) biomes__[i] = Biome::tundra;
 	//const int size = w * h;
 	//if (lenBiomes < size) {
@@ -92,9 +124,9 @@ Biome** BiomeSource::getBiomeBlock( Biome** biomes__, int x, int z, int w, int h
 	//	lenBiomes = size;
 	//}
 
-	temperatures = temperatureMap->getRegion(temperatures, x, z, w, w, tempScale, tempScale, 0.25f);
-	downfalls = downfallMap->getRegion(downfalls, x, z, w, w, downfallScale, downfallScale, 0.3333f);
-	noises = noiseMap->getRegion(noises, x, z, w, w, noiseScale, noiseScale, 0.588f);
+	temperatures = temperatureMap->getRegion(temperatures, x, z, w, w, tempScale * zoomK, tempScale * zoomK, 0.25f);
+	downfalls = downfallMap->getRegion(downfalls, x, z, w, w, downfallScale * zoomK, downfallScale * zoomK, 0.3333f);
+	noises = noiseMap->getRegion(noises, x, z, w, w, noiseScale * zoomK, noiseScale * zoomK, 0.588f);
 
 	int pp = 0;
 	for (int yy = 0; yy < w; yy++) {
@@ -133,9 +165,16 @@ float* BiomeSource::getTemperatureBlock( /*float* temperatures__, */int x, int z
 	//	lenTemperatures = size;
 	//}
 
+	if (flatWorld(level)) {
+		if (!temperatures) temperatures = new float[16*16];
+		for (int i = 0; i < w * h && i < 256; ++i) temperatures[i] = 0.8f;
+		return temperatures;
+	}
+	worldPos(x, z);
+	const float zoomK = biomeZoom(level);
 	float * ot = temperatures;
-	temperatures = temperatureMap->getRegion(temperatures, x, z, w, h, tempScale, tempScale, 0.25f);
-	noises = noiseMap->getRegion(noises, x, z, w, h, noiseScale, noiseScale, 0.588f);
+	temperatures = temperatureMap->getRegion(temperatures, x, z, w, h, tempScale * zoomK, tempScale * zoomK, 0.25f);
+	noises = noiseMap->getRegion(noises, x, z, w, h, noiseScale * zoomK, noiseScale * zoomK, 0.588f);
 
 	if (ot != temperatures) {
 		LOGI("tmp ptr changed\n");

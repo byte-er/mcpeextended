@@ -55,7 +55,7 @@ float PerlinNoise::getValue( float x, float y, float z )
 	return value;
 }
 
-float* PerlinNoise::getRegion( float* buffer, float x, float y, float z, int xSize, int ySize, int zSize, float xScale, float yScale, float zScale )
+float* PerlinNoise::getRegion( float* buffer, double x, double y, double z, int xSize, int ySize, int zSize, double xScale, double yScale, double zScale )
 {
 	const int size = xSize * ySize * zSize;
 	if (buffer == 0) {
@@ -64,10 +64,10 @@ float* PerlinNoise::getRegion( float* buffer, float x, float y, float z, int xSi
 	for (int i = 0; i < size; i++)
 		buffer[i] = 0;
 
-	float pow = 1;
+	double pow = 1;
 
 	for (int i = 0; i < levels; i++) {
-		noiseLevels[i]->add(buffer, x, y, z, xSize, ySize, zSize, xScale * pow, yScale * pow, zScale * pow, pow);
+		noiseLevels[i]->add(buffer, x, y, z, xSize, ySize, zSize, xScale * pow, yScale * pow, zScale * pow, (float)pow);
 		pow /= 2;
 	}
 
@@ -76,7 +76,7 @@ float* PerlinNoise::getRegion( float* buffer, float x, float y, float z, int xSi
 
 float* PerlinNoise::getRegion( float* sr, int x, int z, int xSize, int zSize, float xScale, float zScale, float pow )
 {
-	return getRegion(sr, (float)x, 10.0f, (float)z, xSize, 1, zSize, xScale, 1, zScale);
+	return getRegion(sr, (double)x, 10.0, (double)z, xSize, 1, zSize, xScale, 1, zScale);
 }
 
 int PerlinNoise::hashCode() {

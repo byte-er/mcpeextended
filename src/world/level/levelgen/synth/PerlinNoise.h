@@ -19,7 +19,7 @@ public:
     float getValue(float x, float y, float z);
 
 	//float[] getRegion(float[] buffer, float x, float y, float z, int xSize, int ySize, int zSize, float xScale, float yScale, float zScale) {
-    float* getRegion(float* buffer, float x, float y, float z, int xSize, int ySize, int zSize, float xScale, float yScale, float zScale);
+    float* getRegion(float* buffer, double x, double y, double z, int xSize, int ySize, int zSize, double xScale, double yScale, double zScale);
     float* getRegion(float* sr, int x, int z, int xSize, int zSize, float xScale, float zScale, float pow);
 
     int hashCode();

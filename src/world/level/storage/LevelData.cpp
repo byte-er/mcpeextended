@@ -20,6 +20,7 @@ LevelData::LevelData()
 	spawnMobs = (gameType == GameType::Survival);
 	worldBorder.resetToLevel(LEVEL_WIDTH, LEVEL_DEPTH);
 	worldType = LevelSettings::WORLD_LARGE;
+	originX = originZ = 0;
 }
 
 LevelData::LevelData( const LevelSettings& settings, const std::string& levelName, int generatorVersion /*= -1*/ )
@@ -44,6 +45,14 @@ LevelData::LevelData( const LevelSettings& settings, const std::string& levelNam
 	spawnMobs = (gameType == GameType::Survival);
 	worldBorder.resetToLevel(LEVEL_WIDTH, LEVEL_DEPTH);
 	worldType = settings.getWorldType();
+	originX = originZ = 0;
+	if (worldType == LevelSettings::WORLD_INFINITE) {
+		// world (0, 0) in the middle of the first window; Java's 60,000,000 block border
+		originX = originZ = -CHUNK_CACHE_WIDTH / 2;
+		worldBorder.setCenter(-originX * 16.0, -originZ * 16.0);
+		worldBorder.setSize(60000000.0);
+		xSpawn = zSpawn = LEVEL_WIDTH / 2;
+	}
 	if (worldType == LevelSettings::WORLD_OLD) {
 		// "Old" worlds: the original 256x256 play area in the middle of the map
 		worldBorder.setCenter(LEVEL_WIDTH * 0.5, LEVEL_DEPTH * 0.5);
@@ -75,7 +84,9 @@ LevelData::LevelData( const LevelData& rhs )
 	loadedPlayerTag(NULL),
 	playerData(rhs.playerData),
 	worldBorder(rhs.worldBorder),
-	worldType(rhs.worldType)
+	worldType(rhs.worldType),
+	originX(rhs.originX),
+	originZ(rhs.originZ)
 {
 	//LOGI("c-ctor: %p (%p)\n", this, &rhs);
 	setPlayerTag(rhs.loadedPlayerTag);
@@ -102,11 +113,15 @@ LevelData& LevelData::operator=( const LevelData& rhs )
 		storageVersion		= rhs.storageVersion;
 		worldBorder			= rhs.worldBorder;
 		worldType			= rhs.worldType;
+		originX				= rhs.originX;
+		originZ				= rhs.originZ;
 		setPlayerTag(rhs.loadedPlayerTag);
 	}
 
 	return *this;
 }
+
+bool LevelData::isInfinite() const { return worldType == LevelSettings::WORLD_INFINITE; }
 
 LevelData::~LevelData()
 {
@@ -186,6 +201,10 @@ void LevelData::setTagData( CompoundTag* tag, CompoundTag* playerTag )
 	tag->putInt("Platform", 2);
 	worldBorder.save(tag);
 	tag->putInt("WorldType", worldType);
+	if (worldType == LevelSettings::WORLD_INFINITE) {
+		tag->putInt("OriginChunkX", originX);
+		tag->putInt("OriginChunkZ", originZ);
+	}
 
 	if (playerTag != NULL) {
 		tag->putCompound("Player", playerTag);
@@ -210,6 +229,8 @@ void LevelData::getTagData( const CompoundTag* tag )
 	worldBorder.resetToLevel(LEVEL_WIDTH, LEVEL_DEPTH);
 	worldBorder.load(tag); // keeps the default if the save predates world borders
 	worldType = tag->contains("WorldType") ? tag->getInt("WorldType") : LevelSettings::WORLD_LARGE;
+	originX = tag->contains("OriginChunkX") ? tag->getInt("OriginChunkX") : 0;
+	originZ = tag->contains("OriginChunkZ") ? tag->getInt("OriginChunkZ") : 0;
 
 	if (tag->contains("Player", Tag::TAG_Compound)) {
 		setPlayerTag(tag->getCompound("Player"));

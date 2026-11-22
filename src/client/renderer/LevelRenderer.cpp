@@ -249,6 +249,43 @@ void LevelRenderer::allChanged()
 	noEntityRenderFrames = 2;
 }
 
+// Infinite worlds: the window moved by (dx, dz) blocks. Built chunks keep their
+// meshes - they move with the terrain and the grid is rotated to match - so
+// walking doesn't rebuild what is already on screen. Only chunks that were
+// built against the old window edge (missing neighbours) are rebuilt.
+void LevelRenderer::windowShifted(int dx, int dz)
+{
+	if (!chunks || chunksLength <= 0 || (dx % CHUNK_SIZE) || (dz % CHUNK_SIZE)) { allChanged(); return; }
+	const int dcx = dx / CHUNK_SIZE, dcz = dz / CHUNK_SIZE;
+	Chunk** moved = new Chunk*[chunksLength];
+	for (int x = 0; x < xChunks; ++x)
+	for (int y = 0; y < yChunks; ++y)
+	for (int z = 0; z < zChunks; ++z) {
+		Chunk* c = chunks[getLinearCoord(x, y, z)];
+		const bool atEdge = c->x <= 0 || c->z <= 0 || c->x + CHUNK_SIZE >= LEVEL_WIDTH || c->z + CHUNK_SIZE >= LEVEL_DEPTH;
+		const int nx = ((x + dcx) % xChunks + xChunks) % xChunks;
+		const int nz = ((z + dcz) % zChunks + zChunks) % zChunks;
+		moved[getLinearCoord(nx, y, nz)] = c;
+		c->shiftPos(dx, dz);
+		if (atEdge && !c->isDirty()) { c->setDirty(); dirtyChunks.push_back(c); }
+	}
+	delete[] chunks;
+	chunks = moved;
+	for (int i = 0; i < chunksLength; ++i) sortedChunks[i] = chunks[i];
+	xMinChunk += dx; xMaxChunk += dx;
+	zMinChunk += dz; zMaxChunk += dz;
+	xOld += dx;
+	zOld += dz;
+	Entity* player = mc->cameraTargetPlayer;
+	if (player) {
+		resortChunks(Mth::floor(player->x), Mth::floor(player->y), Mth::floor(player->z));
+		DistanceChunkSorter distanceSorter(player);
+		std::sort(sortedChunks, sortedChunks + chunksLength, distanceSorter);
+	}
+	if (lod) lod->markAllDirty();
+	noEntityRenderFrames = 2;
+}
+
 void LevelRenderer::deleteChunks()
 {
 	for (int z = 0; z < zChunks; ++z)

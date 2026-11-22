@@ -122,7 +122,7 @@ public:
 	unsigned char updateMap[CHUNK_COLUMNS]; // marks regions within block columns that have been modified
 	int minHeight;
 
-	const int x, z;
+	int x, z; // local (window) chunk position; infinite worlds change it when the window moves
 	const int xt, zt;
 
     bool terrainPopulated;

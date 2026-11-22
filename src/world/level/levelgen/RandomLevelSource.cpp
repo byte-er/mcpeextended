@@ -142,9 +142,9 @@ void RandomLevelSource::buildSurfaces(int xOffs, int zOffs, unsigned char* block
     int waterHeight = Level::DEPTH - 64;
 
     float s = 1 / 32.0f;
-    perlinNoise2.getRegion(sandBuffer, (float)(xOffs * 16), (float)(zOffs * 16), 0, 16, 16, 1, s, s, 1);
-    perlinNoise2.getRegion(gravelBuffer, (float)(xOffs * 16), 109.01340f, (float)(zOffs * 16), 16, 1, 16, s, 1, s);
-    perlinNoise3.getRegion(depthBuffer, (float)(xOffs * 16), (float)(zOffs * 16), 0, 16, 16, 1, s * 2, s * 2, s * 2);
+    perlinNoise2.getRegion(sandBuffer, (double)xOffs * 16.0, (double)zOffs * 16.0, 0, 16, 16, 1, s, s, 1);
+    perlinNoise2.getRegion(gravelBuffer, (double)xOffs * 16.0, 109.01340f, (double)zOffs * 16.0, 16, 1, 16, s, 1, s);
+    perlinNoise3.getRegion(depthBuffer, (double)xOffs * 16.0, (double)zOffs * 16.0, 0, 16, 16, 1, s * 2, s * 2, s * 2);
 
     for (int x = 0; x < 16; x++) {
         for (int z = 0; z < 16; z++) {
@@ -237,7 +237,10 @@ void RandomLevelSource::postProcess(ChunkSource* parent, int xt, int zt) {
     int xScale = random.nextInt() / 2 * 2 + 1;
     int zScale = random.nextInt() / 2 * 2 + 1;
     // 32 bit wrap-around made explicit (signed overflow is UB); same values as before
-    const int chunkHash = (int)((unsigned int)xt * (unsigned int)xScale + (unsigned int)zt * (unsigned int)zScale);
+    int ox, oz;
+    origin(ox, oz);
+    const int wxo = xo + ox * 16, wzo = zo + oz * 16; // world position (noise), xo/zo stay local (placement)
+    const int chunkHash = (int)((unsigned int)(xt + ox) * (unsigned int)xScale + (unsigned int)(zt + oz) * (unsigned int)zScale);
     random.setSeed(chunkHash ^ level->getSeed());
 
 	// //@todo: hide those chunks if they are aren't visible
@@ -345,7 +348,7 @@ void RandomLevelSource::postProcess(ChunkSource* parent, int xt, int zt) {
     }
 
     const float ss = 0.5f;
-    int oFor = (int) ((forestNoise.getValue(xo * ss, zo * ss) / 8 + random.nextFloat() * 4 + 4) / 3);
+    int oFor = (int) ((forestNoise.getValue(wxo * ss, wzo * ss) / 8 + random.nextFloat() * 4 + 4) / 3);
     int forests = 0;//1; (java: 0)
     if (random.nextInt(10) == 0) forests += 1;
 
@@ -519,6 +522,12 @@ void RandomLevelSource::postProcess(ChunkSource* parent, int xt, int zt) {
 	level->isGeneratingTerrain = false;
 }
 
+void RandomLevelSource::origin(int& ox, int& oz) const {
+	const LevelData* d = level->getLevelData();
+	if (d && d->worldType == LevelSettings::WORLD_INFINITE) { ox = d->originX; oz = d->originZ; }
+	else ox = oz = 0;
+}
+
 LevelChunk* RandomLevelSource::create(int x, int z) {
     return getChunk(x, z);
 }
@@ -531,7 +540,12 @@ LevelChunk* RandomLevelSource::getChunk(int xOffs, int zOffs) {
 	if (it != chunkMap.end())
 		return it->second;
 
-    random.setSeed((long)(xOffs * 341872712l + zOffs * 132899541l)); //@fix
+	// terrain is generated from world chunk coordinates (infinite worlds move a
+	// 512x512 window over the world); blocks still go into the local chunk
+	int ox, oz;
+	origin(ox, oz);
+	const int wx = xOffs + ox, wz = zOffs + oz;
+    random.setSeed((long)(wx * 341872712l + wz * 132899541l)); //@fix
 
     unsigned char* blocks = new unsigned char[LevelChunk::ChunkBlockCount];
     LevelChunk* levelChunk = new LevelChunk(level, blocks, xOffs, zOffs);
@@ -561,12 +575,12 @@ LevelChunk* RandomLevelSource::getChunk(int xOffs, int zOffs) {
 
 	Biome** biomes = level->getBiomeSource()->getBiomeBlock(/*biomes, */xOffs * 16, zOffs * 16, 16, 16);
     float* temperatures = level->getBiomeSource()->temperatures;
-    prepareHeights(xOffs, zOffs, blocks, 0, temperatures);//biomes, temperatures);
-    buildSurfaces(xOffs, zOffs, blocks, biomes);
+    prepareHeights(wx, wz, blocks, 0, temperatures);//biomes, temperatures);
+    buildSurfaces(wx, wz, blocks, biomes);
 
 	// Caves and ravines (were disabled in 0.6.1)
-	caveFeature.apply(this, level, xOffs, zOffs, blocks, LevelChunk::ChunkBlockCount);
-	ravineFeature.apply(this, level, xOffs, zOffs, blocks, LevelChunk::ChunkBlockCount);
+	caveFeature.apply(this, level, wx, wz, blocks, LevelChunk::ChunkBlockCount);
+	ravineFeature.apply(this, level, wx, wz, blocks, LevelChunk::ChunkBlockCount);
     levelChunk->recalcHeightmap();
 
     return levelChunk;
@@ -587,9 +601,9 @@ float* RandomLevelSource::getHeights(float* buffer, int x, int y, int z, int xSi
     sr = scaleNoise.getRegion(sr, x, z, xSize, zSize, 1.121f, 1.121f, 0.5f);
     dr = depthNoise.getRegion(dr, x, z, xSize, zSize, 200.0f, 200.0f, 0.5f);
 
-    pnr = perlinNoise1.getRegion(pnr, (float)x, (float)y, (float)z, xSize, ySize, zSize, s / 80.0f, hs / 160.0f, s / 80.0f);
-    ar = lperlinNoise1.getRegion(ar, (float)x, (float)y, (float)z, xSize, ySize, zSize, s, hs, s);
-    br = lperlinNoise2.getRegion(br, (float)x, (float)y, (float)z, xSize, ySize, zSize, s, hs, s);
+    pnr = perlinNoise1.getRegion(pnr, (double)x, (double)y, (double)z, xSize, ySize, zSize, s / 80.0f, hs / 160.0f, s / 80.0f);
+    ar = lperlinNoise1.getRegion(ar, (double)x, (double)y, (double)z, xSize, ySize, zSize, s, hs, s);
+    br = lperlinNoise2.getRegion(br, (double)x, (double)y, (double)z, xSize, ySize, zSize, s, hs, s);
 
     int p = 0;
     int pp = 0;
@@ -827,7 +841,9 @@ void RandomLevelSource::decorate09(Biome* chunkBiome, int xo, int zo)
 
 	// Ice spikes cluster where the surface noise is high in snowy biomes
 	if (chunkBiome == Biome::iceDesert || chunkBiome == Biome::tundra) {
-		const float n = surfaceNoise09.getValue((xo + 16) * 0.08f, (zo + 16) * 0.08f);
+		int ox, oz;
+		origin(ox, oz);
+		const float n = surfaceNoise09.getValue((xo + ox * 16 + 16) * 0.08f, (zo + oz * 16 + 16) * 0.08f);
 		if (n > 1.5f) {
 			const int spikes = 1 + random.nextInt(3);
 			for (int i = 0; i < spikes; ++i) {

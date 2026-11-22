@@ -21,7 +21,7 @@ SimpleChooseLevelScreen::SimpleChooseLevelScreen(const std::string& levelName)
     hasChosen(false),
     levelName(levelName),
     gamemode(GameType::Survival),
-    worldType(LevelSettings::WORLD_LARGE),
+    worldType(LevelSettings::WORLD_INFINITE),
     tLevelName(0, "My World"),
     tSeed(1, "")
 {
@@ -49,7 +49,7 @@ void SimpleChooseLevelScreen::init()
     bBack   = makeButton(2, "Back");
     bCreate = makeButton(3, "Create World!");
     bWorldType[0] = makeButton(10, "Old");
-    bWorldType[1] = makeButton(11, "Large");
+    bWorldType[1] = makeButton(11, "Infinite");
     bWorldType[2] = makeButton(12, "Flat");
     bMode[0] = makeButton(20, "Survival");
     bMode[1] = makeButton(21, "Creative");
@@ -75,7 +75,7 @@ void SimpleChooseLevelScreen::init()
 }
 
 // button order on screen -> LevelSettings::WorldType
-static const int WORLD_TYPE_FOR_BUTTON[3] = { LevelSettings::WORLD_OLD, LevelSettings::WORLD_LARGE, LevelSettings::WORLD_FLAT };
+static const int WORLD_TYPE_FOR_BUTTON[3] = { LevelSettings::WORLD_OLD, LevelSettings::WORLD_INFINITE, LevelSettings::WORLD_FLAT };
 
 // Selected toggles are drawn "pressed" (inactive) like 0.9.0
 void SimpleChooseLevelScreen::updateToggles()

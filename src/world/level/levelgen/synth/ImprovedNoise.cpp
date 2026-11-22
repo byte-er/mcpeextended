@@ -31,27 +31,22 @@ void ImprovedNoise::init( Random* random )
 	}
 }
 
-float ImprovedNoise::noise( float _x, float _y, float _z )
+// Coordinates are doubles and floored to 64-bit: infinite worlds sample the
+// noise millions of blocks out, where floats (and 32-bit ints) fall apart.
+static inline long long lfloor(double v) { long long i = (long long)v; return v < (double)i ? i - 1 : i; }
+
+float ImprovedNoise::noise( double _x, double _y, double _z )
 {
-	float x = _x + xo;
-	float y = _y + yo;
-	float z = _z + zo;
+	const double dx = _x + xo, dy = _y + yo, dz = _z + zo;
+	const long long xf = lfloor(dx), yf = lfloor(dy), zf = lfloor(dz);
 
-	int xf = (int) x;
-	int yf = (int) y;
-	int zf = (int) z;
+	int X = (int)(xf & 255), // FIND UNIT CUBE THAT
+		Y = (int)(yf & 255), // CONTAINS POINT.
+		Z = (int)(zf & 255);
 
-	if (x < xf) xf--;
-	if (y < yf) yf--;
-	if (z < zf) zf--;
-
-	int X = xf & 255, // FIND UNIT CUBE THAT
-		Y = yf & 255, // CONTAINS POINT.
-		Z = zf & 255;
-
-	x -= xf; // FIND RELATIVE X,Y,Z
-	y -= yf; // OF POINT IN CUBE.
-	z -= zf;
+	float x = (float)(dx - (double)xf); // FIND RELATIVE X,Y,Z
+	float y = (float)(dy - (double)yf); // OF POINT IN CUBE.
+	float z = (float)(dz - (double)zf);
 
 	float u = x * x * x * (x * (x * 6 - 15) + 10), // COMPUTE FADE CURVES
 		v = y * y * y * (y * (y * 6 - 15) + 10), // FOR EACH OF X,Y,Z.
@@ -104,7 +99,7 @@ float ImprovedNoise::getValue( float x, float y, float z )
 	return noise(x, y, z);
 }
 
-void ImprovedNoise::add( float* buffer, float _x, float _y, float _z, int xSize, int ySize, int zSize, float xs, float ys, float zs, float pow )
+void ImprovedNoise::add( float* buffer, double _x, double _y, double _z, int xSize, int ySize, int zSize, double xs, double ys, double zs, float pow )
 {
 	if (ySize==1) {
 		int A = 0, AA = 0, B = 0, BA = 0;
@@ -112,19 +107,17 @@ void ImprovedNoise::add( float* buffer, float _x, float _y, float _z, int xSize,
 		int pp = 0;
 		float scale = 1.0f / pow;
 		for (int xx = 0; xx < xSize; xx++) {
-			float x = (_x + xx) * xs + xo;
-			int xf = (int) x;
-			if (x < xf) xf--;
-			int X = xf & 255;
-			x -= xf;
+			const double dx = (_x + xx) * xs + xo;
+			const long long xf = lfloor(dx);
+			int X = (int)(xf & 255);
+			float x = (float)(dx - (double)xf);
 			float u = x * x * x * (x * (x * 6 - 15) + 10);
 
 			for (int zz = 0; zz < zSize; zz++) {
-				float z = (_z + zz) * zs + zo;
-				int zf = (int) z;
-				if (z < zf) zf--;
-				int Z = zf & 255;
-				z -= zf;
+				const double dz = (_z + zz) * zs + zo;
+				const long long zf = lfloor(dz);
+				int Z = (int)(zf & 255);
+				float z = (float)(dz - (double)zf);
 				float w = z * z * z * (z * (z * 6 - 15) + 10);
 
 				A = p[X] + 0;
@@ -148,28 +141,25 @@ void ImprovedNoise::add( float* buffer, float _x, float _y, float _z, int xSize,
 	float vv0 = 0, vv1 = 0, vv2 = 0, vv3 = 0;
 
 	for (int xx = 0; xx < xSize; xx++) {
-		float x = (_x + xx) * xs + xo;
-		int xf = (int) x;
-		if (x < xf) xf--;
-		int X = xf & 255;
-		x -= xf;
+		const double dx = (_x + xx) * xs + xo;
+		const long long xf = lfloor(dx);
+		int X = (int)(xf & 255);
+		float x = (float)(dx - (double)xf);
 		float u = x * x * x * (x * (x * 6 - 15) + 10);
 
 
 		for (int zz = 0; zz < zSize; zz++) {
-			float z = (_z + zz) * zs + zo;
-			int zf = (int) z;
-			if (z < zf) zf--;
-			int Z = zf & 255;
-			z -= zf;
+			const double dz = (_z + zz) * zs + zo;
+			const long long zf = lfloor(dz);
+			int Z = (int)(zf & 255);
+			float z = (float)(dz - (double)zf);
 			float w = z * z * z * (z * (z * 6 - 15) + 10);
 
 			for (int yy = 0; yy < ySize; yy++) {
-				float y = (_y + yy) * ys + yo;
-				int yf = (int) y;
-				if (y < yf) yf--;
-				int Y = yf & 255;
-				y -= yf;
+				const double dy = (_y + yy) * ys + yo;
+				const long long yf = lfloor(dy);
+				int Y = (int)(yf & 255);
+				float y = (float)(dy - (double)yf);
 				float v = y * y * y * (y * (y * 6 - 15) + 10);
 
 				if (yy == 0 || Y != yOld) {

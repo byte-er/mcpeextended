@@ -98,6 +98,9 @@ private:
 public:
 	/** LevelSettings::WorldType (flat worlds use a superflat generator) */
 	int worldType;
+	/** Infinite worlds: world chunk coordinates of local chunk (0, 0) of the window. */
+	int originX, originZ;
+	bool isInfinite() const;
 };
 
 #endif /*NET_MINECRAFT_WORLD_LEVEL_STORAGE__LevelData_H__*/

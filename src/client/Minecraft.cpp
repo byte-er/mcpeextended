@@ -612,6 +612,14 @@ void Minecraft::tick(int nTick, int maxTick) {
 			level->tickEntities();
 			level->tick();
 #ifndef STANDALONE_SERVER
+			// infinite worlds: keep the 512x512 window around the player
+			if (player && !level->isClientSide && level->isInfinite() && !player->removed) {
+				if (level->recentreWindow(player->x, player->z, 96.0f)) {
+					particleEngine->clear();
+					hitResult = HitResult();
+					if (gameMode) gameMode->stopDestroyBlock();
+				}
+			}
 			TIMER_POP_PUSH("animateTick");
 			if (player) {
 				level->animateTick(Mth::floor(player->x), Mth::floor(player->y), Mth::floor(player->z));
@@ -1484,6 +1492,12 @@ Player* Minecraft::respawnPlayer(int playerId) {
 }
 
 void Minecraft::resetPlayer(Player* player) {
+	// infinite worlds: bring the window to the spawn point first (it may be far away)
+	if (level->isInfinite()) {
+		Pos target = player->hasRespawnPosition() ? player->getRespawnPosition() : level->getSharedSpawnPos();
+		if (level->recentreWindow((float)target.x, (float)target.z, 32.0f) && particleEngine)
+			particleEngine->clear();
+	}
 	level->validateSpawn();
 	player->reset();
 

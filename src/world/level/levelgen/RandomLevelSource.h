@@ -68,6 +68,11 @@ public:
 	int waterDepths[16+16][16+16];
 private:
 	ChunkMap chunkMap;
+public:
+	void windowShifted() { chunkMap.clear(); } // chunks are owned by the ChunkCache
+	/** World chunk coordinates of local chunk (0,0): non-zero only in infinite worlds. */
+	void origin(int& ox, int& oz) const;
+private:
 
 	Random random;
 	PerlinNoise lperlinNoise1;

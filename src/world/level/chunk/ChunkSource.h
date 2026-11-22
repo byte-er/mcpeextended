@@ -34,6 +34,8 @@ public:
 
     virtual bool shouldSave() = 0;
 	virtual void saveAll(bool onlyUnsaved) {}
+	/** Infinite worlds: the window moved; forget anything cached by window position. */
+	virtual void windowShifted() {}
 
 	virtual Biome::MobList getMobsAt(const MobCategory& mobCategory, int x, int y, int z) = 0;
 

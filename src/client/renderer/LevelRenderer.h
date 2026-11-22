@@ -40,6 +40,7 @@ public:
 
 	void setLevel(Level* level);
 	void allChanged();
+	void windowShifted(int dx, int dz);
 
     int  render(Mob* player, int layer, float alpha);
 	void renderDebug(const AABB& b, float a) const;

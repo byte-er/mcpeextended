@@ -671,6 +671,8 @@ void ServerSideNetworkHandler::handle( const RakNet::RakNetGUID& source, SignUpd
 
 void ServerSideNetworkHandler::allowIncomingConnections( bool doAllow )
 {
+	// infinite worlds move a window over the world: LAN players couldn't follow it
+	if (level && level->isInfinite()) doAllow = false;
 	if (doAllow) {
 		raknetInstance->announceServer(minecraft->options.username);
 	} else {

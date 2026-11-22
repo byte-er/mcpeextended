@@ -1,3 +1,4 @@
+#include <cstdio>
 #if !defined(DEMO_MODE) && !defined(APPLE_DEMO_PROMOTION)
 
 #include "LevelData.h"
@@ -102,6 +103,7 @@ ExternalFileLevelStorage::ExternalFileLevelStorage(const std::string& levelId, c
 
 ExternalFileLevelStorage::~ExternalFileLevelStorage()
 {
+	for (std::map<long long, RegionFile*>::iterator it = regions.begin(); it != regions.end(); ++it) delete it->second;
 	delete regionFile;
 	delete loadedLevelData;
 }
@@ -330,18 +332,44 @@ void ExternalFileLevelStorage::tick()
 	}
 }
 
+RegionFile* ExternalFileLevelStorage::regionFor(Level* level, int x, int z, int& rx, int& rz)
+{
+	const LevelData* d = level ? level->getLevelData() : NULL;
+	if (!d || d->worldType != LevelSettings::WORLD_INFINITE) {
+		// classic worlds: one chunks.dat for the whole 32x32 chunk level
+		rx = x; rz = z;
+		if (!regionFile) {
+			regionFile = new RegionFile(levelPath);
+			if (!regionFile->open()) { delete regionFile; regionFile = NULL; }
+		}
+		return regionFile;
+	}
+	// infinite worlds: one file per 32x32 world chunks
+	const int wx = x + d->originX, wz = z + d->originZ;
+	const int regX = wx >> 5, regZ = wz >> 5;
+	rx = wx & 31; rz = wz & 31;
+	const long long key = ((long long)regX << 32) ^ (unsigned int)regZ;
+	std::map<long long, RegionFile*>::iterator it = regions.find(key);
+	if (it != regions.end()) return it->second;
+	if (regions.size() >= 24) { // keep the number of open files small
+		delete regions.begin()->second;
+		regions.erase(regions.begin());
+	}
+	const std::string dir = levelPath + "/region";
+	createFolderIfNotExists(dir.c_str());
+	char name[64];
+	sprintf(name, "r.%d.%d.dat", regX, regZ);
+	RegionFile* rf = new RegionFile(dir, name);
+	if (!rf->open()) { delete rf; return NULL; }
+	regions[key] = rf;
+	return rf;
+}
+
 void ExternalFileLevelStorage::save(Level* level, LevelChunk* levelChunk)
 {
-	if (!regionFile)
-	{
-		regionFile = new RegionFile(levelPath);
-		if (!regionFile->open())
-		{
-			delete regionFile;
-			regionFile = NULL;
-			return;
-		}
-	}
+	int rx, rz;
+	RegionFile* file = regionFor(level, levelChunk->x, levelChunk->z, rx, rz);
+	if (!file) return;
 
 	// Write chunk
 	RakNet::BitStream chunkData;
@@ -353,7 +381,7 @@ void ExternalFileLevelStorage::save(Level* level, LevelChunk* levelChunk)
 
 	chunkData.Write((const char*)levelChunk->updateMap, CHUNK_COLUMNS);
 
-	regionFile->writeChunk(levelChunk->x, levelChunk->z, chunkData);
+	file->writeChunk(rx, rz, chunkData);
 
 	// Write entities
 
@@ -363,19 +391,12 @@ void ExternalFileLevelStorage::save(Level* level, LevelChunk* levelChunk)
 
 LevelChunk* ExternalFileLevelStorage::load(Level* level, int x, int z)
 {
-	if (!regionFile)
-	{
-		regionFile = new RegionFile(levelPath);
-		if (!regionFile->open())
-		{
-			delete regionFile;
-			regionFile = NULL;
-			return NULL;
-		}
-	}
+	int rx, rz;
+	RegionFile* file = regionFor(level, x, z, rx, rz);
+	if (!file) return NULL;
 
 	RakNet::BitStream* chunkData = NULL;
-	if (!regionFile->readChunk(x, z, &chunkData))
+	if (!file->readChunk(rx, rz, &chunkData))
 	{
 		//LOGI("Failed to read data for %d, %d\n", x, z);
 		return NULL;
@@ -495,6 +516,21 @@ void ExternalFileLevelStorage::saveEntities( Level* level, LevelChunk* levelChun
 	base.put("Entities", entityTags);
 	base.put("TileEntities", tileEntityTags);
 
+	// infinite worlds: entities and tile entities outside the window
+	if (!level->farEntities.empty()) {
+		ListTag* far = new ListTag();
+		for (unsigned int i = 0; i < level->farEntities.size(); ++i) {
+			const Level::FarEntry& fe = level->farEntities[i];
+			CompoundTag* t = new CompoundTag();
+			t->putInt("OX", fe.ox);
+			t->putInt("OZ", fe.oz);
+			t->putByte("Tile", fe.tile ? 1 : 0);
+			t->put("Data", fe.tag->copy());
+			far->add(t);
+		}
+		base.put("FarEntities", far);
+	}
+
 	RakNet::BitStream stream;
 	RakDataOutput dos(stream);
 	NbtIo::write(&base, &dos);
@@ -579,6 +615,22 @@ void ExternalFileLevelStorage::loadEntities(Level* level, LevelChunk* chunk) {
 							delete e;
 						}
 					}
+				}
+			}
+
+			if (tag->contains("FarEntities", Tag::TAG_List)) {
+				ListTag* far = tag->getList("FarEntities");
+				for (int i = 0; i < far->size(); ++i) {
+					Tag* t = far->get(i);
+					if (!t || t->getId() != Tag::TAG_Compound) continue;
+					CompoundTag* ct = (CompoundTag*)t;
+					if (!ct->contains("Data", Tag::TAG_Compound)) continue;
+					Level::FarEntry fe;
+					fe.ox = ct->getInt("OX");
+					fe.oz = ct->getInt("OZ");
+					fe.tile = ct->getByte("Tile") != 0;
+					fe.tag = (CompoundTag*)ct->getCompound("Data")->copy();
+					level->farEntities.push_back(fe);
 				}
 			}
 

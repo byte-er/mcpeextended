@@ -33,6 +33,7 @@ class LevelListener;
 class IRakNetInstance;
 class Zombie;
 class TileEntity;
+class CompoundTag;
 
 typedef std::vector<Entity*> EntityList;
 typedef std::map<int, Entity*> EntityMap;
@@ -316,6 +317,22 @@ protected:
 	ChunkSource* _chunkSource;
 	LevelStorage* const levelStorage;
 	LevelData levelData;
+
+public:
+	// ---- infinite worlds: a 512x512 window over a 60,000,000 block world ----
+	struct FarEntry {
+		int ox, oz;        // window origin (chunks) the tag's positions are relative to
+		bool tile;         // tile entity (x/y/z ints) or entity (Pos list)
+		CompoundTag* tag;
+	};
+	std::vector<FarEntry> farEntities; // saved entities outside the window
+	bool isInfinite();
+	/** Moves the window by (dcx, dcz) chunks; everything in the level keeps its world position. */
+	void shiftWindow(int dcx, int dcz);
+	/** Shifts the window so the local position (x, z) ends up near its middle, if it isn't already. */
+	bool recentreWindow(float x, float z, float margin);
+	void restoreFarEntities();
+protected:
 
 	bool allPlayersAreSleeping;
 

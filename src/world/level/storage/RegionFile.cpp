@@ -24,12 +24,12 @@ static void logAssert(int actual, int expected) {
 	}
 }
 
-RegionFile::RegionFile(const std::string& basePath)
+RegionFile::RegionFile(const std::string& basePath, const char* fileName)
 :	file(NULL)
 {
 	filename = basePath;
 	filename += "/";
-	filename += REGION_DAT_NAME;
+	filename += fileName ? fileName : REGION_DAT_NAME;
 
 	offsets = new int[SECTOR_INTS];
 

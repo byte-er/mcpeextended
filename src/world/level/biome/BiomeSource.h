@@ -42,6 +42,9 @@ public:
 
 private:
 	virtual Biome** getBiomeBlock(Biome** biomes, int x, int z, int w, int h);
+	void worldPos(int& x, int& z) const; // level (window) -> world coordinates
+
+	Level* level;
 
 	Biome** biomes;
 	PerlinSimplexNoise* temperatureMap;

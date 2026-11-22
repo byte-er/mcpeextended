@@ -6,6 +6,9 @@
 #include "../../../platform/input/Keyboard.h"
 #include "../../../world/level/Level.h"
 #include "../../../world/level/WorldBorder.h"
+#include "../../../world/level/storage/LevelData.h"
+#include "../../particle/ParticleEngine.h"
+#include <cmath>
 #include "../../../network/RakNetInstance.h"
 #include "../../../network/ServerSideNetworkHandler.h"
 #include "../../../network/packet/ChatPacket.h"
@@ -234,6 +237,35 @@ std::string ConsoleScreen::processCommand(const std::string& raw)
         if (level->isClientSide) return "Only the host can teleport.";
         if (args.size() < 4) return "Usage: /tp <x> <y> <z>";
         LocalPlayer* p = minecraft->player;
+        if (level->isInfinite()) {
+            // infinite worlds: world coordinates; the window moves to the target
+            const LevelData* d = level->getLevelData();
+            double w[3] = { p->x + d->originX * 16.0, p->y - p->heightOffset, p->z + d->originZ * 16.0 };
+            for (int i = 0; i < 3; ++i) {
+                const std::string& a = args[1 + i];
+                if (!a.empty() && a[0] == '~') w[i] += (a.size() > 1) ? std::atof(a.c_str() + 1) : 0.0;
+                else w[i] = std::atof(a.c_str());
+            }
+            const double lim = 29999984.0; // inside the 60,000,000 block world border
+            w[0] = w[0] < -lim ? -lim : w[0] > lim ? lim : w[0];
+            w[2] = w[2] < -lim ? -lim : w[2] > lim ? lim : w[2];
+            if (w[1] < 1) w[1] = 1;
+            const double lx = w[0] - d->originX * 16.0, lz = w[2] - d->originZ * 16.0;
+            const double mid = LEVEL_WIDTH * 0.5;
+            if (lx < mid - 96 || lx > mid + 96 || lz < mid - 96 || lz > mid + 96) {
+                level->shiftWindow((int)std::floor((lx - mid) / 16.0), (int)std::floor((lz - mid) / 16.0));
+                minecraft->particleEngine->clear();
+            }
+            const float x = (float)(w[0] - level->getLevelData()->originX * 16.0);
+            const float z = (float)(w[2] - level->getLevelData()->originZ * 16.0);
+            p->moveTo(x, (float)w[1] + p->heightOffset, z, p->yRot, p->xRot);
+            p->xd = p->yd = p->zd = 0;
+            p->fallDistance = 0;
+            std::ostringstream out;
+            out.precision(10);
+            out << "Teleported to " << (long long)std::floor(w[0]) << ", " << (int)w[1] << ", " << (long long)std::floor(w[2]);
+            return out.str();
+        }
         float c[3] = { p->x, p->y - p->heightOffset, p->z };
         for (int i = 0; i < 3; ++i) {
             const std::string& a = args[1 + i];

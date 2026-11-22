@@ -7,6 +7,7 @@
 
 #include <vector>
 #include <list>
+#include <map>
 
 //#include "com/mojang/nbt/CompoundTag.h"
 #include "LevelStorage.h"
@@ -69,11 +70,18 @@ public:
 
 	virtual void tick();
 	virtual void flush() {}
+
+	/** Infinite worlds: write every pending chunk now (before the window moves). */
+	void flushPendingChunks() { savePendingUnsavedChunks(-1); }
+	const std::string& getLevelPath() const { return levelPath; }
 private:
 	std::string levelId;
 	std::string levelPath;
 	LevelData* loadedLevelData;
 	RegionFile* regionFile;
+	// Infinite worlds: region/r.<rx>.<rz>.dat, 32x32 chunks each, by world chunk position
+	std::map<long long, RegionFile*> regions;
+	RegionFile* regionFor(Level* level, int x, int z, int& rx, int& rz);
 	RegionFile* entitiesFile;
 
 	Level* level;
