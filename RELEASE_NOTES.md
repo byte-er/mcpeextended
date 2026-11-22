@@ -1,13 +1,45 @@
-## MCPE Extended 0.9.6
+## MCPE Extended 0.9.7
 
 ### Downloads
 | Platform | File |
 |---|---|
-| Android (most phones) | `mcpeextended-0.9.6-arm64-v8a.apk` (or `-universal.apk` if unsure, `-armeabi-v7a.apk` for old 32-bit phones) |
+| Android (most phones) | `mcpeextended-0.9.7-arm64-v8a.apk` (or `-universal.apk` if unsure, `-armeabi-v7a.apk` for old 32-bit phones) |
 | Any computer, no setup | `mcpeextended.html`: one self-contained file (about 15 MB). Download it and open it in Chrome, Edge, Firefox or Safari; it works offline and saves worlds in the browser. |
 | PC (Windows / macOS / Linux), **iOS**, other devices | `mcpeextended-web.zip`: the browser build. Host the files on any web server (HTTPS to install it as an app). On PC it uses mouse + keyboard (click to capture the mouse, Esc pauses); on phones and tablets it uses touch controls. On iPhone/iPad open it in Safari → Share → **Add to Home Screen** to install it as a fullscreen app. |
 
 If installing the APK over an older build fails, uninstall the old one first; builds can be signed with different keys. Old worlds in `/sdcard/games/com.mojang` are copied over automatically when Android lets the app read them.
+
+### New: Infinite worlds
+- **Create a World -> Infinite** replaces Large. Infinite worlds are **60,000,000 blocks** across, with Java's world border at 30 million blocks in each direction.
+- **Bigger biomes**: four times the old size in each direction, closer to Java.
+- **New save format**: infinite worlds store chunks in region files (`region/r.<x>.<z>.dat`, 32x32 chunks each), so a world's size on disk only depends on how much you've explored.
+- Terrain stays correct millions of blocks out: the terrain noise now uses double precision.
+- How it works: the game keeps the 512x512 blocks around you loaded and moves that area with you as you walk. Mobs, chests and furnaces you walk away from are saved and come back when you return.
+- `/tp x y z` and the F3 screen use real world coordinates in infinite worlds (e.g. `/tp 1000000 100 -2500000`).
+- Infinite worlds aren't shared on LAN.
+- Old and Flat worlds, and existing Large worlds, work as before.
+
+### New: Endermen
+- They spawn rarely at night, like in Java. They're neutral until you **look them in the eyes** or hit them; then their jaw drops and they come for you.
+- They **teleport** when hurt, when in water and sometimes in daylight. Arrows never hit them; they teleport away instead.
+- They **pick up and put down blocks** (grass, dirt, sand, gravel, flowers, mushrooms, cacti, clay, melons, TNT, mycelium, podzol), and you can see the block in their hands.
+- Glowing purple eyes, 40 health, 7 damage.
+- There's an **Enderman spawn egg** in the creative tools tab, and Endermen show up on Eaglercraft servers.
+- New command: **`/summon <mob>`** (zombie, creeper, skeleton, spider, enderman, pig, cow, sheep, chicken, zombie_pigman).
+
+### Wood names and crafting
+- Logs are now called **Oak wood, Spruce wood, Birch wood, Acacia wood** and **Dark oak wood**. Planks are **Oak planks, Spruce planks**, and so on.
+- **Each log crafts its own planks**: spruce wood makes spruce planks, birch wood makes birch planks. Spruce and birch planks are new, with their own textures, and are in the creative inventory.
+
+### Fixes
+- **Menus cut off at the bottom**: the options lists measured their own height wrong, so you couldn't scroll to the last settings. They now scroll all the way.
+- **Newer iPhones**: the browser build now stays clear of the Dynamic Island, the home indicator and the rounded corners, so no buttons are hidden behind them.
+- **X-ray glitch in the middle of the world**: worlds made when levels were 256x256 kept that old world border. In today's bigger worlds it ran through the middle, at x/z 256, and its force field showed through the terrain there. Those worlds now get the right border, and the force field no longer draws through blocks.
+- **Flat worlds are all plains** now, with no biome colour patches.
+
+---
+
+## Earlier: MCPE Extended 0.9.6
 
 ### New: the 0.9.0 mobile look
 Rebuilt from screenshots of Pocket Edition 0.9.0, using the textures from the 0.9.0 APK.
