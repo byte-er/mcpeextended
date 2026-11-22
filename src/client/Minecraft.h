@@ -54,6 +54,7 @@ class Minecraft: public App
 protected:
 	Minecraft();
 public:
+	void setTimeScale(float scale); // development: fast-forward (MCPE_TIMESCALE)
 	virtual ~Minecraft();
 
 	void init();

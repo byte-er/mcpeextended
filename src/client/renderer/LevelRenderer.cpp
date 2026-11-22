@@ -9,6 +9,8 @@
 #include "Chunk.h"
 #include "TileRenderer.h"
 #include "../Minecraft.h"
+#include "../../network/ServerSideNetworkHandler.h"
+#include "../../network/RakNetInstance.h"
 #include "../../util/Mth.h"
 #include "../../world/entity/player/Player.h"
 #include "../../world/level/tile/LevelEvent.h"
@@ -1367,7 +1369,21 @@ void LevelRenderer::levelEvent(Player* player, int type, int x, int y, int z, in
             level->playSound(x + 0.5f, y + 0.5f, z + 0.5f, "random.door_close", 1, level->random.nextFloat() * 0.1f + 0.9f);
         }
         break;
+	case LevelEvent::PARTICLES_DESTROY_BLOCK:
+		// before the tile is removed (the particles take its texture)
+		if (mc->particleEngine) mc->particleEngine->destroy(x, y, z);
+		break;
+	case LevelEvent::NPC_CRACK_BLOCK:
+		if (mc->particleEngine) mc->particleEngine->crack(x, y, z, data);
+		break;
 	}
+}
+
+void LevelRenderer::npcChat(const std::string& message) {
+	if (mc->netCallback && mc->raknetInstance && mc->raknetInstance->isServer())
+		static_cast<ServerSideNetworkHandler*>(mc->netCallback)->displayGameMessage(message); // LAN players see it too
+	else
+		mc->gui.addMessage(message);
 }
 
 // ---------------------------------------------------------------------------

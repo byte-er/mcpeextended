@@ -79,6 +79,7 @@ public:
 	void takePicture(TripodCamera* cam, Entity* entity);
 
 	void levelEvent(Player* source, int type, int x, int y, int z, int data);
+	void npcChat(const std::string& message);
 
 	std::string gatherStats1();
 

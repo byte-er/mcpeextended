@@ -21,6 +21,7 @@ LevelData::LevelData()
 	worldBorder.resetToLevel(LEVEL_WIDTH, LEVEL_DEPTH);
 	worldType = LevelSettings::WORLD_LARGE;
 	originX = originZ = 0;
+	npcCounter = 0;
 }
 
 LevelData::LevelData( const LevelSettings& settings, const std::string& levelName, int generatorVersion /*= -1*/ )
@@ -46,6 +47,7 @@ LevelData::LevelData( const LevelSettings& settings, const std::string& levelNam
 	worldBorder.resetToLevel(LEVEL_WIDTH, LEVEL_DEPTH);
 	worldType = settings.getWorldType();
 	originX = originZ = 0;
+	npcCounter = 0;
 	if (worldType == LevelSettings::WORLD_INFINITE) {
 		// world (0, 0) in the middle of the first window; Java's 60,000,000 block border
 		originX = originZ = -CHUNK_CACHE_WIDTH / 2;
@@ -86,7 +88,8 @@ LevelData::LevelData( const LevelData& rhs )
 	worldBorder(rhs.worldBorder),
 	worldType(rhs.worldType),
 	originX(rhs.originX),
-	originZ(rhs.originZ)
+	originZ(rhs.originZ),
+	npcCounter(rhs.npcCounter)
 {
 	//LOGI("c-ctor: %p (%p)\n", this, &rhs);
 	setPlayerTag(rhs.loadedPlayerTag);
@@ -115,6 +118,7 @@ LevelData& LevelData::operator=( const LevelData& rhs )
 		worldType			= rhs.worldType;
 		originX				= rhs.originX;
 		originZ				= rhs.originZ;
+		npcCounter			= rhs.npcCounter;
 		setPlayerTag(rhs.loadedPlayerTag);
 	}
 
@@ -206,6 +210,8 @@ void LevelData::setTagData( CompoundTag* tag, CompoundTag* playerTag )
 		tag->putInt("OriginChunkZ", originZ);
 	}
 
+	if (npcCounter) tag->putInt("NpcCounter", npcCounter);
+
 	if (playerTag != NULL) {
 		tag->putCompound("Player", playerTag);
 	}
@@ -239,6 +245,7 @@ void LevelData::getTagData( const CompoundTag* tag )
 	}
 	originX = tag->contains("OriginChunkX") ? tag->getInt("OriginChunkX") : 0;
 	originZ = tag->contains("OriginChunkZ") ? tag->getInt("OriginChunkZ") : 0;
+	npcCounter = tag->contains("NpcCounter") ? tag->getInt("NpcCounter") : 0;
 
 	if (tag->contains("Player", Tag::TAG_Compound)) {
 		setPlayerTag(tag->getCompound("Player"));

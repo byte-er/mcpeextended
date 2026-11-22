@@ -20,6 +20,7 @@ public:
     static const int PARTICLES_POTION_SPLASH = 2002;
     static const int PARTICLES_EYE_OF_ENDER_DEATH = 2003;
     static const int PARTICLES_MOBTILE_SPAWN = 2004;
+    static const int NPC_CRACK_BLOCK = 2010;
 
 	static const int ALL_PLAYERS_SLEEPING = 9800;
 };

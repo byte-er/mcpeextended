@@ -110,6 +110,8 @@ public:
 	virtual void awardKillScore(Entity* victim, int score);
 
 	virtual void setEquippedSlot(int slot, int item, int auxValue);
+	/** Infinite worlds: the level window moved by (dx, dz) blocks; shift remembered block positions. */
+	virtual void windowShifted(int dx, int dz) {}
 
 	virtual bool save(CompoundTag* entityTag);
 	virtual void saveWithoutId(CompoundTag* entityTag);

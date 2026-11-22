@@ -1,13 +1,23 @@
-## MCPE Extended 0.9.8
+## MCPE Extended 0.9.9
 
 ### Downloads
 | Platform | File |
 |---|---|
-| Android (most phones) | `mcpeextended-0.9.8-arm64-v8a.apk` (or `-universal.apk` if unsure, `-armeabi-v7a.apk` for old 32-bit phones) |
+| Android (most phones) | `mcpeextended-0.9.9-arm64-v8a.apk` (or `-universal.apk` if unsure, `-armeabi-v7a.apk` for old 32-bit phones) |
 | Any computer, no setup | `mcpeextended.html`: one self-contained file (about 15 MB). Download it and open it in Chrome, Edge, Firefox or Safari; it works offline and saves worlds in the browser. |
 | PC (Windows / macOS / Linux), **iOS**, other devices | `mcpeextended-web.zip`: the browser build. Host the files on any web server (HTTPS to install it as an app). On PC it uses mouse + keyboard (click to capture the mouse, Esc pauses); on phones and tablets it uses touch controls. On iPhone/iPad open it in Safari → Share → **Add to Home Screen** to install it as a fullscreen app. |
 
 If installing the APK over an older build fails, uninstall the old one first; builds can be signed with different keys. Old worlds in `/sdcard/games/com.mojang` are copied over automatically when Android lets the app read them.
+
+### New: other players
+- `/summon player` (or `/summon player 5` for several) brings someone into your world. They show up as **Player1**, **Player2** and so on, with the numbers counting up for good in each world.
+- They play: chopping trees, crafting at a table, mining staircases down for stone, coal and iron, building houses, farming wheat, penning animals, going inside at night, and chatting with each other.
+- Each house is different: its size, walls, roof, windows and wood are their own.
+- You can't hurt them. They only leave if something else kills them.
+
+---
+
+## Earlier: MCPE Extended 0.9.8
 
 ### Fixes
 - **X-ray line through the middle of the world**: found it. The code that hides block faces nobody can see still thought the world ended at x/z = 256, the old 0.6.1 size. So every face looking at x = 256 or z = 256 was never drawn, leaving a see-through line across the middle of every world, and across Old worlds where their border used to be.

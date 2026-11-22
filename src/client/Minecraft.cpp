@@ -1697,3 +1697,5 @@ bool Minecraft::allowLocalCrafting()
 #endif
 	return false;
 }
+
+void Minecraft::setTimeScale(float scale) { timer.timeScale = scale; }

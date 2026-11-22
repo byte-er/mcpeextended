@@ -38,6 +38,7 @@ public:
     virtual void entityRemoved(Entity* entity) {}
 
 	virtual void levelEvent(Player* source, int type, int x, int y, int z, int data) {}
+	virtual void npcChat(const std::string& message) {}
 	virtual void tileEvent(int x, int y, int z, int b0, int b1) {}
     virtual void tileEntityChanged(int x, int y, int z, TileEntity* te) {}
 };

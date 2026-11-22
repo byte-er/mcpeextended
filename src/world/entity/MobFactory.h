@@ -4,6 +4,7 @@
 #include "EntityTypes.h"
 #include "animal/AnimalInclude.h"
 #include "monster/MonsterInclude.h"
+#include "npc/PlayerNPC.h"
 
 class MobFactory {
 public:
@@ -44,6 +45,9 @@ public:
 				break;
 			case MobTypes::Enderman:
 				mob = new Enderman(level);
+				break;
+			case MobTypes::PlayerNPC:
+				mob = new PlayerNPC(level);
 				break;
 			default:
                 LOGE("Unknown mob type requested: %d\n", mobType);

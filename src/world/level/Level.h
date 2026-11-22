@@ -326,6 +326,8 @@ public:
 		CompoundTag* tag;
 	};
 	std::vector<FarEntry> farEntities; // saved entities outside the window
+	/** A chat line from the world itself (player NPCs): shown to every listener. */
+	void chatMessage(const std::string& message);
 	bool isInfinite();
 	/** Moves the window by (dcx, dcz) chunks; everything in the level keeps its world position. */
 	void shiftWindow(int dcx, int dcz);

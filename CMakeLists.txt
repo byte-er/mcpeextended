@@ -126,6 +126,7 @@ file(GLOB SOURCES
     "src/world/entity/animal/*.cpp"
     "src/world/entity/item/*.cpp"
     "src/world/entity/monster/*.cpp"
+    "src/world/entity/npc/*.cpp"
     "src/world/entity/player/*.cpp"
     "src/world/entity/projectile/*.cpp"
 

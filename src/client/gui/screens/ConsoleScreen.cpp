@@ -1,3 +1,5 @@
+#include "../../../world/entity/npc/PlayerNPC.h"
+#include "../../../world/level/material/Material.h"
 #include "ConsoleScreen.h"
 #include "../../../network/eagler/EaglerClient.h"
 #include "../Gui.h"
@@ -240,6 +242,25 @@ std::string ConsoleScreen::processCommand(const std::string& raw)
         if (args.size() < 2) return "Usage: /summon <mob>";
         std::string n = args[1];
         if (n.compare(0, 10, "minecraft:") == 0) n = n.substr(10);
+        if (n == "player") {
+            // /summon player [count]: they show up like players joining, a moment apart
+            int count = args.size() >= 3 ? std::atoi(args[2].c_str()) : 1;
+            if (count < 1) count = 1;
+            if (count > 16) count = 16;
+            LocalPlayer* p = minecraft->player;
+            for (int i = 0; i < count; ++i) {
+                const float yr = p->yRot * Mth::DEGRAD + (i - (count - 1) * 0.5f) * 0.5f;
+                float sx = p->x - Mth::sin(yr) * 3, sz = p->z + Mth::cos(yr) * 3;
+                float sy = p->y - p->heightOffset;
+                const int bx = Mth::floor(sx), bz = Mth::floor(sz);
+                int by = Mth::floor(sy);
+                // not inside a wall
+                while (by < 126 && (level->getMaterial(bx, by, bz)->blocksMotion() || level->getMaterial(bx, by + 1, bz)->blocksMotion())) by++;
+                if (by != Mth::floor(sy)) sy = (float)by;
+                PlayerNPC::spawn(level, sx, sy, sz);
+            }
+            return "";
+        }
         struct M { const char* name; int type; };
         static const M mobs[] = { { "chicken", MobTypes::Chicken }, { "cow", MobTypes::Cow }, { "pig", MobTypes::Pig },
             { "sheep", MobTypes::Sheep }, { "zombie", MobTypes::Zombie }, { "creeper", MobTypes::Creeper },
@@ -255,6 +276,30 @@ std::string ConsoleScreen::processCommand(const std::string& raw)
         mob->moveTo(p->x - Mth::sin(yr) * 3, p->y - p->heightOffset, p->z + Mth::cos(yr) * 3, p->yRot + 180, 0);
         level->addEntity(mob);
         return "Summoned " + n;
+    }
+
+    if (args[0] == "npccam" && getenv("MCPE_NPCLOG")) {
+        // development: look at an NPC's home from above (/npccam [n] [dist] [turn])
+        const int want = args.size() >= 2 ? std::atoi(args[1].c_str()) : 0;
+        const float dist = args.size() >= 3 ? (float)std::atof(args[2].c_str()) : 14.0f;
+        const float turn = args.size() >= 4 ? (float)std::atof(args[3].c_str()) : 0.0f;
+        for (unsigned int i = 0; i < level->entities.size(); ++i) {
+            Entity* e = level->entities[i];
+            if (e->getEntityTypeId() != MobTypes::PlayerNPC) continue;
+            PlayerNPC* n = (PlayerNPC*)e;
+            if (!n->hasHome || (want && n->number != want)) continue;
+            LocalPlayer* p = minecraft->player;
+            p->abilities.flying = true;
+            const float a = turn * Mth::DEGRAD;
+            const bool top = turn < 0; // negative turn: straight down from above
+            const float cx = n->homeX + 0.5f + (top ? 0 : Mth::sin(a) * dist), cz = n->homeZ + 0.5f + (top ? 0.01f : Mth::cos(a) * dist);
+            const float cy = n->homeY + (top ? dist * 2.0f : dist * 0.6f);
+            p->moveTo(cx, cy + p->heightOffset, cz, top ? 0 : 180 - turn, top ? 89.9f : 30);
+            printf("[npc] cam at %.1f,%.1f,%.1f for home %d,%d,%d\n", cx, cy, cz, n->homeX, n->homeY, n->homeZ);
+            p->xd = p->yd = p->zd = 0;
+            return "";
+        }
+        return "no npc home";
     }
 
     if (args[0] == "tp" || args[0] == "teleport") {

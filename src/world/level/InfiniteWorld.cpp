@@ -65,6 +65,7 @@ static void moveEntity(Entity* e, float dx, float dz, int dcx, int dcz) {
 		r.x += (int)dx; r.z += (int)dz;
 		p->setRespawnPosition(r);
 	}
+	e->windowShifted((int)dx, (int)dz);
 }
 
 // Positions inside a saved tag: entities have a "Pos" float list, tile entities x/y/z ints
@@ -258,4 +259,10 @@ void Level::streamChunks(float px, float pz, int budgetMs) {
 			if (getTimeMs() - t0 >= budgetMs) return;
 		}
 	}
+}
+
+void Level::chatMessage(const std::string& message)
+{
+	for (unsigned int i = 0; i < _listeners.size(); ++i)
+		_listeners[i]->npcChat(message);
 }

@@ -100,6 +100,8 @@ public:
 	int worldType;
 	/** Infinite worlds: world chunk coordinates of local chunk (0, 0) of the window. */
 	int originX, originZ;
+	/** /summon player: the last number given out (Player1, Player2, ...) */
+	int npcCounter;
 	bool isInfinite() const;
 };
 

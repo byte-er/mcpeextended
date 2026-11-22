@@ -52,6 +52,7 @@ public:
 	static const int Spider		= 35;
 	static const int PigZombie	= 36;
 	static const int Enderman	= 38;
+	static const int PlayerNPC	= 39;
 };
 
 struct ParticleType {

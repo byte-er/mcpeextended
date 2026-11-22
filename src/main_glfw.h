@@ -283,6 +283,7 @@ int main(void) {
 		mc->options.onAnaglyphChanged();
 	}
 	if (getenv("MCPE_PCUI")) ((MAIN_CLASS*)g_app)->options.pcUi = true;
+	if (const char* ts = getenv("MCPE_TIMESCALE")) ((MAIN_CLASS*)g_app)->setTimeScale((float)atof(ts)); // development: fast-forward
 	if (const char* eaglerAddr = getenv("MCPE_EAGLER")) {
 		MAIN_CLASS* mc = (MAIN_CLASS*)g_app;
 		if (const char* name = getenv("MCPE_USER")) mc->options.username = name;
