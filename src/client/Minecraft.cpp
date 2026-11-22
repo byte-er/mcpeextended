@@ -449,6 +449,8 @@ void Minecraft::prepareLevel(const std::string& title) {
 
 void Minecraft::update() {
 	//LOGI("Enter Update\n");
+	static const bool profileFrames = getenv("MCPE_PROFILE") != NULL; // development: log hitches
+	if (profileFrames) { static int lastF = 0; const int nowF = getTimeMs(); if (lastF && nowF - lastF > 100) fprintf(stderr, "slow frame %d ms\n", nowF - lastF); lastF = nowF; }
 
 	if (Options::debugGl)
 		LOGI(">>>>>>>>>>\n");
@@ -477,15 +479,18 @@ void Minecraft::update() {
 	}
 
 	TIMER_PUSH("tick");
+	const int pf0 = getTimeMs();
 	int toTick = timer.ticks;
 	for (int i = 0; i < toTick; ++i, ++ticks)
 		tick(i, toTick-1);
+	const int pf1 = getTimeMs();
 
 	TIMER_POP_PUSH("updatelights");
 	if (level && !isGeneratingLevel) {
 		level->updateLights();
 	}
 	TIMER_POP();
+	const int pf2 = getTimeMs();
 
 	#ifndef STANDALONE_SERVER
 		if (gameMode != NULL) gameMode->render(timer.a);
@@ -494,6 +499,7 @@ void Minecraft::update() {
 		TIMER_POP_PUSH("render");
 		gameRenderer->render(timer.a);
 		TIMER_POP();
+		if (profileFrames && getTimeMs() - pf0 > 100) fprintf(stderr, "  frame: ticks %d (%d) lights %d render %d ms\n", pf1 - pf0, toTick, pf2 - pf1, getTimeMs() - pf2);
 	#else
 	CThread::sleep(1);
 	#endif
@@ -619,6 +625,7 @@ void Minecraft::tick(int nTick, int maxTick) {
 					hitResult = HitResult();
 					if (gameMode) gameMode->stopDestroyBlock();
 				}
+				level->streamChunks(player->x, player->z, 6); // a few ms of terrain per tick
 			}
 			TIMER_POP_PUSH("animateTick");
 			if (player) {
@@ -952,17 +959,16 @@ void Minecraft::tickInput() {
 
 		// Build and use/interact is on same button
 		// USPESHNO spizheno
+		// Java: act on the press, then every 4 ticks while held (it used to place
+		// a block every tick)
 		static int buildHoldTicks = 0;
-		if (Mouse::isButtonDown(MouseAction::ACTION_RIGHT)) {
-			BuildActionIntention bai(BuildActionIntention::BAI_BUILD | BuildActionIntention::BAI_INTERACT);
-			handleBuildAction(&bai);
-			if (buildHoldTicks >= 5) buildHoldTicks = 0;
-
-			if (++buildHoldTicks == 1) {
+		if (Mouse::isButtonDown(MouseAction::ACTION_RIGHT) && !screen) {
+			if (buildHoldTicks == 0) {
 				BuildActionIntention bai(BuildActionIntention::BAI_BUILD | BuildActionIntention::BAI_INTERACT);
 				handleBuildAction(&bai);
 			}
-		} else {
+			if (++buildHoldTicks >= 4) buildHoldTicks = 0;
+		} else if (!Mouse::isButtonDown(MouseAction::ACTION_RIGHT)) {
 			buildHoldTicks = 0;
 		}
 	}
@@ -983,6 +989,9 @@ void Minecraft::tickInput() {
 
 void Minecraft::handleBuildAction(BuildActionIntention* action) {
 #ifndef STANDALONE_SERVER
+	// a screen (furnace, chest...) opened by this click: don't use the block again
+	// underneath it (opening it twice in one tick closed the furnace on PC)
+	if (screen) return;
 	if (action->isRemove()) {
 		if (missTime > 0) return;
 		player->swing();

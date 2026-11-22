@@ -332,6 +332,10 @@ public:
 	/** Shifts the window so the local position (x, z) ends up near its middle, if it isn't already. */
 	bool recentreWindow(float x, float z, float margin);
 	void restoreFarEntities();
+	/** Infinite worlds: is local chunk (cx, cz) in memory (no generation)? Always true otherwise. */
+	bool isChunkLoaded(int cx, int cz);
+	/** Infinite worlds: generate / load missing window chunks nearest (x, z) for up to budgetMs; save left ones. */
+	void streamChunks(float x, float z, int budgetMs);
 protected:
 
 	bool allPlayersAreSleeping;

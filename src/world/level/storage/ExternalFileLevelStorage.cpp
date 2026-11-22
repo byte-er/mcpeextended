@@ -298,6 +298,9 @@ void ExternalFileLevelStorage::tick()
 		{
 			for (int x = 0; x < CHUNK_CACHE_WIDTH; x++)
 			{
+				// only chunks in memory: getChunk would generate missing ones (infinite
+				// worlds: the whole new strip at once, a multi-second freeze)
+				if (!level->isChunkLoaded(x, z)) continue;
 				LevelChunk* chunk = level->getChunk(x, z);
 				if (chunk && chunk->unsaved)
 				{

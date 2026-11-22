@@ -32,6 +32,11 @@
 #include "../../nbt/FloatTag.h"
 #include "../../util/Mth.h"
 #include <cmath>
+#include <cstdio>
+#include <cstdlib>
+#include "../../platform/time.h"
+#include <cstdio>
+#include "../../platform/time.h"
 
 bool Level::isInfinite() {
 	return levelData.worldType == LevelSettings::WORLD_INFINITE;
@@ -152,20 +157,17 @@ void Level::shiftWindow(int dcx, int dcz) {
 		te->x += (int)dx;
 		te->z += (int)dz;
 	}
-
 	// chunks
 	((ChunkCache*)_chunkSource)->shiftWindow(dcx, dcz);
 
 	// scheduled tile ticks and light updates
-	{
-		TickDataSet moved;
-		for (TickDataSet::iterator it = _tickNextTickSet.begin(); it != _tickNextTickSet.end(); ++it) {
-			TickNextTickData t = *it;
-			t.x += (int)dx;
-			t.z += (int)dz;
-			if (inWindow((float)t.x, (float)t.z)) moved.insert(t);
-		}
-		_tickNextTickSet.swap(moved);
+	// the set is ordered by (delay, id), not position: move entries in place
+	for (TickDataSet::iterator it = _tickNextTickSet.begin(); it != _tickNextTickSet.end(); ) {
+		TickNextTickData& t = const_cast<TickNextTickData&>(*it);
+		t.x += (int)dx;
+		t.z += (int)dz;
+		if (inWindow((float)t.x, (float)t.z)) ++it;
+		else _tickNextTickSet.erase(it++);
 	}
 	{
 		LightUpdateList moved;
@@ -185,13 +187,11 @@ void Level::shiftWindow(int dcx, int dcz) {
 	levelData.setSpawn(levelData.getXSpawn() + (int)dx, levelData.getYSpawn(), levelData.getZSpawn() + (int)dz);
 	WorldBorder& border = getWorldBorder();
 	border.setCenter(border.getCenterX() + dx, border.getCenterZ() + dz);
-
 	restoreFarEntities();
 
 	// colours are cached by local column; renderers rebuild from the moved chunks
 	BiomeTint::clearCache();
 	for (unsigned int i = 0; i < _listeners.size(); ++i) _listeners[i]->windowShifted((int)dx, (int)dz);
-
 	// keep level.dat (origin + player) and entities.dat in step with the moved window
 	if (levelStorage) {
 		levelStorage->saveLevelData(levelData, &players);
@@ -231,4 +231,31 @@ bool Level::recentreWindow(float x, float z, float margin) {
 	if (!dcx && !dcz) return false;
 	shiftWindow(dcx, dcz);
 	return true;
+}
+
+bool Level::isChunkLoaded(int cx, int cz) {
+	if (!isInfinite() || !_chunkSource || !_chunkSource->isChunkCache) return true;
+	return ((ChunkCache*)_chunkSource)->isLoaded(cx, cz);
+}
+
+void Level::streamChunks(float px, float pz, int budgetMs) {
+	if (!isInfinite() || !_chunkSource || !_chunkSource->isChunkCache) return;
+	ChunkCache* cache = (ChunkCache*)_chunkSource;
+	const int t0 = getTimeMs();
+	cache->savePending(4);
+	const int pcx = Mth::floor(px) >> 4, pcz = Mth::floor(pz) >> 4;
+	// nearest missing chunks first: rings around the player
+	for (int r = 0; r < CHUNK_CACHE_WIDTH; ++r) {
+		for (int dz = -r; dz <= r; ++dz)
+		for (int dx = -r; dx <= r; ++dx) {
+			if (dx != -r && dx != r && dz != -r && dz != r) continue; // ring only
+			const int cx = pcx + dx, cz = pcz + dz;
+			if (cx < 0 || cz < 0 || cx >= CHUNK_CACHE_WIDTH || cz >= CHUNK_CACHE_WIDTH) continue;
+			if (cache->isLoaded(cx, cz)) continue;
+			getChunk(cx, cz); // loads or generates (and decorates neighbours)
+			// renderers skipped this area while it was missing
+			setTilesDirty(cx * 16 - 1, 0, cz * 16 - 1, cx * 16 + 16, DEPTH - 1, cz * 16 + 16);
+			if (getTimeMs() - t0 >= budgetMs) return;
+		}
+	}
 }

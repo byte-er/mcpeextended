@@ -4,6 +4,8 @@
 //package net.minecraft.world.level.chunk;
 
 #include "ChunkSource.h"
+#include <vector>
+#include "../storage/LevelData.h"
 #include "storage/ChunkStorage.h"
 #include "EmptyLevelChunk.h"
 #include "../Level.h"
@@ -28,6 +30,7 @@ public:
     }
 
 	~ChunkCache() {
+		savePending(-1);
 		delete source;
 		delete emptyChunk;
 
@@ -214,10 +217,13 @@ public:
 				c->z = nz;
 				moved[nx + nz * CHUNK_CACHE_WIDTH] = c;
 			} else {
+				// saved a few per tick (savePending), not all at once during the shift
 				c->unload();
-				save(c);
-				c->deleteBlockData();
-				delete c;
+				PendingSave p;
+				p.wx = c->x + level->getLevelData()->originX;
+				p.wz = c->z + level->getLevelData()->originZ;
+				p.chunk = c;
+				pendingSaves.push_back(p);
 			}
 		}
 		memcpy(chunks, moved, sizeof(chunks));
@@ -226,11 +232,37 @@ public:
 		if (source) source->windowShifted();
 	}
 
+	/** Infinite worlds: is local chunk (x, z) in memory (no generation / loading)? */
+	bool isLoaded(int x, int z) {
+		if (!fits(x, z)) return false;
+		LevelChunk* c = chunks[(x & (CHUNK_CACHE_WIDTH - 1)) + (z & (CHUNK_CACHE_WIDTH - 1)) * CHUNK_CACHE_WIDTH];
+		return c != NULL && c != emptyChunk && c->isAt(x, z);
+	}
+
+	/** Infinite worlds: write up to maxCount chunks that left the window (-1: all). */
+	void savePending(int maxCount) {
+		int n = 0;
+		while (!pendingSaves.empty() && (maxCount < 0 || n < maxCount)) {
+			PendingSave p = pendingSaves.front();
+			pendingSaves.erase(pendingSaves.begin());
+			LevelChunk* c = p.chunk;
+			// local coordinates relative to the current window: the storage adds the origin
+			c->x = p.wx - level->getLevelData()->originX;
+			c->z = p.wz - level->getLevelData()->originZ;
+			save(c);
+			c->deleteBlockData();
+			delete c;
+			++n;
+		}
+	}
+
 	void saveAll(bool onlyUnsaved) {
+		savePending(-1);
 		if (storage != NULL) {
 			std::vector<LevelChunk*> chunks;
 			for (int z = 0; z < CHUNK_CACHE_WIDTH; ++z)
 			for (int x = 0; x < CHUNK_CACHE_WIDTH; ++x) {
+				if (level->isInfinite() && !isLoaded(x, z)) continue; // nothing to save, don't generate
 				LevelChunk* chunk = level->getChunk(x, z);
 				if (!onlyUnsaved || chunk->shouldSave(false))
 					chunks.push_back( chunk );
@@ -239,7 +271,23 @@ public:
 		}
 	}
 private:
+	struct PendingSave { int wx, wz; LevelChunk* chunk; };
+	std::vector<PendingSave> pendingSaves;
+
     LevelChunk* load(int x, int z) {
+		// walked back before it was written: take it from the save queue
+		if (!pendingSaves.empty()) {
+			const int wx = x + level->getLevelData()->originX, wz = z + level->getLevelData()->originZ;
+			for (unsigned int i = 0; i < pendingSaves.size(); ++i) {
+				if (pendingSaves[i].wx == wx && pendingSaves[i].wz == wz) {
+					LevelChunk* c = pendingSaves[i].chunk;
+					pendingSaves.erase(pendingSaves.begin() + i);
+					c->x = x;
+					c->z = z;
+					return c;
+				}
+			}
+		}
         if (storage == NULL) return emptyChunk;
 		if (x < 0 || x >= CHUNK_CACHE_WIDTH || z < 0 || z >= CHUNK_CACHE_WIDTH)
 		{

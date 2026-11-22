@@ -5,6 +5,7 @@
 #include "../../world/entity/Entity.h"
 #include "../../world/level/tile/Tile.h"
 #include "../../world/level/Region.h"
+#include "../../world/level/Level.h"
 #include "../../world/level/chunk/LevelChunk.h"
 #include "../../util/Mth.h"
 //#include "../../platform/time.h"
@@ -87,6 +88,13 @@ void Chunk::translateToPos()
 void Chunk::rebuild()
 {
 	if (!dirty) return;
+	// infinite worlds: don't make the renderer generate chunks (that froze the
+	// game after the window moved); Level::streamChunks marks this dirty again
+	// once its terrain exists
+	for (int cz = (z - 1) >> 4; cz <= (z + zs) >> 4; ++cz)
+	for (int cx = (x - 1) >> 4; cx <= (x + xs) >> 4; ++cx)
+		if (cx >= 0 && cz >= 0 && cx < CHUNK_CACHE_WIDTH && cz < CHUNK_CACHE_WIDTH && !level->isChunkLoaded(cx, cz))
+			return;
 	//if (!visible) return;
 	updates++;
 

@@ -558,11 +558,13 @@ float Tile::getBrightness( LevelSource* level, int x, int y, int z )
 bool Tile::shouldRenderFace( LevelSource* level, int x, int y, int z, int face )
 {
 	if (face == 0 && y == -1) return false;
-	// For fixed size worlds //@todo: external constants rather than magic numbers
+	// Faces against the outside of the fixed size level are never seen. This used
+	// to say 256 (0.6.1's level size): in 512x512 levels it hid every face
+	// looking at x or z = 256, an x-ray line through the middle of the world.
 	if (face == 2 && z == -1)  return false;
-	if (face == 3 && z == 256) return false;
+	if (face == 3 && z == LEVEL_DEPTH) return false;
 	if (face == 4 && x == -1)  return false;
-	if (face == 5 && x == 256) return false;
+	if (face == 5 && x == LEVEL_WIDTH) return false;
 	// Common
 	if (face == 0 && yy0 > 0) return true;
 	if (face == 1 && yy1 < 1) return true;

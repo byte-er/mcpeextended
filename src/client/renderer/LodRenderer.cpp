@@ -113,6 +113,8 @@ int LodRenderer::averageTileColor(int tileId, int data) {
 // Height of the visible surface (top of the highest solid block or liquid,
 // ignoring plants / torches / snow layers), and that block's id.
 int LodRenderer::surfaceY(int x, int z, int& tileId) {
+	// infinite worlds: never generate terrain just for the distant view
+	if (!level->isChunkLoaded(x >> 4, z >> 4)) { tileId = 0; return 0; }
 	int y = level->getHeightmap(x, z);
 	if (y < 0) y = 0;
 	if (y > Level::DEPTH) y = Level::DEPTH;
