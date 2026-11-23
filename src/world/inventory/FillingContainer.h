@@ -66,6 +66,7 @@ public:
 	int getNonEmptySlot(int tileId, int data) const;
 	int getNumEmptySlots();
 	int getNumLinkedSlots();
+	bool isCreative() const { return _isCreative; }
 protected:
 	int getSlot(int tileId) const;
 	int getNonEmptySlot(int tileId) const;

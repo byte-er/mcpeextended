@@ -17,7 +17,7 @@ LevelData::LevelData()
 	loadedPlayerTag(NULL)
 {
 	//LOGI("ctor 1: %p\n", this);
-	spawnMobs = (gameType == GameType::Survival);
+	spawnMobs = true; // 0.9.0: mobs spawn in creative as well
 	worldBorder.resetToLevel(LEVEL_WIDTH, LEVEL_DEPTH);
 	worldType = LevelSettings::WORLD_LARGE;
 	originX = originZ = 0;
@@ -43,7 +43,7 @@ LevelData::LevelData( const LevelSettings& settings, const std::string& levelNam
 		generatorVersion = SharedConstants::GeneratorVersion;
 
 	this->generatorVersion = generatorVersion;
-	spawnMobs = (gameType == GameType::Survival);
+	spawnMobs = true; // 0.9.0: mobs spawn in creative as well
 	worldBorder.resetToLevel(LEVEL_WIDTH, LEVEL_DEPTH);
 	worldType = settings.getWorldType();
 	originX = originZ = 0;
@@ -231,7 +231,7 @@ void LevelData::getTagData( const CompoundTag* tag )
 	levelName = tag->getString("LevelName");
 	storageVersion = tag->getInt("StorageVersion");
 
-	spawnMobs = (gameType == GameType::Survival);
+	spawnMobs = true; // 0.9.0: mobs spawn in creative as well
 	worldBorder.resetToLevel(LEVEL_WIDTH, LEVEL_DEPTH);
 	worldBorder.load(tag); // keeps the default if the save predates world borders
 	worldType = tag->contains("WorldType") ? tag->getInt("WorldType") : LevelSettings::WORLD_LARGE;

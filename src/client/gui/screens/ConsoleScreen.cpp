@@ -246,11 +246,13 @@ std::string ConsoleScreen::processCommand(const std::string& raw)
             // /summon player [count]: they show up like players joining, a moment apart
             int count = args.size() >= 3 ? std::atoi(args[2].c_str()) : 1;
             if (count < 1) count = 1;
-            if (count > 16) count = 16;
+            if (count > 100) count = 100;
             LocalPlayer* p = minecraft->player;
             for (int i = 0; i < count; ++i) {
-                const float yr = p->yRot * Mth::DEGRAD + (i - (count - 1) * 0.5f) * 0.5f;
-                float sx = p->x - Mth::sin(yr) * 3, sz = p->z + Mth::cos(yr) * 3;
+                // a few: in front of you; lots: spread around you (more room the more there are)
+                float yr = p->yRot * Mth::DEGRAD + (i - (count - 1) * 0.5f) * 0.5f, dist = 3;
+                if (count > 6) { yr = level->random.nextFloat() * 6.2831853f; dist = 3 + level->random.nextFloat() * (2 + Mth::sqrt((float)count) * 1.5f); }
+                float sx = p->x - Mth::sin(yr) * dist, sz = p->z + Mth::cos(yr) * dist;
                 float sy = p->y - p->heightOffset;
                 const int bx = Mth::floor(sx), bz = Mth::floor(sz);
                 int by = Mth::floor(sy);

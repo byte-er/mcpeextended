@@ -147,7 +147,8 @@ protected:
 	int getSpawnResourcesAuxValue(int data) { return data & 1; }
 };
 
-/** Acacia / dark oak leaves, PE id 161. Always rendered cut-out (no opaque variant). */
+/** Acacia / dark oak leaves, PE id 161. Fast graphics draws them opaque like the other
+ *  leaves: the see-through pixels of their textures carry the dark "fast leaves" colour. */
 class Leaves2Tile : public LeafTile
 {
 public:
@@ -158,8 +159,6 @@ public:
 	int getTexture(int face, int data) {
 		return (data & LEAF_TYPE_MASK) == DARK_OAK ? Tex09::DARK_OAK_LEAVES : Tex09::ACACIA_LEAVES;
 	}
-	bool isSolidRender() { return false; }
-	int getRenderLayer() { return Tile::RENDERLAYER_ALPHATEST; }
 
 	int getColor(LevelSource* level, int x, int y, int z) { return BiomeTint::foliage(x, z); }
 	int getItemColor(int data) { return FoliageColor::getDefaultColor(); }

@@ -1,4 +1,5 @@
 #include "Level.h"
+#include "../entity/npc/NpcTown.h"
 #include "LevelListener.h"
 #include "tile/entity/TileEntity.h"
 #include "../entity/player/Player.h"
@@ -56,6 +57,7 @@ Level::Level(LevelStorage* levelStorage, const std::string& levelName, const Lev
 }
 
 Level::~Level() {
+	NpcTown::levelGone(this);
 	LOGI("Erasing chunk source\n");
 	delete _chunkSource;
 	LOGI("Erasing dimension\n");

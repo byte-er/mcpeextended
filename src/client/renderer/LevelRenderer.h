@@ -80,6 +80,10 @@ public:
 
 	void levelEvent(Player* source, int type, int x, int y, int z, int data);
 	void npcChat(const std::string& message);
+	/** Crack overlays on blocks Player NPCs are breaking (like the player's own). */
+	void renderNpcCracks(Entity* camera, float a);
+	struct NpcCrack { int x, y, z, stage, ttl; };
+	std::vector<NpcCrack> npcCracks;
 
 	std::string gatherStats1();
 

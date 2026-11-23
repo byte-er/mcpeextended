@@ -36,6 +36,8 @@ public:
 	virtual int getAttackDamage(Entity* target);
 protected:
 	Entity* findAttackTarget();
+	/** Player NPCs are fair game for monsters too (nearest one it can see). */
+	Entity* findNpcTarget(float maxDist);
 
 	bool isDarkEnoughToSpawn();
     /**

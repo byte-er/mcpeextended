@@ -1,13 +1,50 @@
-## MCPE Extended 0.9.9
+## MCPE Extended 0.9.10
 
 ### Downloads
 | Platform | File |
 |---|---|
-| Android (most phones) | `mcpeextended-0.9.9-arm64-v8a.apk` (or `-universal.apk` if unsure, `-armeabi-v7a.apk` for old 32-bit phones) |
+| Android (most phones) | `mcpeextended-0.9.10-arm64-v8a.apk` (or `-universal.apk` if unsure, `-armeabi-v7a.apk` for old 32-bit phones) |
 | Any computer, no setup | `mcpeextended.html`: one self-contained file (about 15 MB). Download it and open it in Chrome, Edge, Firefox or Safari; it works offline and saves worlds in the browser. |
 | PC (Windows / macOS / Linux), **iOS**, other devices | `mcpeextended-web.zip`: the browser build. Host the files on any web server (HTTPS to install it as an app). On PC it uses mouse + keyboard (click to capture the mouse, Esc pauses); on phones and tablets it uses touch controls. On iPhone/iPad open it in Safari → Share → **Add to Home Screen** to install it as a fullscreen app. |
 
 If installing the APK over an older build fails, uninstall the old one first; builds can be signed with different keys. Old worlds in `/sdcard/games/com.mojang` are copied over automatically when Android lets the app read them.
+
+### Fixes
+- **Fast graphics and acacia / dark oak leaves**: these two kinds stayed see-through when graphics were set to Fast. They're now solid like the other leaves.
+- **Creative inventory reset on rejoin**: your creative hotbar (and which slot was selected) went back to the default every time you left and came back to a world. It's now saved with the world.
+- **Creative worlds had no night and no mobs**: like 0.9.0, creative worlds now have the day/night cycle, and animals and monsters spawn. Monsters leave creative players alone (you can't be hurt anyway).
+
+### Other players: a whole server's worth
+- `/summon player` now takes up to **100** at once (`/summon player 100`). With lots of them they spread out around you.
+- **Towns**: once there are 8 or more, they found a town together. It's laid out on a grid of 3-wide roads, with a plot for everyone's house, a plaza with a well, lamp posts and the **storage chests** (real chests: open them and see what's in there), a **town hall**, a **community farm**, and with more people **watchtowers** on the corners and a **town wall** with gates.
+- **Terraforming**: plots, roads and the plaza are dug out and filled in to a level, a layer at a time, cutting through hills and filling holes. Roads have gravel down the middle, cobblestone edges and lamp posts.
+- **They grind first, like an SMP**: tools, materials and their own house come before the big projects. Big projects start once most of them have stone tools and the chests have something in them (or after about half a day).
+- Everyone helps out: they carry what they gather to the storage chests and take out what their builds need.
+- With only a few of them it plays like before: a little village of their own houses, farms and pens.
+
+### Other players: play styles
+- Everyone has their own play style: **builders**, **miners**, **lumberjacks** (who replant trees), **farmers**, **explorers**, and now and then a **griefer**.
+- **Griefers** knock holes in other people's houses, put dirt towers next to their doors, trample their crops and help themselves to the town chests. Only the NPCs' own builds, never yours.
+- The others react: the owner complains and repairs the damage, whoever saw it calls the griefer out, nobody helps a griefer build, and if a griefer keeps going, the others go after them with swords. Griefers say sorry and run when they're losing. Grudges fade after a while.
+- Kills between them show in chat like a player's ("Player4 was slain by Player9").
+- **Monsters go after them** now (zombies, skeletons, spiders, creepers), and they fight back.
+
+### Other players: caving and progress
+- They go **caving**: they find caves (or dig a staircase down to one), walk through with torches, mine the coal, iron, gold, redstone, lapis and diamonds they see in the walls, and find their way back out the way they came. Miners and explorers like to go caving at night.
+- If a mine staircase breaks into a cave, they explore it.
+- They **smelt iron** in a furnace (lit while it works) and get **iron tools**, then a **diamond pickaxe** when they find diamonds. Ores only drop with a good enough pickaxe, like for you.
+
+### Other players: more like real players
+- **You walk right through them** and they walk through each other, like players on a server. Nobody gets pushed around.
+- **Player animations**: their arm swings when they mine, build, attack or use something, and you see what they hold (pickaxe, axe, shovel, sword, hoe, the block they're placing).
+- **The crack spreads over blocks they're breaking**, like when you mine, with the little bits flying off and the digging sounds.
+- **They carry their crafting table**: they put it down, craft, and pick it back up (or use one that's standing nearby).
+- The small things: they look around while walking (at each other too), sprint and bunny hop over long distances, crouch at the edge when building, crouch at each other to say hi, jump and punch the air while waiting, scroll through their hotbar, and strafe and jump in fights.
+- With lots of them online, not every little thing gets said in chat.
+
+---
+
+## Earlier: MCPE Extended 0.9.9
 
 ### New: other players
 - `/summon player` (or `/summon player 5` for several) brings someone into your world. They show up as **Player1**, **Player2** and so on, with the numbers counting up for good in each world.

@@ -1,6 +1,7 @@
 #include "Monster.h"
 
 #include "../player/Player.h"
+#include "../EntityTypes.h"
 #include "../../level/Level.h"
 #include "../../Difficulty.h"
 #include "../../../util/Mth.h"
@@ -59,8 +60,23 @@ Entity* Monster::findAttackTarget()
 	//Player* player = level->getNearestAttackablePlayer(this, 16);
 	Player* player = level->getNearestPlayer(this, 16);
 	//LOGI("playuer: %p\n", player);
-	if (player != NULL && canSee(player)) return player;
-	return NULL;
+	// creative players are left alone (they can't be hurt anyway)
+	if (player != NULL && !player->abilities.invulnerable && canSee(player)) return player;
+	return findNpcTarget(16);
+}
+
+Entity* Monster::findNpcTarget(float maxDist)
+{
+	Entity* best = NULL;
+	float bestD = maxDist * maxDist;
+	const EntityList& all = level->getAllEntities();
+	for (unsigned int i = 0; i < all.size(); ++i) {
+		Entity* e = all[i];
+		if (e->removed || e->getEntityTypeId() != MobTypes::PlayerNPC || !e->isAlive()) continue;
+		const float d = e->distanceToSqr(this);
+		if (d < bestD && canSee(e)) { bestD = d; best = e; }
+	}
+	return best;
 }
 
 bool Monster::isDarkEnoughToSpawn()

@@ -180,6 +180,7 @@ void LevelRenderer::allChanged()
 
 	Tile::leaves->setFancy(mc->options.fancyGraphics);
 	Tile::leaves_carried->setFancy(mc->options.fancyGraphics);
+	if (Tile::leaves2) Tile::leaves2->setFancy(mc->options.fancyGraphics); // acacia / dark oak too
 	lastViewDistance = mc->options.viewDistance;
 
 	int dist = (512 >> 3) << (3 - lastViewDistance);
@@ -654,6 +655,43 @@ void LevelRenderer::renderSameAsLast( int layer, float alpha )
 void LevelRenderer::tick()
 {
 	ticks++;
+	for (int i = (int)npcCracks.size() - 1; i >= 0; --i)
+		if (--npcCracks[i].ttl <= 0) npcCracks.erase(npcCracks.begin() + i);
+}
+
+void LevelRenderer::renderNpcCracks(Entity* camera, float a)
+{
+	if (npcCracks.empty() || !level) return;
+	Tesselator& t = Tesselator::instance;
+	glEnable2(GL_BLEND);
+	glBlendFunc2(GL_DST_COLOR, GL_SRC_COLOR);
+	textures->loadAndBindTexture("terrain.png");
+	glPushMatrix2();
+	glPolygonOffset(-1.0f, -1.0f);
+	glEnable2(GL_POLYGON_OFFSET_FILL);
+	t.begin();
+	t.color(1.0f, 1.0f, 1.0f, 0.5f);
+	t.noColor();
+	const float xo = camera->xOld + (camera->x - camera->xOld) * a;
+	const float yo = camera->yOld + (camera->y - camera->yOld) * a;
+	const float zo = camera->zOld + (camera->z - camera->zOld) * a;
+	t.offset(-xo, -yo, -zo);
+	for (unsigned int i = 0; i < npcCracks.size(); ++i) {
+		const NpcCrack& c = npcCracks[i];
+		const float dx = c.x - xo, dy = c.y - yo, dz = c.z - zo;
+		if (dx * dx + dy * dy + dz * dz > 48 * 48) continue;
+		const int tileId = level->getTile(c.x, c.y, c.z);
+		Tile* tile = tileId > 0 ? Tile::tiles[tileId] : NULL;
+		if (!tile) continue;
+		tileRenderer->tesselateInWorld(tile, c.x, c.y, c.z, 15 * 16 + Mth::clamp(c.stage, 0, 9));
+	}
+	t.draw();
+	t.offset(0, 0, 0);
+	glPolygonOffset(0.0f, 0.0f);
+	glDisable2(GL_POLYGON_OFFSET_FILL);
+	glDisable2(GL_BLEND);
+	glDepthMask(true);
+	glPopMatrix2();
 }
 
 bool LevelRenderer::updateDirtyChunks( Mob* player, bool force )
@@ -1372,10 +1410,21 @@ void LevelRenderer::levelEvent(Player* player, int type, int x, int y, int z, in
 	case LevelEvent::PARTICLES_DESTROY_BLOCK:
 		// before the tile is removed (the particles take its texture)
 		if (mc->particleEngine) mc->particleEngine->destroy(x, y, z);
+		for (int i = (int)npcCracks.size() - 1; i >= 0; --i)
+			if (npcCracks[i].x == x && npcCracks[i].y == y && npcCracks[i].z == z) npcCracks.erase(npcCracks.begin() + i);
 		break;
-	case LevelEvent::NPC_CRACK_BLOCK:
-		if (mc->particleEngine) mc->particleEngine->crack(x, y, z, data);
+	case LevelEvent::NPC_CRACK_BLOCK: {
+		// data: face | (crack stage + 1) << 8
+		if (mc->particleEngine && (data & 0xff) < 6) mc->particleEngine->crack(x, y, z, data & 0xff);
+		const int stage = (data >> 8) - 1;
+		if (stage >= 0) {
+			bool found = false;
+			for (unsigned int i = 0; i < npcCracks.size(); ++i)
+				if (npcCracks[i].x == x && npcCracks[i].y == y && npcCracks[i].z == z) { npcCracks[i].stage = stage; npcCracks[i].ttl = 12; found = true; }
+			if (!found && npcCracks.size() < 128) { NpcCrack c = { x, y, z, stage, 12 }; npcCracks.push_back(c); }
+		}
 		break;
+	}
 	}
 }
 

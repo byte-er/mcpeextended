@@ -577,6 +577,27 @@ void Player::readAdditionalSaveData(CompoundTag* entityTag) {
 	if (entityTag->contains("Armor", Tag::TAG_List)) {
 		loadArmor(armor, entityTag->getList("Armor"));
 	}
+	// creative: the hotbar points into the creative item list, so it's kept as item ids
+	if (inventory->isCreative() && entityTag->contains("CreativeHotbar", Tag::TAG_List)) {
+		ListTag* bar = entityTag->getList("CreativeHotbar");
+		for (int i = 0; i < bar->size() && i < Inventory::MAX_SELECTION_SIZE; ++i) {
+			Tag* t = bar->get(i);
+			if (t->getId() != Tag::TAG_Compound) continue;
+			CompoundTag* slot = (CompoundTag*) t;
+			const int id = slot->getShort("id"), aux = slot->getShort("Damage");
+			int found = -1;
+			if (id > 0) {
+				for (int s = Inventory::MAX_SELECTION_SIZE; s < inventory->getContainerSize() && found < 0; ++s) {
+					ItemInstance* it = inventory->getItem(s);
+					if (it && !it->isNull() && it->id == id && it->getAuxValue() == aux) found = s;
+				}
+				if (found < 0) continue; // not in this version's creative list: keep the default
+			}
+			if (found < 0) inventory->linkedSlots[i].inventorySlot = -1;
+			else inventory->linkSlot(i, found, false);
+		}
+		if (entityTag->contains("SelectedSlot")) inventory->selectSlot(entityTag->getInt("SelectedSlot"));
+	}
 
     dimension = entityTag->getInt("Dimension");
 
@@ -617,6 +638,19 @@ void Player::addAdditonalSaveData(CompoundTag* entityTag) {
 
 	ListTag* armorTag = saveArmor(armor);
 	entityTag->put("Armor", armorTag);
+
+	if (inventory->isCreative()) {
+		ListTag* bar = new ListTag();
+		for (int i = 0; i < Inventory::MAX_SELECTION_SIZE; ++i) {
+			ItemInstance* it = inventory->getItem(i);
+			CompoundTag* slot = new CompoundTag();
+			slot->putShort("id", (short)((it && !it->isNull()) ? it->id : 0));
+			slot->putShort("Damage", (short)((it && !it->isNull()) ? it->getAuxValue() : 0));
+			bar->add(slot);
+		}
+		entityTag->put("CreativeHotbar", bar);
+		entityTag->putInt("SelectedSlot", inventory->selected);
+	}
 
     entityTag->putInt("Dimension", dimension);
 	//return;

@@ -393,6 +393,7 @@ void GameRenderer::renderLevel(float a) {
 				levelRenderer->renderHit(player, mc->hitResult, 0, NULL, a);//player->inventory.getSelected(), a);
 			}
 		}
+		if (zoom == 1) levelRenderer->renderNpcCracks(cameraEntity, a);
 
 		glDisable2(GL_FOG);
 //

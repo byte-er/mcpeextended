@@ -757,7 +757,7 @@ void Mob::aiStep()
 	if(isPlayer()) {
 		player = (Player*)this;
 	}
-	if(player == NULL || !player->isSleeping())  {
+	if((player == NULL || !player->isSleeping()) && isPushable())  { // (Player NPCs push nobody)
 		EntityList& entities = level->getEntities(this, this->bb.grow(0.2f, 0, 0.2f));
 		for (unsigned int i = 0; i < entities.size(); i++) {
 			Entity* e = entities[i];

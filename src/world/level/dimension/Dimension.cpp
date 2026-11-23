@@ -127,14 +127,8 @@ Dimension* DimensionFactory::createDefaultDimension(LevelData* data )
 {
 	int dimensionId = Dimension::NORMAL;
 
-	switch(data->getGameType()) {
-	case GameType::Survival: dimensionId = Dimension::NORMAL_DAYCYCLE;
-		break;
-	case GameType::Creative:
-	default:
-		dimensionId = Dimension::NORMAL;
-		break;
-	}
+	// like 0.9.0: creative worlds have days and nights too (early PE kept it noon)
+	dimensionId = Dimension::NORMAL_DAYCYCLE;
 
 	return Dimension::getNew(dimensionId);
 }
