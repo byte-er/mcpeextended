@@ -104,7 +104,7 @@ PlayerNPC::PlayerNPC(Level* level)
 	mineX(0), mineY(0), mineZ(0), mineDir(0), mineDepth(0),
 	fightTarget(0), helpingId(0), hasWater(false),
 	chatCooldown(200), pendingTopic(-1), pendingDelay(0), lastTopicSaid(-1),
-	keepLogs(0), seedTries(0), directTicks(0), standValid(false), standX(0), standY(0), standZ(0), standForX(0), standForY(0), standForZ(0), hasMine(false), mineFails(0), buildPasses(0), announcedBuild(false), exploreCount(0), exploreAngle(0), lastLoggedJob(-1), lastLogTime(0)
+	keepLogs(0), seedTries(0), progTimer(0), progDist(1e9f), directTicks(0), standValid(false), standX(0), standY(0), standZ(0), standForX(0), standForY(0), standForZ(0), hasMine(false), mineFails(0), buildPasses(0), announcedBuild(false), exploreCount(0), exploreAngle(0), lastLoggedJob(-1), lastLogTime(0)
 {
 	entityRendererId = ER_NPC_RENDERER;
 	textureName = "mob/char.png";
@@ -284,6 +284,7 @@ void PlayerNPC::startJob(int j)
 // ---------------------------------------------------------------------------
 void PlayerNPC::think()
 {
+	digQueue.clear();
 	// the previous job ran out of steps
 	if ((job == JOB_BUILD || job == JOB_EXTRA) && !plan.empty() && planPos >= plan.size()) {
 		// keep going: planBuild takes a second pass, then finishes
@@ -346,14 +347,14 @@ void PlayerNPC::think()
 		// seeds from tall grass if there is some (tilling grass turns some up too)
 		if (inv[I_SEEDS] < 6 && seedTries < 3) { seedTries++; if (planSeeds()) return; }
 		if (hoe == 0 || inv[I_FENCE] < 28 || inv[I_GATE] < 1) {
-			if (inv[I_PLANK] >= 8) { if (planCraft()) return; }
+			if (inv[I_PLANK] + inv[I_LOG] * 4 >= 8) { if (planCraft()) return; }
 			if (planWood()) return;
 		} else if (planFarm()) return;
 	}
 	// animals
 	if (!penDone) {
 		if (inv[I_FENCE] < 26 || inv[I_GATE] < 1) {
-			if (inv[I_PLANK] >= 8) { if (planCraft()) return; }
+			if (inv[I_PLANK] + inv[I_LOG] * 4 >= 8) { if (planCraft()) return; }
 			if (planWood()) return;
 		} else if (planPen()) return;
 	}
@@ -411,6 +412,8 @@ bool PlayerNPC::reserved(int px, int pz, int margin) const
 
 bool PlayerNPC::planWood()
 {
+	if (inv[I_LOG] >= 64) return false; // plenty
+
 	// nearest tree trunk, ring by ring outwards (looking under the leaves)
 	int best = -1, bx = 0, by = 0, bz = 0;
 	const int px = Mth::floor(x), pz = Mth::floor(z);
@@ -1087,6 +1090,37 @@ bool PlayerNPC::walkTo(float tx, float ty, float tz, float reach)
 	const float dx = tx + 0.5f - x, dz = tz + 0.5f - z, dy = ty - (y - heightOffset);
 	const float d2 = dx * dx + dz * dz;
 	if (d2 <= reach * reach && std::fabs(dy) < 1.6f) { route.destroy(); directTicks = 0; return true; }
+	// no closer after a while: dig through what's in front (or give up eventually)
+	if (progDist >= 1e8f) { progDist = Mth::sqrt(d2) + std::fabs(dy); progTimer = 0; }
+	if (++progTimer >= 60) {
+		progTimer = 0;
+		const float dist = Mth::sqrt(d2) + std::fabs(dy);
+		if (progDist - dist < 1.0f && progDist < 1e8f) {
+			routeFails++;
+			const float ang = (float)Mth::atan2(dz, dx);
+			if (dy > 1.5f && (inv[I_DIRT] + inv[I_COBBLE] + inv[I_PLANK]) > 0) {
+				// down in a hole: jump and put a block under me, like anyone would
+				Step p; p.kind = Step::PILLAR; p.x = Mth::floor(x); p.y = Mth::floor(y - heightOffset); p.z = Mth::floor(z); p.tile = 0; p.data = 0; p.ticks = 0;
+				digQueue.push_back(p);
+			}
+			const int fx = Mth::floor(x + Mth::cos(ang) * 0.9f), fz = Mth::floor(z + Mth::sin(ang) * 0.9f), fy = Mth::floor(y - heightOffset);
+			for (int k = 1; k >= 0; --k) {
+				const int t = level->getTile(fx, fy + k, fz);
+				if (t != 0 && level->getMaterial(fx, fy + k, fz)->blocksMotion() && t != Tile::unbreakable->id && t != Tile::invisible_bedrock->id && t != Tile::chest->id) {
+					Step b; b.kind = Step::BREAK; b.x = fx; b.y = fy + k; b.z = fz; b.tile = -1; b.data = 0; b.ticks = 0;
+					digQueue.push_back(b);
+				}
+			}
+			// a block over my head keeps me from jumping out
+			const int up = level->getTile(Mth::floor(x), fy + 2, Mth::floor(z));
+			if (up != 0 && level->getMaterial(Mth::floor(x), fy + 2, Mth::floor(z))->blocksMotion() && up != Tile::unbreakable->id) {
+				Step b; b.kind = Step::BREAK; b.x = Mth::floor(x); b.y = fy + 2; b.z = Mth::floor(z); b.tile = -1; b.data = 0; b.ticks = 0;
+				digQueue.push_back(b);
+			}
+			route.destroy();
+		}
+		progDist = dist;
+	}
 	int itx = Mth::floor(tx), ity = Mth::floor(ty), itz = Mth::floor(tz);
 	// far away: path to a point on the way (the path finder only looks so far)
 	if (d2 > 36 * 36) {
@@ -1266,6 +1300,7 @@ int PlayerNPC::approach(int bx, int by, int bz)
 void PlayerNPC::popStep()
 {
 	if (!steps.empty()) steps.pop_front();
+	progTimer = 0; progDist = 1e9f;
 	routeFails = 0;
 	stuckTicks = 0;
 	directTicks = 0;
@@ -1273,6 +1308,11 @@ void PlayerNPC::popStep()
 
 void PlayerNPC::runStep()
 {
+	if (!digQueue.empty()) {
+		for (unsigned int i = 0; i < digQueue.size(); ++i) steps.push_front(digQueue[i]);
+		digQueue.clear();
+		return;
+	}
 	Step& s = steps.front();
 	switch (s.kind) {
 	case Step::SAY:
@@ -1473,6 +1513,27 @@ void PlayerNPC::runStep()
 		if (s.tile == Tile::workBench->id) { hasTable = true; tableX = s.x; tableY = s.y; tableZ = s.z; }
 		if (s.tile == Tile::calmWater->id) { hasWater = false; waterPlaced = true; }
 		popStep();
+		return;
+	}
+
+	case Step::PILLAR: {
+		const int fy = Mth::floor(y - heightOffset);
+		if (++s.ticks > 60 || std::abs(Mth::floor(x) - s.x) + std::abs(Mth::floor(z) - s.z) > 0) { popStep(); return; }
+		if (level->getMaterial(s.x, s.y + 2, s.z)->blocksMotion()) { popStep(); return; } // the head block gets dug first
+		jumping = true;
+		xRot = 80;
+		if (fy >= s.y + 1 && level->getTile(s.x, s.y, s.z) == 0) {
+			const int item = inv[I_DIRT] > 0 ? I_DIRT : inv[I_COBBLE] > 0 ? I_COBBLE : I_PLANK;
+			const int t = item == I_DIRT ? Tile::dirt->id : item == I_COBBLE ? Tile::stoneBrick->id : Tile::wood->id;
+			if (inv[item] <= 0) { popStep(); return; }
+			setHeld(t, true);
+			swing();
+			level->setTile(s.x, s.y, s.z, t);
+			Tile* placed = Tile::tiles[t];
+			level->playSound(s.x + 0.5f, s.y + 0.5f, s.z + 0.5f, placed->soundType->getStepSound(), (placed->soundType->getVolume() + 1) / 2, placed->soundType->getPitch() * 0.8f);
+			inv[item]--;
+			popStep();
+		}
 		return;
 	}
 

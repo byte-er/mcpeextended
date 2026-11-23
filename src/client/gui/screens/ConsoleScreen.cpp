@@ -239,7 +239,7 @@ std::string ConsoleScreen::processCommand(const std::string& raw)
     // /summon <mob>   (Java names: zombie, creeper, enderman, pig, ...)
     if (args[0] == "summon") {
         if (level->isClientSide) return "Only the host can summon.";
-        if (args.size() < 2) return "Usage: /summon <mob>";
+        if (args.size() < 2) return "Usage: /summon <mob> (or /summon player [count])";
         std::string n = args[1];
         if (n.compare(0, 10, "minecraft:") == 0) n = n.substr(10);
         if (n == "player") {

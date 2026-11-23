@@ -66,7 +66,7 @@ private:
 	enum Inv { I_LOG, I_PLANK, I_STICK, I_COBBLE, I_DIRT, I_SEEDS, I_WHEAT, I_COAL, I_IRON, I_FENCE,
 	           I_GATE, I_DOOR, I_TORCH, I_BREAD, I_SAND, I_TABLE, I_FURNACE, I_COUNT };
 	struct Step {
-		enum Kind { MOVE, BREAK, PLACE, TILL, WAIT, CRAFT, LEAD, SAY } kind;
+		enum Kind { MOVE, BREAK, PLACE, TILL, WAIT, CRAFT, LEAD, SAY, PILLAR } kind;
 		int x, y, z, tile, data, ticks;
 		std::string text;
 	};
@@ -152,6 +152,8 @@ private:
 	int lastTopicSaid;
 	int keepLogs;
 	int seedTries;
+	int progTimer; float progDist;
+	std::vector<Step> digQueue;
 	bool mineUnsafe(int x, int y, int z);
 	int directTicks;
 	bool standValid; int standX, standY, standZ, standForX, standForY, standForZ;
