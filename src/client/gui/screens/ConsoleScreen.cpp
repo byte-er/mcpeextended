@@ -304,6 +304,31 @@ std::string ConsoleScreen::processCommand(const std::string& raw)
         return "no npc home";
     }
 
+    if (args[0] == "npcwatch" && getenv("MCPE_NPCLOG")) {
+        // development: stand right next to NPC n, looking at it (/npcwatch n)
+        const int want = args.size() >= 2 ? std::atoi(args[1].c_str()) : 1;
+        for (unsigned int i = 0; i < level->entities.size(); ++i) {
+            Entity* e = level->entities[i];
+            if (e->getEntityTypeId() != MobTypes::PlayerNPC || ((PlayerNPC*)e)->number != want) continue;
+            LocalPlayer* p = minecraft->player;
+            p->abilities.flying = true;
+            // an open spot around it (it may be down a mine)
+            float cx = e->x, cz = e->z, cy = e->y + 0.6f;
+            for (int k = 0; k < 24; ++k) {
+                const float a = (e->yRot + 140 + k * 45) * Mth::DEGRAD, d = 2.5f + (k / 8) * 0.8f;
+                const float tx = e->x - Mth::sin(a) * d, tz = e->z + Mth::cos(a) * d;
+                const int bx = Mth::floor(tx), by = Mth::floor(e->y), bz = Mth::floor(tz);
+                if (level->getMaterial(bx, by, bz)->blocksMotion() || level->getMaterial(bx, by + 1, bz)->blocksMotion() || level->getMaterial(bx, by - 1, bz)->blocksMotion()) continue;
+                cx = tx; cz = tz; cy = e->y + 0.3f; break;
+            }
+            const float yaw = (float)(Mth::atan2(e->z - cz, e->x - cx) * 180 / Mth::PI) - 90;
+            p->moveTo(cx, cy, cz, yaw, 15);
+            p->xd = p->yd = p->zd = 0;
+            return "";
+        }
+        return "no such npc";
+    }
+
     if (args[0] == "tp" || args[0] == "teleport") {
         if (level->isClientSide) return "Only the host can teleport.";
         if (args.size() < 4) return "Usage: /tp <x> <y> <z>";

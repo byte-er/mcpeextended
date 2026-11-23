@@ -274,6 +274,17 @@ bool PlayerNPC::reserved(int px, int pz, int margin) const
 	return false;
 }
 
+bool PlayerNPC::treeTaken(int tx, int tz)
+{
+	const std::vector<PlayerNPC*>& all = NpcTown::get(level)->npcs();
+	for (unsigned int i = 0; i < all.size(); ++i) {
+		const PlayerNPC* n = all[i];
+		if (n == this || n->removed || n->job != JOB_WOOD || n->steps.empty()) continue;
+		if (n->steps.back().x == tx && n->steps.back().z == tz) return true;
+	}
+	return false;
+}
+
 bool PlayerNPC::planWood()
 {
 	if (inv[I_LOG] >= 64) return false; // plenty
@@ -294,6 +305,7 @@ bool PlayerNPC::planWood()
 				if (!level->getMaterial(cx, base - 1, cz)->blocksMotion()) break; // a branch, not a trunk
 				if (Tile::isLog(level->getTile(cx, base - 1, cz)) || level->getTile(cx, base - 1, cz) == Tile::wood->id) break; // someone's building
 				if (reserved(cx, cz, 2) || isBad(cx, base, cz)) break;
+				if (treeTaken(cx, cz)) break; // somebody's chopping that one
 				const int d = dx * dx + dz * dz;
 				if (best < 0 || d < best) { best = d; bx = cx; by = base; bz = cz; }
 				break;

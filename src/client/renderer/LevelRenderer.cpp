@@ -1,3 +1,5 @@
+#include <cstdlib>
+#include <cstdio>
 #include "../../world/level/BiomeTint.h"
 #include <algorithm>
 #include "LodRenderer.h"
@@ -662,6 +664,9 @@ void LevelRenderer::tick()
 void LevelRenderer::renderNpcCracks(Entity* camera, float a)
 {
 	if (npcCracks.empty() || !level) return;
+	static const bool log = getenv("MCPE_NPCLOG") != NULL; // development
+	static int frames = 0;
+	if (log && (++frames % 300) == 0) { printf("[npc] drawing %d crack overlays (first stage %d)\n", (int)npcCracks.size(), npcCracks[0].stage); fflush(stdout); }
 	Tesselator& t = Tesselator::instance;
 	glEnable2(GL_BLEND);
 	glBlendFunc2(GL_DST_COLOR, GL_SRC_COLOR);

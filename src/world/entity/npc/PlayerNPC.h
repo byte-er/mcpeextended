@@ -101,6 +101,7 @@ private:
 	void think();
 	void startJob(int j);
 	bool planWood();
+	bool treeTaken(int x, int z);
 	bool planMine();
 	bool planSeeds();
 	bool planCraft();
